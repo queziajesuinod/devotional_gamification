@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:3000/api";
+const API_URL = "http://127.0.0.1:3009/api";
 
 describe("Custom Authentication", () => {
   const testUser = {

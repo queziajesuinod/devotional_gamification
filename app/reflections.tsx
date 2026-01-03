@@ -1,5 +1,5 @@
 import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";

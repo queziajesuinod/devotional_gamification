@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import axios from "axios";
 
-const API_URL = process.env.API_URL || "http://127.0.0.1:3000";
+const API_URL = process.env.API_URL || "http://127.0.0.1:3009";
 
 describe("Medal System", () => {
   let authCookie: string;

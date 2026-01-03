@@ -209,9 +209,9 @@ export default function MedalsScreen() {
                             </Text>
                             {medal.isEarned && (
                               <View className="bg-primary rounded-full px-3 py-1">
-                                <Text className="text-white text-xs font-bold">
-                                  ?o" Conquistada
-                                </Text>
+                                  <Text className="text-white text-xs font-bold">
+                                    ?o&rdquo; Conquistada
+                                  </Text>
                               </View>
                             )}
                           </View>

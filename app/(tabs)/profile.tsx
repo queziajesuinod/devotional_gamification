@@ -1,10 +1,18 @@
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Image,
+  Platform,
+} from "react-native";
 import { useMemo, useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { NiceAvatar } from "@/components/nice-avatar";
 

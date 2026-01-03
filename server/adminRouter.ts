@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { adminProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import {
@@ -78,6 +78,17 @@ const medalSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+const ADMIN_PAGE_LIMIT = 10;
+const adminPaginationInput = z.object({
+  page: z.number().int().min(1),
+  limit: z.number().int().min(1).max(100),
+});
+
+const resolvePagination = (input?: z.infer<typeof adminPaginationInput>) => ({
+  page: input?.page ?? 1,
+  limit: input?.limit ?? ADMIN_PAGE_LIMIT,
+});
+
 export const adminRouter = router({
   me: adminProcedure.query(({ ctx }) => ({
     id: ctx.user.id,
@@ -87,22 +98,31 @@ export const adminRouter = router({
   })),
 
   users: router({
-    list: adminProcedure.query(async () => {
+    list: adminProcedure.input(adminPaginationInput.optional()).query(async ({ input }) => {
       const database = await requireDb();
-      return database
-        .select({
-          id: users.id,
-          openId: users.openId,
-          nickname: users.nickname,
-          email: users.email,
-          role: users.role,
-          xpTotal: users.xpTotal,
-          denarioBalance: users.denarioBalance,
-          lastSignedIn: users.lastSignedIn,
-          createdAt: users.createdAt,
-        })
-        .from(users)
-        .orderBy(desc(users.createdAt));
+      const { page, limit } = resolvePagination(input);
+      const offset = (page - 1) * limit;
+      const [items, totalRows] = await Promise.all([
+        database
+          .select({
+            id: users.id,
+            openId: users.openId,
+            nickname: users.nickname,
+            email: users.email,
+            role: users.role,
+            xpTotal: users.xpTotal,
+            denarioBalance: users.denarioBalance,
+            lastSignedIn: users.lastSignedIn,
+            createdAt: users.createdAt,
+          })
+          .from(users)
+          .orderBy(desc(users.createdAt))
+          .limit(limit)
+          .offset(offset),
+        database.select({ total: sql<number>`count(*)` }).from(users),
+      ]);
+      const total = Number(totalRows[0]?.total ?? 0);
+      return { items, page, limit, total };
     }),
     updateRole: adminProcedure
       .input(
@@ -119,9 +139,21 @@ export const adminRouter = router({
   }),
 
   shopItems: router({
-    list: adminProcedure.query(async () => {
+    list: adminProcedure.input(adminPaginationInput.optional()).query(async ({ input }) => {
       const database = await requireDb();
-      return database.select().from(shopItems).orderBy(desc(shopItems.createdAt));
+      const { page, limit } = resolvePagination(input);
+      const offset = (page - 1) * limit;
+      const [items, totalRows] = await Promise.all([
+        database
+          .select()
+          .from(shopItems)
+          .orderBy(desc(shopItems.createdAt))
+          .limit(limit)
+          .offset(offset),
+        database.select({ total: sql<number>`count(*)` }).from(shopItems),
+      ]);
+      const total = Number(totalRows[0]?.total ?? 0);
+      return { items, page, limit, total };
     }),
     create: adminProcedure.input(shopItemSchema).mutation(async ({ input }) => {
       const database = await requireDb();
@@ -168,23 +200,32 @@ export const adminRouter = router({
   }),
 
   groups: router({
-    list: adminProcedure.query(async () => {
+    list: adminProcedure.input(adminPaginationInput.optional()).query(async ({ input }) => {
       const database = await requireDb();
-      return database
-        .select({
-          id: groups.id,
-          name: groups.name,
-          description: groups.description,
-          leaderId: groups.leaderId,
-          leaderName: users.nickname,
-          memberCount: groups.memberCount,
-          totalPoints: groups.totalPoints,
-          createdAt: groups.createdAt,
-          updatedAt: groups.updatedAt,
-        })
-        .from(groups)
-        .innerJoin(users, eq(groups.leaderId, users.id))
-        .orderBy(desc(groups.createdAt));
+      const { page, limit } = resolvePagination(input);
+      const offset = (page - 1) * limit;
+      const [items, totalRows] = await Promise.all([
+        database
+          .select({
+            id: groups.id,
+            name: groups.name,
+            description: groups.description,
+            leaderId: groups.leaderId,
+            leaderName: users.nickname,
+            memberCount: groups.memberCount,
+            totalPoints: groups.totalPoints,
+            createdAt: groups.createdAt,
+            updatedAt: groups.updatedAt,
+          })
+          .from(groups)
+          .innerJoin(users, eq(groups.leaderId, users.id))
+          .orderBy(desc(groups.createdAt))
+          .limit(limit)
+          .offset(offset),
+        database.select({ total: sql<number>`count(*)` }).from(groups),
+      ]);
+      const total = Number(totalRows[0]?.total ?? 0);
+      return { items, page, limit, total };
     }),
     create: adminProcedure.input(groupSchema).mutation(async ({ ctx, input }) => {
       const database = await requireDb();
@@ -242,23 +283,35 @@ export const adminRouter = router({
   }),
 
   groupRequests: router({
-    pending: adminProcedure.query(async () => {
+    pending: adminProcedure.input(adminPaginationInput.optional()).query(async ({ input }) => {
       const database = await requireDb();
-      return database
-        .select({
-          requestId: groupMembers.id,
-          groupId: groups.id,
-          groupName: groups.name,
-          userId: users.id,
-          userNickname: users.nickname,
-          userEmail: users.email,
-          requestedAt: groupMembers.requestedAt,
-        })
-        .from(groupMembers)
-        .innerJoin(groups, eq(groupMembers.groupId, groups.id))
-        .innerJoin(users, eq(groupMembers.userId, users.id))
-        .where(eq(groupMembers.status, "pending"))
-        .orderBy(desc(groupMembers.requestedAt));
+      const { page, limit } = resolvePagination(input);
+      const offset = (page - 1) * limit;
+      const [items, totalRows] = await Promise.all([
+        database
+          .select({
+            requestId: groupMembers.id,
+            groupId: groups.id,
+            groupName: groups.name,
+            userId: users.id,
+            userNickname: users.nickname,
+            userEmail: users.email,
+            requestedAt: groupMembers.requestedAt,
+          })
+          .from(groupMembers)
+          .innerJoin(groups, eq(groupMembers.groupId, groups.id))
+          .innerJoin(users, eq(groupMembers.userId, users.id))
+          .where(eq(groupMembers.status, "pending"))
+          .orderBy(desc(groupMembers.requestedAt))
+          .limit(limit)
+          .offset(offset),
+        database
+          .select({ total: sql<number>`count(*)` })
+          .from(groupMembers)
+          .where(eq(groupMembers.status, "pending")),
+      ]);
+      const total = Number(totalRows[0]?.total ?? 0);
+      return { items, page, limit, total };
     }),
     approve: adminProcedure
       .input(z.object({ requestId: z.number().int().min(1) }))
@@ -275,9 +328,21 @@ export const adminRouter = router({
   }),
 
   devotionalPlans: router({
-    list: adminProcedure.query(async () => {
+    list: adminProcedure.input(adminPaginationInput.optional()).query(async ({ input }) => {
       const database = await requireDb();
-      return database.select().from(devotionalPlans).orderBy(desc(devotionalPlans.year));
+      const { page, limit } = resolvePagination(input);
+      const offset = (page - 1) * limit;
+      const [items, totalRows] = await Promise.all([
+        database
+          .select()
+          .from(devotionalPlans)
+          .orderBy(desc(devotionalPlans.year))
+          .limit(limit)
+          .offset(offset),
+        database.select({ total: sql<number>`count(*)` }).from(devotionalPlans),
+      ]);
+      const total = Number(totalRows[0]?.total ?? 0);
+      return { items, page, limit, total };
     }),
     create: adminProcedure.input(devotionalPlanSchema).mutation(async ({ input }) => {
       const database = await requireDb();
@@ -325,14 +390,31 @@ export const adminRouter = router({
 
   devotionalDays: router({
     list: adminProcedure
-      .input(z.object({ planId: z.number().int().min(1).optional() }).optional())
+      .input(
+        adminPaginationInput
+          .extend({ planId: z.number().int().min(1).optional() })
+          .optional()
+      )
       .query(async ({ input }) => {
         const database = await requireDb();
-        const query = database.select().from(devotionalDays);
-        if (input?.planId) {
-          return query.where(eq(devotionalDays.planId, input.planId)).orderBy(desc(devotionalDays.date));
+        const { page, limit } = resolvePagination(input);
+        const offset = (page - 1) * limit;
+        const planId = input?.planId;
+        const baseQuery = database.select().from(devotionalDays);
+        const filteredQuery = planId
+          ? baseQuery.where(eq(devotionalDays.planId, planId))
+          : baseQuery;
+        const items = await filteredQuery
+          .orderBy(desc(devotionalDays.date))
+          .limit(limit)
+          .offset(offset);
+        let totalQuery = database.select({ total: sql<number>`count(*)` }).from(devotionalDays);
+        if (planId) {
+          totalQuery = totalQuery.where(eq(devotionalDays.planId, planId));
         }
-        return query.orderBy(desc(devotionalDays.date));
+        const totalRows = await totalQuery;
+        const total = Number(totalRows[0]?.total ?? 0);
+        return { items, page, limit, total };
       }),
     create: adminProcedure.input(devotionalDaySchema).mutation(async ({ input }) => {
       const database = await requireDb();
@@ -375,16 +457,31 @@ export const adminRouter = router({
 
   challenges: router({
     list: adminProcedure
-      .input(z.object({ devotionalDayId: z.number().int().min(1).optional() }).optional())
+      .input(
+        adminPaginationInput
+          .extend({ devotionalDayId: z.number().int().min(1).optional() })
+          .optional()
+      )
       .query(async ({ input }) => {
         const database = await requireDb();
-        const query = database.select().from(challenges);
-        if (input?.devotionalDayId) {
-          return query
-            .where(eq(challenges.devotionalDayId, input.devotionalDayId))
-            .orderBy(desc(challenges.createdAt));
+        const { page, limit } = resolvePagination(input);
+        const offset = (page - 1) * limit;
+        const devotionalDayId = input?.devotionalDayId;
+        const baseQuery = database.select().from(challenges);
+        const filteredQuery = devotionalDayId
+          ? baseQuery.where(eq(challenges.devotionalDayId, devotionalDayId))
+          : baseQuery;
+        const items = await filteredQuery
+          .orderBy(desc(challenges.createdAt))
+          .limit(limit)
+          .offset(offset);
+        let totalQuery = database.select({ total: sql<number>`count(*)` }).from(challenges);
+        if (devotionalDayId) {
+          totalQuery = totalQuery.where(eq(challenges.devotionalDayId, devotionalDayId));
         }
-        return query.orderBy(desc(challenges.createdAt));
+        const totalRows = await totalQuery;
+        const total = Number(totalRows[0]?.total ?? 0);
+        return { items, page, limit, total };
       }),
     create: adminProcedure.input(challengeSchema).mutation(async ({ input }) => {
       const database = await requireDb();
@@ -425,9 +522,21 @@ export const adminRouter = router({
   }),
 
   medals: router({
-    list: adminProcedure.query(async () => {
+    list: adminProcedure.input(adminPaginationInput.optional()).query(async ({ input }) => {
       const database = await requireDb();
-      return database.select().from(medals).orderBy(desc(medals.createdAt));
+      const { page, limit } = resolvePagination(input);
+      const offset = (page - 1) * limit;
+      const [items, totalRows] = await Promise.all([
+        database
+          .select()
+          .from(medals)
+          .orderBy(desc(medals.createdAt))
+          .limit(limit)
+          .offset(offset),
+        database.select({ total: sql<number>`count(*)` }).from(medals),
+      ]);
+      const total = Number(totalRows[0]?.total ?? 0);
+      return { items, page, limit, total };
     }),
     create: adminProcedure.input(medalSchema).mutation(async ({ input }) => {
       const database = await requireDb();

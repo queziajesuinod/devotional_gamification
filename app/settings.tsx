@@ -496,7 +496,7 @@ export default function SettingsScreen() {
               </View>
             ) : (
               <Text className="text-muted text-sm">
-                Clique em "Alterar" para mudar sua senha
+                Clique em &ldquo;Alterar&rdquo; para mudar sua senha
               </Text>
             )}
           </View>

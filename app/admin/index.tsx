@@ -141,6 +141,75 @@ const parseAvatarConfigInput = (value: string) => {
   }
 };
 
+type PaginatedResult<T> = {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+};
+
+const ADMIN_PAGE_LIMIT = 10;
+
+const getPaginatedItems = <T extends unknown>(data?: PaginatedResult<T> | null) => data?.items ?? [];
+
+const getPaginationMeta = (
+  data?: PaginatedResult<unknown> | null,
+  fallbackPage = 1,
+  fallbackLimit = ADMIN_PAGE_LIMIT
+) => ({
+  page: data?.page ?? fallbackPage,
+  limit: data?.limit ?? fallbackLimit,
+  total: data?.total ?? 0,
+});
+
+type PaginationControlsProps = {
+  page: number;
+  limit: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  loading?: boolean;
+};
+
+const PaginationControls = ({
+  page,
+  limit,
+  total,
+  onPageChange,
+  loading,
+}: PaginationControlsProps) => {
+  if (total <= limit) {
+    return null;
+  }
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  return (
+    <View className="flex-row items-center justify-between mb-3">
+      <Text className="text-xs text-muted">
+        Página {page} de {totalPages} ({total} registros)
+      </Text>
+      <View className="flex-row gap-2">
+        <TouchableOpacity
+          className="px-3 py-1 rounded-full border border-border bg-surface"
+          disabled={page <= 1 || loading}
+          onPress={() => onPageChange(Math.max(1, page - 1))}
+        >
+          <Text className={`text-xs ${page <= 1 || loading ? "text-muted" : "text-foreground"}`}>
+            Anterior
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="px-3 py-1 rounded-full border border-border bg-surface"
+          disabled={page >= totalPages || loading}
+          onPress={() => onPageChange(Math.min(totalPages, page + 1))}
+        >
+          <Text className={`text-xs ${page >= totalPages || loading ? "text-muted" : "text-foreground"}`}>
+            Próximo
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
 type ShopItemType = "BACKGROUND" | "CLOTHES" | "ACCESSORY" | "HAIR_STYLE" | "HAIR_COLOR";
 
 type AvatarOptionKind = "color" | "text";
@@ -361,25 +430,51 @@ const AVATAR_OPTION_GROUPS: AvatarOptionGroup[] = [
   },
 ];
 export default function AdminPanelScreen() {
-  if (Platform.OS !== "web") {
-    return (
-      <ScreenContainer className="items-center justify-center">
-        <Text className="text-muted">Admin panel is available on web only.</Text>
-      </ScreenContainer>
-    );
-  }
+  const isWebPlatform = Platform.OS === "web";
 
   const adminMe = trpc.admin.me.useQuery();
   const isAdmin = !!adminMe.data;
+  const [usersPage, setUsersPage] = useState(1);
+  const [shopPage, setShopPage] = useState(1);
+  const [groupsPage, setGroupsPage] = useState(1);
+  const [groupRequestsPage, setGroupRequestsPage] = useState(1);
+  const [plansPage, setPlansPage] = useState(1);
+  const [daysPage, setDaysPage] = useState(1);
+  const [challengesPage, setChallengesPage] = useState(1);
+  const [medalsPage, setMedalsPage] = useState(1);
 
-  const usersQuery = trpc.admin.users.list.useQuery(undefined, { enabled: isAdmin });
-  const shopItemsQuery = trpc.admin.shopItems.list.useQuery(undefined, { enabled: isAdmin });
-  const groupsQuery = trpc.admin.groups.list.useQuery(undefined, { enabled: isAdmin });
-  const groupRequestsQuery = trpc.admin.groupRequests.pending.useQuery(undefined, { enabled: isAdmin });
-  const plansQuery = trpc.admin.devotionalPlans.list.useQuery(undefined, { enabled: isAdmin });
-  const daysQuery = trpc.admin.devotionalDays.list.useQuery(undefined, { enabled: isAdmin });
-  const challengesQuery = trpc.admin.challenges.list.useQuery(undefined, { enabled: isAdmin });
-  const medalsQuery = trpc.admin.medals.list.useQuery(undefined, { enabled: isAdmin });
+  const usersQuery = trpc.admin.users.list.useQuery(
+    { page: usersPage, limit: ADMIN_PAGE_LIMIT },
+    { enabled: isAdmin },
+  );
+  const shopItemsQuery = trpc.admin.shopItems.list.useQuery(
+    { page: shopPage, limit: ADMIN_PAGE_LIMIT },
+    { enabled: isAdmin },
+  );
+  const groupsQuery = trpc.admin.groups.list.useQuery(
+    { page: groupsPage, limit: ADMIN_PAGE_LIMIT },
+    { enabled: isAdmin },
+  );
+  const groupRequestsQuery = trpc.admin.groupRequests.pending.useQuery(
+    { page: groupRequestsPage, limit: ADMIN_PAGE_LIMIT },
+    { enabled: isAdmin },
+  );
+  const plansQuery = trpc.admin.devotionalPlans.list.useQuery(
+    { page: plansPage, limit: ADMIN_PAGE_LIMIT },
+    { enabled: isAdmin },
+  );
+  const daysQuery = trpc.admin.devotionalDays.list.useQuery(
+    { page: daysPage, limit: ADMIN_PAGE_LIMIT },
+    { enabled: isAdmin },
+  );
+  const challengesQuery = trpc.admin.challenges.list.useQuery(
+    { page: challengesPage, limit: ADMIN_PAGE_LIMIT },
+    { enabled: isAdmin },
+  );
+  const medalsQuery = trpc.admin.medals.list.useQuery(
+    { page: medalsPage, limit: ADMIN_PAGE_LIMIT },
+    { enabled: isAdmin },
+  );
 
   const userRoleUpdate = trpc.admin.users.updateRole.useMutation({
     onSuccess: () => usersQuery.refetch(),
@@ -629,22 +724,36 @@ export default function AdminPanelScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 1200;
 
-  const leaderCandidates = useMemo(
-    () => (usersQuery.data || []).slice(0, 12),
-    [usersQuery.data]
-  );
+  const usersList = getPaginatedItems(usersQuery.data);
+  const shopItems = getPaginatedItems(shopItemsQuery.data);
+  const groupsList = getPaginatedItems(groupsQuery.data);
+  const groupRequests = getPaginatedItems(groupRequestsQuery.data);
+  const planList = getPaginatedItems(plansQuery.data);
+  const daysList = getPaginatedItems(daysQuery.data);
+  const challengesList = getPaginatedItems(challengesQuery.data);
+  const medalsList = getPaginatedItems(medalsQuery.data);
+  const usersPagination = getPaginationMeta(usersQuery.data, usersPage);
+  const shopPagination = getPaginationMeta(shopItemsQuery.data, shopPage);
+  const groupsPagination = getPaginationMeta(groupsQuery.data, groupsPage);
+  const groupRequestsPagination = getPaginationMeta(groupRequestsQuery.data, groupRequestsPage);
+  const plansPagination = getPaginationMeta(plansQuery.data, plansPage);
+  const daysPagination = getPaginationMeta(daysQuery.data, daysPage);
+  const challengesPagination = getPaginationMeta(challengesQuery.data, challengesPage);
+  const medalsPagination = getPaginationMeta(medalsQuery.data, medalsPage);
+
+  const leaderCandidates = useMemo(() => usersList.slice(0, 12), [usersList]);
   const activeCutoff = useMemo(() => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - ACTIVE_DAYS);
     return cutoff;
   }, []);
   const usersWithStatus = useMemo(() => {
-    return (usersQuery.data || []).map((user) => {
+    return usersList.map((user) => {
       const lastSignedIn = user.lastSignedIn ? new Date(user.lastSignedIn) : null;
       const isActive = !!lastSignedIn && lastSignedIn >= activeCutoff;
       return { ...user, lastSignedIn, isActive };
     });
-  }, [usersQuery.data, activeCutoff]);
+  }, [usersList, activeCutoff]);
   const visibleUsers = useMemo(() => {
     if (!showActiveOnly) return usersWithStatus;
     return usersWithStatus.filter((user) => user.isActive);
@@ -653,8 +762,8 @@ export default function AdminPanelScreen() {
     () => usersWithStatus.filter((user) => user.isActive).length,
     [usersWithStatus]
   );
-  const planOptions = useMemo(() => plansQuery.data || [], [plansQuery.data]);
-  const dayOptions = useMemo(() => daysQuery.data || [], [daysQuery.data]);
+  const planOptions = useMemo(() => planList, [planList]);
+  const dayOptions = useMemo(() => daysList, [daysList]);
   const avatarPreviewBase = useMemo(() => genNiceAvatarConfig(), []);
 
   const selectedAvatarGroup = useMemo(
@@ -680,6 +789,14 @@ export default function AdminPanelScreen() {
     if (!shopAvatarPatch) return null;
     return { ...avatarPreviewBase, ...shopAvatarPatch } as NiceAvatarConfig;
   }, [avatarPreviewBase, shopAvatarPatch]);
+
+  if (!isWebPlatform) {
+    return (
+      <ScreenContainer className="items-center justify-center">
+        <Text className="text-muted">Admin panel is available on web only.</Text>
+      </ScreenContainer>
+    );
+  }
 
   const applyAvatarOption = (group: AvatarOptionGroup, value: string) => {
     const patch = { [group.key]: value };
@@ -731,6 +848,13 @@ export default function AdminPanelScreen() {
             <View className="mb-3">
               <Toggle label="Ativos apenas" value={showActiveOnly} onToggle={setShowActiveOnly} />
             </View>
+            <PaginationControls
+              page={usersPagination.page}
+              limit={usersPagination.limit}
+              total={usersPagination.total}
+              loading={usersQuery.isFetching}
+              onPageChange={setUsersPage}
+            />
             {usersQuery.isLoading ? (
               <ActivityIndicator />
             ) : (
@@ -797,6 +921,13 @@ export default function AdminPanelScreen() {
                 Create item patches (free or paid) to compose avatars.
               </Text>
             </View>
+            <PaginationControls
+              page={shopPagination.page}
+              limit={shopPagination.limit}
+              total={shopPagination.total}
+              loading={shopItemsQuery.isFetching}
+              onPageChange={setShopPage}
+            />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Item details</Text>
@@ -1040,7 +1171,7 @@ export default function AdminPanelScreen() {
                 {shopItemsQuery.isLoading ? (
                   <ActivityIndicator />
                 ) : (
-                  (shopItemsQuery.data || []).map((item) => (
+                  shopItems.map((item) => (
                     <View key={item.id} className="border border-border rounded-xl p-3 mb-2">
                       <Text className="text-foreground font-semibold">
                         {item.name}
@@ -1099,6 +1230,13 @@ export default function AdminPanelScreen() {
               <Text className="text-lg font-bold text-foreground">Groups</Text>
               <Text className="text-xs text-muted">Manage groups and assign leaders.</Text>
             </View>
+            <PaginationControls
+              page={groupsPagination.page}
+              limit={groupsPagination.limit}
+              total={groupsPagination.total}
+              loading={groupsQuery.isFetching}
+              onPageChange={setGroupsPage}
+            />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Group details</Text>
@@ -1174,7 +1312,7 @@ export default function AdminPanelScreen() {
 
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Existing groups</Text>
-                {(groupsQuery.data || []).map((group) => (
+                {groupsList.map((group) => (
                   <View key={group.id} className="border border-border rounded-xl p-3 mb-2">
                     <Text className="text-foreground font-semibold">
                       {group.name}
@@ -1219,10 +1357,17 @@ export default function AdminPanelScreen() {
               <Text className="text-lg font-bold text-foreground">Group Requests</Text>
               <Text className="text-xs text-muted">Approve or reject pending members.</Text>
             </View>
-            {(groupRequestsQuery.data || []).map((request) => (
+            <PaginationControls
+              page={groupRequestsPagination.page}
+              limit={groupRequestsPagination.limit}
+              total={groupRequestsPagination.total}
+              loading={groupRequestsQuery.isFetching}
+              onPageChange={setGroupRequestsPage}
+            />
+            {groupRequests.map((request) => (
               <View key={request.requestId} className="border border-border rounded-xl p-3 mb-2">
                 <Text className="text-foreground font-semibold">
-                  {request.userNickname || "User"} -> {request.groupName}
+                  {request.userNickname || "User"}{" -> "}{request.groupName}
                 </Text>
                 <Text className="text-muted text-xs">Requested at: {String(request.requestedAt)}</Text>
                 <View className="flex-row gap-2 mt-2">
@@ -1241,7 +1386,7 @@ export default function AdminPanelScreen() {
                 </View>
               </View>
             ))}
-            {(groupRequestsQuery.data || []).length === 0 && (
+            {groupRequests.length === 0 && (
               <View className="border border-border rounded-xl p-3">
                 <Text className="text-muted">No pending requests.</Text>
               </View>
@@ -1252,6 +1397,13 @@ export default function AdminPanelScreen() {
               <Text className="text-lg font-bold text-foreground">Devotional Plans</Text>
               <Text className="text-xs text-muted">Create and manage plan cycles.</Text>
             </View>
+            <PaginationControls
+              page={plansPagination.page}
+              limit={plansPagination.limit}
+              total={plansPagination.total}
+              loading={plansQuery.isFetching}
+              onPageChange={setPlansPage}
+            />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Plan details</Text>
@@ -1313,7 +1465,7 @@ export default function AdminPanelScreen() {
 
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Existing plans</Text>
-                {(plansQuery.data || []).map((plan) => (
+                {planList.map((plan) => (
                   <View key={plan.id} className="border border-border rounded-xl p-3 mb-2">
                     <Text className="text-foreground font-semibold">
                       {plan.name} ({plan.year})
@@ -1357,6 +1509,13 @@ export default function AdminPanelScreen() {
               <Text className="text-lg font-bold text-foreground">Devotional Days</Text>
               <Text className="text-xs text-muted">Create entries tied to a plan and date.</Text>
             </View>
+            <PaginationControls
+              page={daysPagination.page}
+              limit={daysPagination.limit}
+              total={daysPagination.total}
+              loading={daysQuery.isFetching}
+              onPageChange={setDaysPage}
+            />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Day details</Text>
@@ -1612,7 +1771,7 @@ export default function AdminPanelScreen() {
 
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Existing days</Text>
-                {(daysQuery.data || []).map((day) => (
+                {daysList.map((day) => (
                   <View key={day.id} className="border border-border rounded-xl p-3 mb-2">
                     <Text className="text-foreground font-semibold">
                       Plan {day.planId} Day {day.dayNumber}
@@ -1624,7 +1783,7 @@ export default function AdminPanelScreen() {
                       <TouchableOpacity
                         className="bg-secondary px-3 py-1 rounded-lg"
                         onPress={() => {
-                          const dayChallengesForEdit = (challengesQuery.data || [])
+                          const dayChallengesForEdit = challengesList
                             .filter((challenge) => challenge.devotionalDayId === day.id)
                             .map((challenge) => ({
                               id: challenge.id,
@@ -1676,6 +1835,13 @@ export default function AdminPanelScreen() {
               <Text className="text-lg font-bold text-foreground">Challenges</Text>
               <Text className="text-xs text-muted">Attach challenges to a devotional day.</Text>
             </View>
+            <PaginationControls
+              page={challengesPagination.page}
+              limit={challengesPagination.limit}
+              total={challengesPagination.total}
+              loading={challengesQuery.isFetching}
+              onPageChange={setChallengesPage}
+            />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Challenge details</Text>
@@ -1787,7 +1953,7 @@ export default function AdminPanelScreen() {
 
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Existing challenges</Text>
-                {(challengesQuery.data || []).map((challenge) => (
+                {challengesList.map((challenge) => (
                   <View key={challenge.id} className="border border-border rounded-xl p-3 mb-2">
                     <Text className="text-foreground font-semibold">
                       Day {challenge.devotionalDayId} | {challenge.type}
@@ -1836,6 +2002,13 @@ export default function AdminPanelScreen() {
               <Text className="text-lg font-bold text-foreground">Medals</Text>
               <Text className="text-xs text-muted">Define achievement medals and ordering.</Text>
             </View>
+            <PaginationControls
+              page={medalsPagination.page}
+              limit={medalsPagination.limit}
+              total={medalsPagination.total}
+              loading={medalsQuery.isFetching}
+              onPageChange={setMedalsPage}
+            />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Medal details</Text>
@@ -2140,7 +2313,7 @@ export default function AdminPanelScreen() {
 
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground mb-2">Existing medals</Text>
-                {(medalsQuery.data || []).map((medal) => (
+                {medalsList.map((medal) => (
                   <View key={medal.id} className="border border-border rounded-xl p-3 mb-2">
                     <Text className="text-foreground font-semibold">
                       {medal.name}

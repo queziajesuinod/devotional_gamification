@@ -1,12 +1,24 @@
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, RefreshControl, Image, Modal, TextInput, Alert } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Image,
+  Modal,
+  TextInput,
+  Alert,
+  Platform,
+} from "react-native";
 import { useState, useEffect } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { NiceAvatar, type NiceAvatarConfig } from "@/components/nice-avatar";
+import { formatCampoGrandeDate, getDelayToCampoGrandeNextMidnight } from "@shared/_core/time";
 
 const DEFAULT_AVATAR_CONFIG: NiceAvatarConfig = {
   sex: "man",
@@ -254,12 +266,7 @@ export default function DashboardScreen() {
             <>
               <View className="bg-surface rounded-2xl p-5 mb-4 border border-border">
                 <Text className="text-muted text-sm mb-2">
-                  {new Date(todayData.date).toLocaleDateString("pt-BR", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                  {formatCampoGrandeDate(todayData.date)}
                 </Text>
                 <Text className="text-foreground text-xl font-bold mb-3">{todayData.bibleReference}</Text>
                 {todayData.devotionalText && (
