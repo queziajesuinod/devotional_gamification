@@ -1,95 +1,193 @@
-import * as Linking from "expo-linking";
-import * as ReactNative from "react-native";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
+import type { Express, Request, Response } from "express";
+import { getUserByOpenId, upsertUser } from "../db";
+import { getSessionCookieOptions } from "./cookies";
+import { sdk } from "./sdk";
 
-// Extract scheme from bundle ID (last segment timestamp, prefixed with "manus")
-// e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
-const bundleId = "space.manus.devotional_gamification.t20251230234928";
-const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
-const schemeFromBundleId = `manus${timestamp}`;
-
-const env = {
-  portal: process.env.EXPO_PUBLIC_OAUTH_PORTAL_URL ?? "",
-  server: process.env.EXPO_PUBLIC_OAUTH_SERVER_URL ?? "",
-  appId: process.env.EXPO_PUBLIC_APP_ID ?? "",
-  ownerId: process.env.EXPO_PUBLIC_OWNER_OPEN_ID ?? "",
-  ownerName: process.env.EXPO_PUBLIC_OWNER_NAME ?? "",
-  apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "",
-  deepLinkScheme: schemeFromBundleId,
-};
-
-export const OAUTH_PORTAL_URL = env.portal;
-export const OAUTH_SERVER_URL = env.server;
-export const APP_ID = env.appId;
-export const OWNER_OPEN_ID = env.ownerId;
-export const OWNER_NAME = env.ownerName;
-export const API_BASE_URL = env.apiBaseUrl;
-
-/**
- * Get the API base URL, deriving from current hostname if not set.
- * Metro runs on 8081, API server runs on 3000.
- * URL pattern: https://PORT-sandboxid.region.domain
- */
-export function getApiBaseUrl(): string {
-  // If API_BASE_URL is set, use it
-  if (API_BASE_URL) {
-    return API_BASE_URL.replace(/\/$/, "");
-  }
-
-  // On web, derive from current hostname by replacing port 8081 with 3000
-  if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
-    const { protocol, hostname, port } = window.location;
-
-    // Local dev (Expo web on 8081, API on 3000)
-    if (port === "8081") {
-      return `${protocol}//${hostname}:3000`;
-    }
-    // Pattern: 8081-sandboxid.region.domain -> 3000-sandboxid.region.domain
-    const apiHostname = hostname.replace(/^8081-/, "3000-");
-    if (apiHostname !== hostname) {
-      return `${protocol}//${apiHostname}`;
-    }
-  }
-
-  // Fallback to empty (will use relative URL)
-  return "";
+function getQueryParam(req: Request, key: string): string | undefined {
+  const value = req.query[key];
+  return typeof value === "string" ? value : undefined;
 }
 
-export const SESSION_TOKEN_KEY = "app_session_token";
-export const USER_INFO_KEY = "manus-runtime-user-info";
-
-const encodeState = (value: string) => {
-  if (typeof globalThis.btoa === "function") {
-    return globalThis.btoa(value);
-  }
-  const BufferImpl = (globalThis as Record<string, any>).Buffer;
-  if (BufferImpl) {
-    return BufferImpl.from(value, "utf-8").toString("base64");
-  }
-  return value;
-};
-
-export const getLoginUrl = () => {
-  let redirectUri: string;
-
-  if (ReactNative.Platform.OS === "web") {
-    // Web platform: redirect to API server callback (not Metro bundler)
-    // The API server will then redirect back to the frontend with the session token
-    redirectUri = `${getApiBaseUrl()}/api/oauth/callback`;
-  } else {
-    // Native platform: use deep link scheme for mobile OAuth callback
-    // This allows the OS to redirect back to the app after authentication
-    redirectUri = Linking.createURL("/oauth/callback", {
-      scheme: env.deepLinkScheme,
-    });
+async function syncUser(userInfo: {
+  openId?: string | null;
+  name?: string | null;
+  email?: string | null;
+  loginMethod?: string | null;
+  platform?: string | null;
+}) {
+  if (!userInfo.openId) {
+    throw new Error("openId missing from user info");
   }
 
-  const state = encodeState(redirectUri);
+  const lastSignedIn = new Date();
+  await upsertUser({
+    openId: userInfo.openId,
+    nickname: userInfo.name || userInfo.email?.split('@')[0] || 'Usuário',
+    name: userInfo.name || null,
+    email: userInfo.email ?? null,
+    loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+    lastSignedIn,
+  });
+  const saved = await getUserByOpenId(userInfo.openId);
+  return (
+    saved ?? {
+      openId: userInfo.openId,
+      name: userInfo.name,
+      email: userInfo.email,
+      loginMethod: userInfo.loginMethod ?? null,
+      lastSignedIn,
+    }
+  );
+}
 
-  const url = new URL(`${OAUTH_PORTAL_URL}/app-auth`);
-  url.searchParams.set("appId", APP_ID);
-  url.searchParams.set("redirectUri", redirectUri);
-  url.searchParams.set("state", state);
-  url.searchParams.set("type", "signIn");
+function buildUserResponse(
+  user:
+    | Awaited<ReturnType<typeof getUserByOpenId>>
+    | {
+        openId: string;
+        name?: string | null;
+        email?: string | null;
+        loginMethod?: string | null;
+        lastSignedIn?: Date | null;
+      },
+) {
+  return {
+    id: (user as any)?.id ?? null,
+    openId: user?.openId ?? null,
+    name: user?.name ?? null,
+    email: user?.email ?? null,
+    loginMethod: user?.loginMethod ?? null,
+    lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString(),
+  };
+}
 
-  return url.toString();
-};
+export function registerOAuthRoutes(app: Express) {
+  app.get("/api/oauth/callback", async (req: Request, res: Response) => {
+    const code = getQueryParam(req, "code");
+    const state = getQueryParam(req, "state");
+
+    if (!code || !state) {
+      res.status(400).json({ error: "code and state are required" });
+      return;
+    }
+
+    try {
+      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      await syncUser(userInfo);
+      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
+        name: userInfo.name || "",
+        expiresInMs: ONE_YEAR_MS,
+      });
+
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+      // Redirect to the frontend URL (Expo web on port 8081)
+      // Cookie is set with parent domain so it works across both 3000 and 8081 subdomains
+      const frontendUrl =
+        process.env.EXPO_WEB_PREVIEW_URL ||
+        process.env.EXPO_PACKAGER_PROXY_URL ||
+        "http://localhost:8081";
+      res.redirect(302, frontendUrl);
+    } catch (error) {
+      console.error("[OAuth] Callback failed", error);
+      res.status(500).json({ error: "OAuth callback failed" });
+    }
+  });
+
+  app.get("/api/oauth/mobile", async (req: Request, res: Response) => {
+    const code = getQueryParam(req, "code");
+    const state = getQueryParam(req, "state");
+
+    if (!code || !state) {
+      res.status(400).json({ error: "code and state are required" });
+      return;
+    }
+
+    try {
+      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      const user = await syncUser(userInfo);
+
+      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
+        name: userInfo.name || "",
+        expiresInMs: ONE_YEAR_MS,
+      });
+
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+      res.json({
+        app_session_id: sessionToken,
+        user: buildUserResponse(user),
+      });
+    } catch (error) {
+      console.error("[OAuth] Mobile exchange failed", error);
+      res.status(500).json({ error: "OAuth mobile exchange failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    const cookieOptions = getSessionCookieOptions(req);
+    res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+    res.json({ success: true });
+  });
+
+  // Get current authenticated user - works with both cookie (web) and Bearer token (mobile)
+  app.get("/api/auth/me", async (req: Request, res: Response) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      res.json({ user: buildUserResponse(user) });
+    } catch (error) {
+      console.error("[Auth] /api/auth/me failed:", error);
+      res.status(401).json({ error: "Not authenticated", user: null });
+    }
+  });
+
+  // Establish session cookie from Bearer token
+  // Used by iframe preview: frontend receives token via postMessage, then calls this endpoint
+  // to get a proper Set-Cookie response from the backend (3000-xxx domain)
+  app.post("/api/auth/session", async (req: Request, res: Response) => {
+    try {
+      console.log("[Auth] /api/auth/session called");
+      console.log("[Auth] Headers:", {
+        authorization: req.headers.authorization ? "Bearer ***" : "missing",
+        cookie: req.headers.cookie ? "present" : "missing",
+        host: req.headers.host,
+        origin: req.headers.origin,
+      });
+
+      // Get the token from the Authorization header
+      const authHeader = req.headers.authorization || req.headers.Authorization;
+      if (typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
+        console.error("[Auth] /api/auth/session failed: Bearer token required");
+        res.status(400).json({ error: "Bearer token required" });
+        return;
+      }
+      const token = authHeader.slice("Bearer ".length).trim();
+      console.log("[Auth] Token received (first 20 chars):", token.substring(0, 20) + "...");
+
+      // Authenticate using Bearer token
+      console.log("[Auth] Authenticating token...");
+      const user = await sdk.authenticateRequest(req);
+      console.log("[Auth] User authenticated:", { id: user.id, email: user.email });
+
+      // Set cookie for this domain
+      const cookieOptions = getSessionCookieOptions(req);
+      console.log("[Auth] Cookie options:", cookieOptions);
+      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+      console.log("[Auth] /api/auth/session success");
+      res.json({ success: true, user: buildUserResponse(user) });
+    } catch (error) {
+      console.error("[Auth] /api/auth/session failed:", error);
+      console.error("[Auth] Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(401).json({ error: "Invalid token" });
+    }
+  });
+}
