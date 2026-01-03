@@ -1,0 +1,73 @@
+{
+   "meses": [
+    {
+      "mes": "Janeiro",
+      "dias": [
+        {"dia": 1, "leitura": "MATEUS 1"},
+        {"dia": 2, "leitura": "MATEUS 2"},
+        {"dia": 3, "leitura": "MATEUS 3"},
+        {"dia": 4, "leitura": "MATEUS 4"},
+        {"dia": 5, "leitura": "MATEUS 5:1-26"},
+        {"dia": 6, "leitura": "MATEUS 5:27-48"},
+        {"dia": 7, "leitura": "MATEUS 6"},
+        {"dia": 8, "leitura": "MATEUS 7"},
+        {"dia": 9, "leitura": "MATEUS 8"},
+        {"dia": 10, "leitura": "MATEUS 9:1-17"},
+        {"dia": 11, "leitura": "MATEUS 9:18-38"},
+        {"dia": 12, "leitura": "MATEUS 10:1-23"},
+        {"dia": 13, "leitura": "MATEUS 10:24-42"},
+        {"dia": 14, "leitura": "MATEUS 11"},
+        {"dia": 15, "leitura": "MATEUS 12:1-21"},
+        {"dia": 16, "leitura": "MATEUS 12:22-50"},
+        {"dia": 17, "leitura": "MATEUS 13:1-32"},
+        {"dia": 18, "leitura": "MATEUS 13:33-58"},
+        {"dia": 19, "leitura": "MATEUS 14:1-21"},
+        {"dia": 20, "leitura": "MATEUS 14:22-36"},
+        {"dia": 21, "leitura": "MATEUS 15:1-20"},
+        {"dia": 22, "leitura": "MATEUS 15:21-39"},
+        {"dia": 23, "leitura": "MATEUS 16"},
+        {"dia": 24, "leitura": "MATEUS 17"},
+        {"dia": 25, "leitura": "MATEUS 18:1-20"},
+        {"dia": 26, "leitura": "MATEUS 18:21-35"},
+        {"dia": 27, "leitura": "MATEUS 19:1-15"},
+        {"dia": 28, "leitura": "MATEUS 19:16-30"},
+        {"dia": 29, "leitura": "MATEUS 20:1-16"},
+        {"dia": 30, "leitura": "MATEUS 20:17-34"},
+        {"dia": 31, "leitura": "MATEUS 21:1-22"}
+      ]
+    },
+    {
+      "mes": "Fevereiro",
+      "dias": [
+        {"dia": 1, "leitura": "MATEUS 21:23-46"},
+        {"dia": 2, "leitura": "MATEUS 22:1-22"},
+        {"dia": 3, "leitura": "MATEUS 22:23-46"},
+        {"dia": 4, "leitura": "MATEUS 23:1-22"},
+        {"dia": 5, "leitura": "MATEUS 23:23-39"},
+        {"dia": 6, "leitura": "MATEUS 24:1-22"},
+        {"dia": 7, "leitura": "MATEUS 24:23-51"},
+        {"dia": 8, "leitura": "MATEUS 25:1-30"},
+        {"dia": 9, "leitura": "MATEUS 25:31-46"},
+        {"dia": 10, "leitura": "MATEUS 26:1-19"},
+        {"dia": 11, "leitura": "MATEUS 26:20-54"},
+        {"dia": 12, "leitura": "MATEUS 26:55-75"},
+        {"dia": 13, "leitura": "MATEUS 27:1-31"},
+        {"dia": 14, "leitura": "MATEUS 27:32-66"},
+        {"dia": 15, "leitura": "MATEUS 28"},
+        {"dia": 16, "leitura": "MARCOS 1:1-22"},
+        {"dia": 17, "leitura": "MARCOS 1:23-45"},
+        {"dia": 18, "leitura": "MARCOS 2:1-12"},
+        {"dia": 19, "leitura": "MARCOS 2:13-28"},
+        {"dia": 20, "leitura": "MARCOS 3:1-19"},
+        {"dia": 21, "leitura": "MARCOS 3:20-35"},
+        {"dia": 22, "leitura": "MARCOS 4:1-20"},
+        {"dia": 23, "leitura": "MARCOS 4:21-41"},
+        {"dia": 24, "leitura": "MARCOS 5:1-20"},
+        {"dia": 25, "leitura": "MARCOS 5:21-43"},
+        {"dia": 26, "leitura": "MARCOS 6:1-32"},
+        {"dia": 27, "leitura": "MARCOS 6:33-56"},
+        {"dia": 28, "leitura": "MARCOS 7:1-13"}
+      ]
+    }
+  ]
+}

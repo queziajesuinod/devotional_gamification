@@ -1,0 +1,2 @@
+CREATE SCHEMA IF NOT EXISTS devocional;
+GRANT USAGE, CREATE ON SCHEMA devocional TO public;

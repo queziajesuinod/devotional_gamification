@@ -1,0 +1,1 @@
+ALTER TABLE "medals" ADD COLUMN "iconUrlGray" varchar(512);
