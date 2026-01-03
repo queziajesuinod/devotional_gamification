@@ -1,8 +1,8 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const.js";
 import type { Express, Request, Response } from "express";
-import { getUserByOpenId, upsertUser } from "../db";
-import { getSessionCookieOptions } from "./cookies";
-import { sdk } from "./sdk";
+import { getUserByOpenId, upsertUser } from "../server/db";
+import { getSessionCookieOptions } from "../server/_core/cookies";
+import { sdk } from "../server/_core/sdk";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];

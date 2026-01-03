@@ -1,111 +1,90 @@
-version: '3.8'
+version: "3.9"
 
 services:
+  devocional-web:
+    image: devocional-quest-web:latest
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_public"
+
+        - "traefik.http.routers.devocional-web.rule=Host(`relevanteen.aleftec.com.br`)"
+        - "traefik.http.routers.devocional-web.entrypoints=websecure"
+        - "traefik.http.routers.devocional-web.tls=true"
+        - "traefik.http.routers.devocional-web.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.devocional-web.service=devocional-web"
+        - "traefik.http.services.devocional-web.loadbalancer.server.port=80"
+
+
+  devocional-api:
+    image: devocional-quest-image:latest
+    environment:
+      NODE_ENV: production
+      PORT: 3009
+
+      DB_HOST: 62.72.63.137
+      DB_PORT: 5432
+      DB_NAME: plano_leitura_quest
+      DB_USER: root
+      DB_PASSWORD: kZ7oYab65fQITbyPPV6CLgrL5NIONpwZ
+      DATABASE_URL: postgresql://root:kZ7oYab65fQITbyPPV6CLgrL5NIONpwZ@62.72.63.137:5432/plano_leitura_quest
+
+      REDIS_DISABLED: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # remova senha se não usa
+      # REDIS_PASSWORD: ""
+
+      JWT_SECRET: fed9f2b3618712f636d2a18dcdea9226b9c4ba090a6633f21de0c24230a6ded6
+      EXPO_PUBLIC_API_URL: https://relevanteen.aleftec.com.br/api
+      OAUTH_SERVER_URL: https://relevanteen.aleftec.com.br
+      CORS_ORIGIN: https://relevanteen.aleftec.com.br
+      APP_NAME: "Devocional Quest"
+      APP_URL: https://relevanteen.aleftec.com.br
+
+    networks:
+      - network_public
+      - internal
+
+    # IMPORTANTÍSSIMO: produção = rodar só a API
+    command: ["node", "dist/index.js"]
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_public"
+
+        # API em /api
+        - "traefik.http.routers.devocional-api.rule=Host(`relevanteen.aleftec.com.br`) && PathPrefix(`/api`)"
+        - "traefik.http.routers.devocional-api.entrypoints=websecure"
+        - "traefik.http.routers.devocional-api.tls=true"
+        - "traefik.http.routers.devocional-api.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.devocional-api.priority=100"
+
+        - "traefik.http.services.devocional-api.loadbalancer.server.port=3009"
+
+
   redis:
     image: redis:7-alpine
-    container_name: devocional-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-devocional_redis_pass}
-    ports:
-      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
     networks:
-      - devocional-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: devocional-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME:-iecg_bd}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password is required}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-    networks:
-      - devocional-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: devocional-app
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-iecg_bd}?options=-c%20search_path%3D${DB_SCHEMA:-devocional}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-iecg_bd}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_SCHEMA: ${DB_SCHEMA:-devocional}
-      PORT: 3000
-      EXPO_PORT: 8081
-      JWT_SECRET: ${JWT_SECRET:?JWT secret is required}
-      CORS_ORIGIN: ${CORS_ORIGIN:-*}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-devocional_redis_pass}
-      APP_NAME: ${APP_NAME:-Devocional Quest}
-      APP_URL: ${APP_URL:-http://localhost:8081}
-    networks:
-      - devocional-network
-      - ${TRAEFIK_NETWORK:-traefik-public}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik-public}"
-      
-      # Frontend (Expo web) - Port 8081
-      - "traefik.http.routers.devocional-web.rule=Host(`${TRAEFIK_DOMAIN}`)"
-      - "traefik.http.routers.devocional-web.entrypoints=websecure"
-      - "traefik.http.routers.devocional-web.tls=true"
-      - "traefik.http.routers.devocional-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.devocional-web.service=devocional-web"
-      - "traefik.http.services.devocional-web.loadbalancer.server.port=8081"
-      
-      # Backend API - Port 3000
-      - "traefik.http.routers.devocional-api.rule=Host(`${TRAEFIK_DOMAIN}`) && PathPrefix(`/api`, `/trpc`)"
-      - "traefik.http.routers.devocional-api.entrypoints=websecure"
-      - "traefik.http.routers.devocional-api.tls=true"
-      - "traefik.http.routers.devocional-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.devocional-api.service=devocional-api"
-      - "traefik.http.services.devocional-api.loadbalancer.server.port=3000"
-      
-      # Middleware for CORS
-      - "traefik.http.middlewares.devocional-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
-      - "traefik.http.middlewares.devocional-cors.headers.accesscontrolalloworigin=*"
-      - "traefik.http.middlewares.devocional-cors.headers.accesscontrolmaxage=100"
-      - "traefik.http.middlewares.devocional-cors.headers.addvaryheader=true"
-      - "traefik.http.routers.devocional-api.middlewares=devocional-cors"
-
-volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
+      - internal
+    deploy:
+      replicas: 1
 
 networks:
-  devocional-network:
-    driver: bridge
-  traefik-public:
+  network_public:
     external: true
+    name: network_public
+
+  internal:
+    driver: overlay
+    attachable: true
+
+volumes:
+  redis_data:
