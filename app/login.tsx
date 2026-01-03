@@ -22,15 +22,18 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const getApiUrl = () => {
-    // Always use the backend API URL (port 3000)
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      // Replace port 8081 with 3000 for backend API
-      const origin = window.location.origin.replace(':8081', ':3009').replace('8081-', '3009-');
-      return `${origin}/api`;
-    }
-    return "https://3000-il1293ezarklxcfek50kx-f2f21d31.us2.manus.computer/api";
-  };
+ const getApiUrl = () => {
+  // 1) se tiver env, usa ela
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl) return envUrl.replace(/\/$/, "");
+
+  // 2) fallback dev local
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    return `${window.location.origin}/api`;
+  }
+
+  return "http://localhost:3009/api";
+};
 
   const handleLogin = async () => {
     if (!email || !password) {

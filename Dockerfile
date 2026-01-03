@@ -1,60 +1,49 @@
-# Multi-stage build for Devocional Quest
-
-# Stage 1: Build the application
-FROM node:22-alpine AS builder
-
+FROM node:20 AS builder
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@9.12.0
+RUN npm i -g pnpm
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+RUN git clone --depth 1 https://github.com/queziajesuinod/devotional_gamification.git .
 
-# Install dependencies
 RUN pnpm install --frozen-lockfile
-
-# Copy source code
-COPY . .
-
-# Build the backend
 RUN pnpm build
 
-# Build the frontend (web)
-ENV EXPO_USE_METRO_WORKSPACE_ROOT=1
-RUN pnpm run export
-
-# Stage 2: Production image
-FROM node:22-alpine
-
+FROM node:20
 WORKDIR /app
+ENV NODE_ENV=production
 
-# Install pnpm
-RUN npm install -g pnpm@9.12.0
-
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-
-# Install production dependencies only
+RUN npm i -g pnpm
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built backend from builder
 COPY --from=builder /app/dist ./dist
+EXPOSE 3009
+CMD ["node","dist/index.js"]
 
-# Copy built frontend from builder
-COPY --from=builder /app/dist-web ./dist-web
 
-# Copy necessary files
-COPY drizzle ./drizzle
-COPY scripts ./scripts
-COPY server ./server
+devocional-quest-web
 
-# Expose ports
-EXPOSE 3000 8081
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+FROM node:20 AS builder
+WORKDIR /app
 
-# Start the application
-CMD ["node", "dist/index.js"]
+RUN npm i -g pnpm
+
+RUN git clone --depth 1 https://github.com/queziajesuinod/devotional_gamification.git .
+
+RUN pnpm install --frozen-lockfile
+
+# ✅ garante que o arquivo exista ANTES do metro iniciar
+RUN mkdir -p node_modules/react-native-css-interop/.cache \
+ && touch node_modules/react-native-css-interop/.cache/web.css
+
+# ✅ evita Metro “workspace root” no container
+ENV EXPO_NO_METRO_WORKSPACE_ROOT=1
+
+# opcional: limpa cache do metro/expo durante export
+RUN npx expo export -p web --output-dir web-dist --clear
+
+FROM nginx:alpine
+COPY --from=builder /app/web-dist /usr/share/nginx/html
+EXPOSE 80
+
