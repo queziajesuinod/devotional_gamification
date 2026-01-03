@@ -39,7 +39,7 @@ export default function SettingsScreen() {
 
   const getApiUrl = () => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
-      const origin = window.location.origin.replace(':8081', ':3000').replace('8081-', '3000-');
+      const origin = window.location.origin.replace(':8081', ':3009').replace('8081-', '3009-');
       return `${origin}/api`;
     }
     return "https://3000-il1293ezarklxcfek50kx-f2f21d31.us2.manus.computer/api";

@@ -17,7 +17,7 @@ DB_PASSWORD=your_secure_password_here
 
 ```bash
 NODE_ENV=production
-PORT=3000
+PORT=3009
 EXPO_PORT=8081
 ```
 
