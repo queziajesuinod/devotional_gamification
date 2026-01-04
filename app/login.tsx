@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import * as Auth from "@/lib/_core/auth";
 import * as Api from "@/lib/_core/api";
+import { getApiBaseUrl } from "@/constants/api";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,19 +22,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
- const getApiUrl = () => {
-  // 1) se tiver env, usa ela
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (envUrl) return envUrl.replace(/\/$/, "");
-
-  // 2) fallback dev local
-  if (Platform.OS === "web" && typeof window !== "undefined") {
-    return `${window.location.origin}/api`;
-  }
-
-  return "http://localhost:3009/api";
-};
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -45,8 +33,8 @@ export default function LoginScreen() {
     setError("");
 
     try {
-      const apiUrl = getApiUrl();
-      const response = await axios.post(`${apiUrl}/auth/login`, {
+      const baseUrl = getApiBaseUrl();
+      const response = await axios.post(`${baseUrl}/api/auth/login`, {
         email: email.trim().toLowerCase(),
         password,
       }, {

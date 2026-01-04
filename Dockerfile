@@ -21,29 +21,40 @@ EXPOSE 3009
 CMD ["node","dist/index.js"]
 
 
-devocional-quest-web
+    devocional-quest-web
 
-
-FROM node:20 AS builder
+# =========================
+# 1) BUILD
+# =========================
+FROM node:20-bookworm AS builder
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y git ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN npm i -g pnpm
 
-RUN git clone --depth 1 https://github.com/queziajesuinod/devotional_gamification.git .
+RUN git clone https://github.com/queziajesuinod/devotional_gamification.git .
 
 RUN pnpm install --frozen-lockfile
 
-# ✅ garante que o arquivo exista ANTES do metro iniciar
 RUN mkdir -p node_modules/react-native-css-interop/.cache \
  && touch node_modules/react-native-css-interop/.cache/web.css
 
-# ✅ evita Metro “workspace root” no container
 ENV EXPO_NO_METRO_WORKSPACE_ROOT=1
+ENV EXPO_NO_TELEMETRY=1
 
-# opcional: limpa cache do metro/expo durante export
 RUN npx expo export -p web --output-dir web-dist --clear
 
-FROM nginx:alpine
-COPY --from=builder /app/web-dist /usr/share/nginx/html
-EXPOSE 80
 
+# =========================
+# 2) RUNTIME (NODE STATIC SERVER)
+# =========================
+FROM node:20-alpine
+WORKDIR /app
+
+# servidor estático leve (SPA ok)
+RUN npm i -g serve
+
+COPY --from=builder /app/web-dist ./web-dist
+
+EXPOSE 80
+CMD ["serve", "-s", "web-dist", "-l", "80"]

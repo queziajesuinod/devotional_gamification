@@ -396,10 +396,10 @@ export default function ProfileScreen() {
         {/* Stats */}
         <View className="p-6">
           <View className="bg-surface rounded-2xl p-5 border border-border">
-            <Text className="text-foreground text-lg font-bold mb-4">Estatisticas</Text>
+            <Text className="text-foreground text-lg font-bold mb-4">Estatísticas</Text>
             <View className="gap-3">
               <View className="flex-row justify-between items-center">
-                <Text className="text-muted">Nivel</Text>
+                <Text className="text-muted">Nível</Text>
                 <Text className="text-foreground text-lg font-bold">{userData?.level || 1}</Text>
               </View>
               <View className="flex-row justify-between items-center">
@@ -407,7 +407,7 @@ export default function ProfileScreen() {
                 <Text className="text-accent text-lg font-bold">{userData?.xpTotal || 0}</Text>
               </View>
               <View className="flex-row justify-between items-center">
-                <Text className="text-muted">Denarios</Text>
+                <Text className="text-muted">Denários</Text>
                 <Text className="text-secondary text-lg font-bold">{userData?.denarioBalance || 0}</Text>
               </View>
             </View>
@@ -437,7 +437,7 @@ export default function ProfileScreen() {
               </View>
             ) : (
               <View className="bg-surface rounded-2xl p-6 items-center border border-border">
-                <Text className="text-muted text-center">Voce ainda nao possui itens.</Text>
+                <Text className="text-muted text-center">Voce ainda não possui itens.</Text>
                 <Text className="text-muted text-center text-sm mt-2">
                   Complete desafios para ganhar Denarios e comprar itens na Loja.
                 </Text>
@@ -464,7 +464,7 @@ export default function ProfileScreen() {
             className="bg-accent mt-4 py-3 rounded-full active:opacity-70"
             onPress={() => router.push("/reflections" as any)}
           >
-            <Text className="text-white text-center font-bold">Minhas Reflexoes</Text>
+            <Text className="text-white text-center font-bold">Minhas Reflexões</Text>
           </TouchableOpacity>
 
           {/* Settings Button */}
@@ -472,7 +472,7 @@ export default function ProfileScreen() {
             className="bg-primary mt-4 py-3 rounded-full active:opacity-70"
             onPress={() => router.push("/settings" as any)}
           >
-            <Text className="text-white text-center font-bold">Configuracoes</Text>
+            <Text className="text-white text-center font-bold">Configurações</Text>
           </TouchableOpacity>
 
           {/* Logout Button */}

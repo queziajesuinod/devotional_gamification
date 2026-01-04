@@ -798,15 +798,49 @@ export default function AdminPanelScreen() {
     );
   }
 
-  const applyAvatarOption = (group: AvatarOptionGroup, value: string) => {
-    const patch = { [group.key]: value };
-    setShopForm((prev) => ({
-      ...prev,
-      avatarConfig: JSON.stringify(patch),
-      type: group.type ?? prev.type,
-      name: prev.name || `${group.key}:${value}`,
-    }));
-  };
+const applyAvatarOption = (group: AvatarOptionGroup, value: string) => {
+  const patch = { [group.key]: value };
+  setShopForm((prev) => ({
+    ...prev,
+    avatarConfig: JSON.stringify(patch),
+    type: group.type ?? prev.type,
+    name: prev.name || `${group.key}:${value}`,
+  }));
+};
+
+const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) => {
+  const normalized = current ?? "#000000";
+  if (Platform.OS === "web" && typeof document !== "undefined") {
+    const input = document.createElement("input");
+    input.type = "color";
+    input.value = normalized;
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    input.addEventListener("change", (event) => {
+      const target = event.target as HTMLInputElement | null;
+      if (target?.value) {
+        applyAvatarOption(group, target.value);
+      }
+    });
+    document.body.appendChild(input);
+    input.click();
+    const cleanup = () => {
+      if (document.body.contains(input)) {
+        document.body.removeChild(input);
+      }
+    };
+    input.addEventListener("blur", cleanup, { once: true });
+    input.addEventListener("input", cleanup, { once: true });
+    return;
+  }
+
+  if (typeof prompt === "function") {
+    const promptValue = prompt("Digite um hexadecimal para a cor", normalized);
+    if (promptValue && /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/.test(promptValue)) {
+      applyAvatarOption(group, promptValue);
+    }
+  }
+};
 
   if (adminMe.isLoading) {
     return (
@@ -1009,37 +1043,39 @@ export default function AdminPanelScreen() {
                   />
                   <View className="bg-background border border-border rounded-lg p-3 gap-3">
                     <Text className="text-sm font-semibold text-foreground">Avatar options</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      <View className="flex-row gap-2">
-                        {AVATAR_OPTION_GROUPS.map((group) => {
-                          const isActive = selectedAvatarGroup?.key === group.key;
-                          return (
-                            <TouchableOpacity
-                              key={group.key}
-                              className={`px-3 py-2 rounded-full border ${
-                                isActive ? "bg-primary border-primary" : "bg-surface border-border"
-                              }`}
-                              onPress={() => setSelectedAvatarGroupKey(group.key)}
+                    <View className="flex-row flex-wrap gap-2">
+                      {AVATAR_OPTION_GROUPS.map((group) => {
+                        const isActive = selectedAvatarGroup?.key === group.key;
+                        return (
+                          <TouchableOpacity
+                            key={group.key}
+                            className={`px-3 py-2 rounded-full border ${
+                              isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                            }`}
+                            onPress={() => setSelectedAvatarGroupKey(group.key)}
+                          >
+                            <Text
+                              className={
+                                isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"
+                              }
                             >
-                              <Text className={isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"}>
-                                {group.label}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    </ScrollView>
+                              {group.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
                     {selectedAvatarGroup?.note ? (
                       <Text className="text-xs text-muted">{selectedAvatarGroup.note}</Text>
                     ) : null}
-                    <View className="flex-row flex-wrap gap-2">
-                      {(selectedAvatarGroup?.values || []).map((value) => {
-                        const activeGroupKey = selectedAvatarGroup?.key;
-                        const isSelected = activeGroupKey
-                          ? shopAvatarPatch?.[activeGroupKey] === value
-                          : false;
-                        return (
-                          <TouchableOpacity
+                  <View className="flex-row flex-wrap gap-2">
+                    {(selectedAvatarGroup?.values || []).map((value) => {
+                      const activeGroupKey = selectedAvatarGroup?.key;
+                      const isSelected = activeGroupKey
+                        ? shopAvatarPatch?.[activeGroupKey] === value
+                        : false;
+                      return (
+                        <TouchableOpacity
                             key={value}
                             className={`px-3 py-2 rounded-lg border ${
                               isSelected ? "bg-primary/10 border-primary" : "bg-surface border-border"
@@ -1064,6 +1100,25 @@ export default function AdminPanelScreen() {
                           </TouchableOpacity>
                         );
                       })}
+                      {selectedAvatarGroup?.kind === "color" && (
+                        <TouchableOpacity
+                          className="px-3 py-2 rounded-lg border bg-surface border-border flex-row items-center gap-2"
+                          onPress={() =>
+                            openColorPicker(
+                              selectedAvatarGroup,
+                              shopAvatarPatch?.[selectedAvatarGroup.key] as string | undefined,
+                            )
+                          }
+                        >
+                          <Text className="text-xs text-foreground">Cor personalizada</Text>
+                          <View
+                            className="w-4 h-4 rounded-full border border-border"
+                            style={{
+                              backgroundColor: shopAvatarPatch?.[selectedAvatarGroup.key] || "#FFFFFF",
+                            }}
+                          />
+                        </TouchableOpacity>
+                      )}
                     </View>
                     {selectedAvatarGroup && !selectedAvatarGroup.type ? (
                       <Text className="text-xs text-muted">
