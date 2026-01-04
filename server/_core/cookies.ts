@@ -21,8 +21,14 @@ function isSecureRequest(req: Request) {
 
 /**
  * Extract parent domain for cookie sharing across subdomains.
- * e.g., "3000-xxx.manuspre.computer" -> ".manuspre.computer"
- * This allows cookies set by 3000-xxx to be read by 8081-xxx
+ * 
+ * CORRIGIDO para lidar com TLDs compostos brasileiros (.com.br, .gov.br, etc.)
+ * 
+ * Exemplos:
+ * - "relevanteen.aleftec.com.br" -> ".aleftec.com.br"
+ * - "aleftec.com.br" -> undefined (usa hostname exato)
+ * - "3000-xxx.manuspre.computer" -> ".manuspre.computer"
+ * - "localhost" -> undefined
  */
 function getParentDomain(hostname: string): string | undefined {
   // Don't set domain for localhost or IP addresses
@@ -33,15 +39,41 @@ function getParentDomain(hostname: string): string | undefined {
   // Split hostname into parts
   const parts = hostname.split(".");
 
-  // Need at least 3 parts for a subdomain (e.g., "3000-xxx.manuspre.computer")
-  // For "manuspre.computer", we can't set a parent domain
-  if (parts.length < 3) {
-    return undefined;
+  // Lista de TLDs compostos brasileiros comuns
+  const compositeTLDs = new Set([
+    "com.br", "net.br", "org.br", "gov.br", "edu.br", 
+    "mil.br", "art.br", "etc.br", "adv.br", "odo.br",
+    "eng.br", "jor.br", "med.br", "mus.br", "not.br",
+    "psi.br", "qsl.br", "radio.br", "rec.br", "srv.br",
+    "tmp.br", "tur.br", "tv.br", "vet.br", "zlg.br",
+    "blog.br", "flog.br", "nom.br", "vlog.br", "wiki.br",
+    "eco.br", "emp.br", "ind.br"
+  ]);
+
+  // Verificar se é um TLD composto
+  if (parts.length >= 2) {
+    const possibleCompositeTLD = parts.slice(-2).join(".");
+    
+    if (compositeTLDs.has(possibleCompositeTLD)) {
+      // É um TLD composto (ex: .com.br)
+      if (parts.length >= 4) {
+        // Ex: "relevanteen.aleftec.com.br" -> ".aleftec.com.br"
+        return "." + parts.slice(-3).join(".");
+      } else if (parts.length === 3) {
+        // Ex: "aleftec.com.br" -> não define domínio (usa hostname exato)
+        return undefined;
+      }
+    }
   }
 
-  // Return parent domain with leading dot (e.g., ".manuspre.computer")
-  // This allows cookie to be shared across all subdomains
-  return "." + parts.slice(-2).join(".");
+  // Para domínios com TLD simples (.com, .org, etc.)
+  if (parts.length >= 3) {
+    // Ex: "3000-xxx.manuspre.computer" -> ".manuspre.computer"
+    return "." + parts.slice(-2).join(".");
+  }
+
+  // Para domínios de 2 partes (ex: "example.com"), não define domínio
+  return undefined;
 }
 
 export function getSessionCookieOptions(
