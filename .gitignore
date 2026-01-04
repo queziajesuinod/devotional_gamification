@@ -63,3 +63,6 @@ Thumbs.db
 *.tar.gz
 .cache/
 ./docker-compose.yml
+
+.env.local
+.env
