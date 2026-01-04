@@ -1,43 +1,34 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
-import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { createAuthRouter } from "../auth-routes";
 import { checkRedisHealth } from "../redis";
 
-function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.listen(port, () => {
-      server.close(() => resolve(true));
-    });
-    server.on("error", () => resolve(false));
-  });
-}
-
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
-  for (let port = startPort; port < startPort + 20; port++) {
-    if (await isPortAvailable(port)) {
-      return port;
-    }
-  }
-  throw new Error(`No available port found starting from ${startPort}`);
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
+  // ✅ crucial atrás do Traefik (HTTPS termina no proxy)
+  app.set("trust proxy", 1);
+
+  // (Opcional) tira header
+  app.disable("x-powered-by");
+
+  // CORS (se front e api estiverem no MESMO domínio, dá pra remover depois)
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin) {
-      res.header("Access-Control-Allow-Origin", origin);
-    }
+    if (origin) res.header("Access-Control-Allow-Origin", origin);
+
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header(
       "Access-Control-Allow-Headers",
@@ -45,7 +36,6 @@ async function startServer() {
     );
     res.header("Access-Control-Allow-Credentials", "true");
 
-    // Handle preflight requests
     if (req.method === "OPTIONS") {
       res.sendStatus(200);
       return;
@@ -56,18 +46,20 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // -------------------------
+  // API ROUTES (mantém /api)
+  // -------------------------
   registerOAuthRoutes(app);
 
-  // Register custom auth routes
   const authRouter = createAuthRouter();
   app.use("/api/auth", authRouter);
 
   app.get("/api/health", async (_req, res) => {
     const redisHealthy = await checkRedisHealth();
-    res.json({ 
-      ok: true, 
+    res.json({
+      ok: true,
       timestamp: Date.now(),
-      redis: redisHealthy ? 'connected' : 'disconnected'
+      redis: redisHealthy ? "connected" : "disconnected",
     });
   });
 
@@ -79,15 +71,27 @@ async function startServer() {
     }),
   );
 
-  const preferredPort = parseInt(process.env.PORT || "3009");
-  const port = await findAvailablePort(preferredPort);
+  // -------------------------
+  // WEB (Expo export) - /web-dist
+  // -------------------------
+  // dist/index.js fica em /app/dist, então ../web-dist => /app/web-dist
+  const webDir = path.resolve(__dirname, "../web-dist");
+  // Serve arquivos estáticos (assets, js, css)
+  app.use(express.static(webDir));
 
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
+  // Fallback SPA (React Router etc.), sem mexer em /api
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+    return res.sendFile(path.join(webDir, "index.html"));
+  });
 
-  server.listen(port, () => {
-    console.log(`[api] server listening on port ${port}`);
+  // ✅ PORTA FIXA (nada de procurar outra porta em container)
+  const port = parseInt(process.env.PORT || "3009", 10);
+  const host = process.env.HOST || "0.0.0.0";
+
+  server.listen(port, host, () => {
+    console.log(`[api] server listening on http://${host}:${port}`);
+    console.log(`[web] serving static from ${webDir}`);
   });
 }
 
