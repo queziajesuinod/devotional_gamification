@@ -14,9 +14,11 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import * as Auth from "@/lib/_core/auth";
 import * as Api from "@/lib/_core/api";
+import { useNotifications } from "@/components/notification-provider";
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const notifications = useNotifications();
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -86,11 +88,13 @@ export default function RegisterScreen() {
         }
 
         const target = user?.role === "leader" ? "/leader" : "/(tabs)";
+        notifications.success("Conta criada com sucesso!");
         router.replace(target);
       }
     } catch (err: any) {
       console.error("Register error:", err);
       setError(err.response?.data?.error || "Erro ao criar conta. Tente novamente.");
+      notifications.error(err.response?.data?.error || "Erro ao criar conta. Tente novamente.");
     } finally {
       setLoading(false);
     }

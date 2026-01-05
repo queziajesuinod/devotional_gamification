@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 import axios from "axios";
-import * as ImagePicker from "expo-image-picker";
+import { useNotifications } from "@/components/notification-provider";
 
 type GenderValue = "male" | "female" | "";
 
@@ -76,6 +76,32 @@ const maskBirthDateInput = (value: string) => {
   return formatted;
 };
 
+const maskWhatsappInput = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (!digits) return "";
+  if (digits.length <= 2) {
+    return `(${digits}`;
+  }
+
+  const area = digits.slice(0, 2);
+  const firstDigit = digits.slice(2, 3);
+  const middle = digits.slice(3, Math.min(7, digits.length));
+  const last = digits.slice(7, digits.length);
+
+  const parts = [`(${area})`];
+  let rest = firstDigit;
+  if (middle) {
+    rest += ` ${middle}`;
+  }
+  if (last) {
+    rest += `-${last}`;
+  }
+  parts.push(rest.trim());
+  return parts.join(" ").trim();
+};
+
+const formatWhatsappForInput = (value?: string | null) => maskWhatsappInput(value ?? "");
+
 const buildBirthDateIso = (digits: string) => {
   const day = digits.slice(0, 2).padStart(2, "0");
   const month = digits.slice(2, 4).padStart(2, "0");
@@ -109,7 +135,7 @@ export default function SettingsScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
-  const [avatarUploading, setAvatarUploading] = useState(false);
+  const notifications = useNotifications();
 
   const getApiUrl = () => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -117,81 +143,6 @@ export default function SettingsScreen() {
       return `${origin}/api`;
     }
     return "https://3000-il1293ezarklxcfek50kx-f2f21d31.us2.manus.computer/api";
-  };
-
-  const handlePickImage = async () => {
-    try {
-      // Request permission
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (!permissionResult.granted) {
-        if (Platform.OS === "web") {
-          alert("Permissão negada para acessar a galeria");
-        } else {
-          Alert.alert("Permissão negada", "Precisamos de permissão para acessar suas fotos");
-        }
-        return;
-      }
-
-      // Pick image
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (result.canceled) {
-        return;
-      }
-
-      setAvatarUploading(true);
-
-      // Upload image
-      const apiUrl = getApiUrl();
-      const formData = new FormData();
-      
-      if (Platform.OS === "web") {
-        // Web: fetch the blob and append
-        const response = await fetch(result.assets[0].uri);
-        const blob = await response.blob();
-        formData.append("avatar", blob, "avatar.jpg");
-      } else {
-        // Native: use uri directly
-        formData.append("avatar", {
-          uri: result.assets[0].uri,
-          type: "image/jpeg",
-          name: "avatar.jpg",
-        } as any);
-      }
-
-      const uploadResponse = await axios.post(
-        `${apiUrl}/auth/avatar`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          withCredentials: true,
-        }
-      );
-
-      if (uploadResponse.data.success) {
-        await refetch();
-        if (Platform.OS === "web") {
-          alert("Foto atualizada com sucesso!");
-        }
-      }
-    } catch (error: any) {
-      console.error("Avatar upload error:", error);
-      if (Platform.OS === "web") {
-        alert(error.response?.data?.error || "Erro ao fazer upload da foto");
-      } else {
-        Alert.alert("Erro", error.response?.data?.error || "Erro ao fazer upload da foto");
-      }
-    } finally {
-      setAvatarUploading(false);
-    }
   };
 
   const resetProfileForm = () => {
@@ -209,7 +160,7 @@ export default function SettingsScreen() {
     setEmail(userData?.email || "");
     setGender(resolveGenderValue(userData?.gender));
     setBirthDate(formatBirthDateForInput(userData?.birthDate));
-    setWhatsapp(userData?.whatsapp || "");
+    setWhatsapp(formatWhatsappForInput(userData?.whatsapp));
     setError("");
     setEditMode(true);
   };
@@ -246,11 +197,14 @@ export default function SettingsScreen() {
       if (trimmedFullName) {
         payload.name = trimmedFullName;
       }
-      if (trimmedNickname) payload.nickname = trimmedNickname;
+      if (trimmedNickname && trimmedNickname !== (userData?.nickname || "").trim()) {
+        payload.nickname = trimmedNickname;
+      }
       if (trimmedEmail) payload.email = trimmedEmail.toLowerCase();
       payload.gender = gender || null;
       payload.birthDate = birthDatePayload;
-      payload.whatsapp = trimmedWhatsapp || null;
+      const normalizedWhatsapp = trimmedWhatsapp.replace(/\D/g, "");
+      payload.whatsapp = normalizedWhatsapp || null;
 
       const response = await axios.put(`${apiUrl}/auth/profile`, payload, {
         withCredentials: true,
@@ -260,13 +214,12 @@ export default function SettingsScreen() {
         await refetch();
         resetProfileForm();
         setEditMode(false);
-        if (Platform.OS === "web") {
-          alert("Perfil atualizado com sucesso!");
-        }
+        notifications.success("Perfil atualizado com sucesso!");
       }
     } catch (err: any) {
       console.error("Profile update error:", err);
       setError(err.response?.data?.error || "Erro ao atualizar perfil");
+      notifications.error(err.response?.data?.error || "Erro ao atualizar perfil");
     } finally {
       setLoading(false);
     }
@@ -274,17 +227,23 @@ export default function SettingsScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError("Preencha todos os campos");
+      const message = "Preencha todos os campos";
+      setPasswordError(message);
+      notifications.error(message);
       return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordError("Nova senha deve ter no mínimo 6 caracteres");
+      const message = "Nova senha deve ter no mínimo 6 caracteres";
+      setPasswordError(message);
+      notifications.error(message);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError("As senhas não coincidem");
+      const message = "As senhas não coincidem";
+      setPasswordError(message);
+      notifications.error(message);
       return;
     }
 
@@ -309,13 +268,13 @@ export default function SettingsScreen() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
-        if (Platform.OS === "web") {
-          alert("Senha alterada com sucesso!");
-        }
+        notifications.success("Senha alterada com sucesso!");
       }
     } catch (err: any) {
       console.error("Password change error:", err);
-      setPasswordError(err.response?.data?.error || "Erro ao alterar senha");
+      const message = err.response?.data?.error || "Erro ao alterar senha";
+      setPasswordError(message);
+      notifications.error(message);
     } finally {
       setPasswordLoading(false);
     }
@@ -363,11 +322,7 @@ export default function SettingsScreen() {
         >
           {/* Header */}
           <View className="items-center mb-6">
-            <TouchableOpacity
-              className="w-24 h-24 bg-primary rounded-full items-center justify-center mb-4 relative"
-              onPress={handlePickImage}
-              disabled={avatarUploading}
-            >
+            <View className="w-24 h-24 bg-primary rounded-full items-center justify-center mb-4 relative">
               {userData.avatarUrl ? (
                 <Image
                   source={{ uri: userData.avatarUrl }}
@@ -379,17 +334,7 @@ export default function SettingsScreen() {
                   {userData.nickname.charAt(0).toUpperCase()}
                 </Text>
               )}
-              {avatarUploading && (
-                <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
-                  <ActivityIndicator color="white" />
-                </View>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handlePickImage} disabled={avatarUploading}>
-              <Text className="text-primary text-sm font-semibold">
-                Trocar Avatar
-              </Text>
-            </TouchableOpacity>
+            </View>
             <Text className="text-foreground text-2xl font-bold mt-2">
               {userData.nickname}
             </Text>
@@ -397,23 +342,23 @@ export default function SettingsScreen() {
           </View>
 
           {/* Stats */}
-          <View className="flex-row gap-4 mb-6">
-            <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
-              <Text className="text-muted text-xs mb-1">XP Total</Text>
-              <Text className="text-foreground text-2xl font-bold">
-                {userData.xpTotal}
-              </Text>
-            </View>
-            <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
-              <Text className="text-muted text-xs mb-1">Denários</Text>
-              <Text className="text-foreground text-2xl font-bold">
-                {userData.denarioBalance}
-              </Text>
-            </View>
+        <View className="flex-row gap-4 mb-6">
+          <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
+            <Text className="text-muted text-xs mb-1">XP Total</Text>
+            <Text className="text-foreground text-2xl font-bold">
+              {userData.xpTotal}
+            </Text>
           </View>
+          <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
+            <Text className="text-muted text-xs mb-1">Denários</Text>
+            <Text className="text-foreground text-2xl font-bold">
+              {userData.denarioBalance}
+            </Text>
+          </View>
+        </View>
 
-          {/* Profile Information */}
-          <View className="bg-surface rounded-xl p-4 border border-border mb-4">
+        {/* Profile Information */}
+        <View className="bg-surface rounded-xl p-4 border border-border mb-4">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-foreground text-lg font-bold">
                 Informações do Perfil
@@ -529,11 +474,12 @@ export default function SettingsScreen() {
                   </Text>
                   <TextInput
                     className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder="+55 (00) 00000-0000"
+                    placeholder="(00) 00000-0000"
                     placeholderTextColor="#9BA1A6"
                     value={whatsapp}
-                    onChangeText={setWhatsapp}
+                    onChangeText={(value) => setWhatsapp(maskWhatsappInput(value))}
                     keyboardType="phone-pad"
+                    maxLength={18}
                     editable={!loading}
                   />
                 </View>

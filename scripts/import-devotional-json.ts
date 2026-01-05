@@ -33,8 +33,6 @@ type ParsedEntry = {
   dayOfMonth: number;
 };
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 const monthMap: Record<string, number> = {
   janeiro: 0,
   fevereiro: 1,
@@ -48,6 +46,45 @@ const monthMap: Record<string, number> = {
   outubro: 9,
   novembro: 10,
   dezembro: 11,
+};
+
+const MONTH_LENGTHS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+const isLeapYear = (year: number) =>
+  (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+
+const getDaysInMonth = (year: number, monthIndex: number) =>
+  monthIndex === 1 && isLeapYear(year) ? 29 : MONTH_LENGTHS[monthIndex];
+
+const getDayOfYear = (year: number, monthIndex: number, dayNumber: number) => {
+  let sum = 0;
+  for (let i = 0; i < monthIndex; i++) {
+    sum += getDaysInMonth(year, i);
+  }
+  return sum + dayNumber;
+};
+
+const getCampoGrandeDateInfo = (
+  year: number,
+  monthIndex: number,
+  dayNumber: number
+) => {
+  if (monthIndex < 0 || monthIndex > 11) {
+    throw new Error("Invalid month");
+  }
+
+  const daysInMonth = getDaysInMonth(year, monthIndex);
+  if (dayNumber < 1 || dayNumber > daysInMonth) {
+    throw new Error("Invalid day");
+  }
+
+  const dateStr = `${year}-${pad2(monthIndex + 1)}-${pad2(dayNumber)}`;
+  return {
+    dateStr,
+    dayOfYear: getDayOfYear(year, monthIndex, dayNumber),
+  };
 };
 
 const normalizeMonthName = (value: string) =>
@@ -65,12 +102,6 @@ const getArg = (name: string, args: string[]) => {
 };
 
 const hasFlag = (name: string, args: string[]) => args.includes(`--${name}`);
-
-const toDayOfYear = (date: Date) => {
-  const start = new Date(Date.UTC(date.getUTCFullYear(), 0, 0));
-  const diff = date.getTime() - start.getTime();
-  return Math.floor(diff / MS_PER_DAY);
-};
 
 async function main() {
   const args = process.argv.slice(2);
@@ -158,16 +189,17 @@ async function main() {
         continue;
       }
 
-      const date = new Date(Date.UTC(year, monthIndex, dayNumber));
-      if (date.getUTCMonth() !== monthIndex) {
+      let dateInfo;
+      try {
+        dateInfo = getCampoGrandeDateInfo(year, monthIndex, dayNumber);
+      } catch {
         console.warn(`[Import] Invalid date for ${label} ${dayNumber} - skipping`);
         continue;
       }
 
-      const dateStr = date.toISOString().slice(0, 10);
-      entriesByDate.set(dateStr, {
-        dateStr,
-        dayNumber: toDayOfYear(date),
+      entriesByDate.set(dateInfo.dateStr, {
+        dateStr: dateInfo.dateStr,
+        dayNumber: dateInfo.dayOfYear,
         bibleReference: bibleReference.trim(),
         monthLabel: label,
         dayOfMonth: dayNumber,

@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/use-auth";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { NiceAvatar } from "@/components/nice-avatar";
+import { useNotifications } from "@/components/notification-provider";
 
 type ItemType = "BACKGROUND" | "CLOTHES" | "ACCESSORY" | "HAIR_STYLE" | "HAIR_COLOR";
 
@@ -120,6 +121,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading, logout } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const notifications = useNotifications();
 
   const { data: userData, isLoading: userLoading, refetch: refetchUser } = trpc.user.me.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -221,10 +223,10 @@ export default function ProfileScreen() {
 
     try {
       await equipItemMutation.mutateAsync({ itemId });
-      alert(`${itemName} equipado com sucesso!`);
+      notifications.success(`${itemName} equipado com sucesso!`);
     } catch (error: any) {
       console.error("Error equipping item:", error);
-      alert(error.message || "Erro ao equipar item");
+      notifications.error(error.message || "Erro ao equipar item");
     }
   };
 
@@ -235,10 +237,10 @@ export default function ProfileScreen() {
 
     try {
       await unequipItemMutation.mutateAsync({ itemType });
-      alert(`${itemName} removido do avatar.`);
+      notifications.success(`${itemName} removido do avatar.`);
     } catch (error: any) {
       console.error("Error unequipping item:", error);
-      alert(error.message || "Erro ao remover item");
+      notifications.error(error.message || "Erro ao remover item");
     }
   };
 
@@ -258,10 +260,10 @@ export default function ProfileScreen() {
         equippedHairStyleId: userData.equippedHairStyleId ?? null,
         equippedHairColorId: userData.equippedHairColorId ?? null,
       });
-      alert("Avatar base atualizado!");
+      notifications.success("Avatar base atualizado!");
     } catch (error: any) {
       console.error("Error updating avatar:", error);
-      alert(error.message || "Erro ao atualizar avatar");
+      notifications.error(error.message || "Erro ao atualizar avatar");
     }
   };
 

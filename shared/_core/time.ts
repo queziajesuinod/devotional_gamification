@@ -58,7 +58,9 @@ export const formatCampoGrandeDate = (value?: string | Date | null) => {
   if (!value) return "-";
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "-";
-  return longDateFormatter.format(date);
+  const parts = toCampoGrandeParts(date);
+  const campoGrandeDate = new Date(buildUtcFromParts(parts));
+  return longDateFormatter.format(campoGrandeDate);
 };
 
 export const getDelayToCampoGrandeNextMidnight = () => {

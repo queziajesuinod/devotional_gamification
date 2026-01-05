@@ -4,11 +4,13 @@ import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
+import { useNotifications } from "@/components/notification-provider";
 
 export default function GroupAdminScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = parseInt(id || "0");
   const [refreshing, setRefreshing] = useState(false);
+  const notifications = useNotifications();
 
   const { data: requests, isLoading, refetch } = trpc.groups.pendingRequests.useQuery({ groupId });
   const approveMutation = trpc.groups.approveRequest.useMutation();
@@ -27,18 +29,10 @@ export default function GroupAdminScreen() {
 
     try {
       await approveMutation.mutateAsync({ requestId });
-      if (Platform.OS === "web") {
-        alert(`${userName} foi aprovado!`);
-      } else {
-        Alert.alert("Sucesso", `${userName} foi aprovado!`);
-      }
       refetch();
+      notifications.success(`${userName} foi aprovado!`);
     } catch (error: any) {
-      if (Platform.OS === "web") {
-        alert(error.message || "Erro ao aprovar");
-      } else {
-        Alert.alert("Erro", error.message || "Erro ao aprovar");
-      }
+      notifications.error(error.message || "Erro ao aprovar");
     }
   };
 
@@ -65,12 +59,9 @@ export default function GroupAdminScreen() {
     try {
       await rejectMutation.mutateAsync({ requestId });
       refetch();
+      notifications.success(`${userName} rejeitado(a).`);
     } catch (error: any) {
-      if (Platform.OS === "web") {
-        alert(error.message || "Erro ao rejeitar");
-      } else {
-        Alert.alert("Erro", error.message || "Erro ao rejeitar");
-      }
+      notifications.error(error.message || "Erro ao rejeitar");
     }
   };
 

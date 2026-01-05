@@ -8,7 +8,6 @@ import {
   Image,
   Modal,
   TextInput,
-  Alert,
   Platform,
 } from "react-native";
 import { useState, useEffect } from "react";
@@ -19,6 +18,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { NiceAvatar, type NiceAvatarConfig } from "@/components/nice-avatar";
 import { formatCampoGrandeDate, getDelayToCampoGrandeNextMidnight } from "@shared/_core/time";
+import { useNotifications } from "@/components/notification-provider";
 
 const DEFAULT_AVATAR_CONFIG: NiceAvatarConfig = {
   sex: "man",
@@ -41,6 +41,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { user: authUser, isAuthenticated, loading: authLoading } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const notifications = useNotifications();
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
   const [reflectionText, setReflectionText] = useState("");
   const [selectedChallengeId, setSelectedChallengeId] = useState<number | null>(null);
@@ -88,13 +89,10 @@ export default function DashboardScreen() {
     }
     try {
       await completeChallengeMutation.mutateAsync({ challengeId });
+      notifications.success("Desafio concluído!");
     } catch (error: any) {
       console.error("Error completing challenge:", error);
-      if (Platform.OS === "web") {
-        alert(error.message || "Erro ao completar desafio");
-      } else {
-        Alert.alert("Erro", error.message || "Erro ao completar desafio");
-      }
+      notifications.error(error.message || "Erro ao completar desafio");
     }
   };
 
@@ -102,11 +100,7 @@ export default function DashboardScreen() {
     if (!selectedChallengeId) return;
 
     if (!reflectionText.trim()) {
-      if (Platform.OS === "web") {
-        alert("Por favor, escreva sua reflexão antes de continuar.");
-      } else {
-        Alert.alert("Reflexão necessária", "Por favor, escreva sua reflexão antes de continuar.");
-      }
+      notifications.error("Por favor, escreva sua reflexão antes de continuar.");
       return;
     }
 
@@ -119,16 +113,13 @@ export default function DashboardScreen() {
         challengeId: selectedChallengeId,
         responseText: reflectionText,
       });
+      notifications.success("Reflexão salva!");
       setReflectionModalVisible(false);
       setReflectionText("");
       setSelectedChallengeId(null);
     } catch (error: any) {
       console.error("Error completing reflection:", error);
-      if (Platform.OS === "web") {
-        alert(error.message || "Erro ao completar reflexão");
-      } else {
-        Alert.alert("Erro", error.message || "Erro ao completar reflexão");
-      }
+      notifications.error(error.message || "Erro ao completar reflexão");
     }
   };
 

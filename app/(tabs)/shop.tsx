@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useMemo, useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
@@ -13,6 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 import * as Haptics from "expo-haptics";
 import { NiceAvatar } from "@/components/nice-avatar";
+import { useNotifications } from "@/components/notification-provider";
 
 type ItemType = "BACKGROUND" | "CLOTHES" | "ACCESSORY" | "HAIR_STYLE" | "HAIR_COLOR";
 type Rarity = "COMMON" | "RARE" | "EPIC";
@@ -45,6 +47,10 @@ export default function ShopScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState<TabType>("buy");
   const [selectedType, setSelectedType] = useState<ItemType | "ALL">("ALL");
+  const [priceFilter, setPriceFilter] = useState<"ALL" | "FREE" | "PAID">("ALL");
+  const notifications = useNotifications();
+  const { width: windowWidth } = useWindowDimensions();
+  const columnWidth = windowWidth >= 768 ? "23%" : "48%";
 
   const { data: userData, refetch: refetchUser } = trpc.user.me.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -78,20 +84,20 @@ export default function ShopScreen() {
     }
 
     if ((userData?.denarioBalance || 0) < price) {
-      alert("Denários insuficientes!");
+      notifications.error("Denários insuficientes!");
       return;
     }
 
     try {
       await buyItemMutation.mutateAsync({ itemId });
       if (price === 0) {
-        alert(`${itemName} adicionado ao inventário!`);
+        notifications.success(`${itemName} adicionado ao inventário!`);
       } else {
-        alert(`${itemName} comprado com sucesso!`);
+        notifications.success(`${itemName} comprado com sucesso!`);
       }
     } catch (error: any) {
       console.error("Error buying item:", error);
-      alert(error.message || "Erro ao comprar item");
+      notifications.error(error.message || "Erro ao comprar item");
     }
   };
 
@@ -130,7 +136,7 @@ export default function ShopScreen() {
       <View
         key={ui.id}
         className="bg-surface rounded-2xl p-4 border border-border"
-        style={{ width: "48%" }}
+        style={{ width: columnWidth }}
       >
         <View className="bg-background rounded-xl h-24 items-center justify-center mb-3">
           {previewConfig ? (
@@ -166,7 +172,14 @@ export default function ShopScreen() {
     );
   }
 
-  const filteredShopItems = shopItems?.filter((item) => selectedType === "ALL" || item.type === selectedType) || [];
+  const filteredShopItems =
+    shopItems
+      ?.filter((item) => selectedType === "ALL" || item.type === selectedType)
+      .filter((item) => {
+        if (priceFilter === "FREE") return item.priceDenario === 0;
+        if (priceFilter === "PAID") return item.priceDenario > 0;
+        return true;
+      }) || [];
   const filteredUserItems = userItems?.filter((ui) => selectedType === "ALL" || ui.item.type === selectedType) || [];
 
   // Group user items by type
@@ -221,18 +234,19 @@ export default function ShopScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Category Filter */}
-        <View className="px-4">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              <TouchableOpacity
-                className={`px-4 py-2 rounded-full ${selectedType === "ALL" ? "bg-primary" : "bg-surface border border-border"}`}
-                onPress={() => setSelectedType("ALL")}
-              >
-                <Text className={`font-semibold ${selectedType === "ALL" ? "text-white" : "text-foreground"}`}>
-                  Todos
-                </Text>
-              </TouchableOpacity>
+        {/* Filters */}
+        <View className="px-4 flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-full ${selectedType === "ALL" ? "bg-primary" : "bg-surface border border-border"}`}
+                  onPress={() => setSelectedType("ALL")}
+                >
+                  <Text className={`font-semibold ${selectedType === "ALL" ? "text-white" : "text-foreground"}`}>
+                    Todos
+                  </Text>
+                </TouchableOpacity>
               <TouchableOpacity
                 className={`px-4 py-2 rounded-full ${selectedType === "BACKGROUND" ? "bg-primary" : "bg-surface border border-border"}`}
                 onPress={() => setSelectedType("BACKGROUND")}
@@ -265,16 +279,37 @@ export default function ShopScreen() {
                   Roupas
                 </Text>
               </TouchableOpacity>
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-full ${selectedType === "ACCESSORY" ? "bg-primary" : "bg-surface border border-border"}`}
+                  onPress={() => setSelectedType("ACCESSORY")}
+                >
+                  <Text className={`font-semibold ${selectedType === "ACCESSORY" ? "text-white" : "text-foreground"}`}>
+                    Acessorios
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Price Filter */}
+          <View className="flex-row gap-2">
+            {[
+              { label: "Todos", value: "ALL" },
+              { label: "Grátis", value: "FREE" },
+              { label: "Pagos", value: "PAID" },
+            ].map((option) => (
               <TouchableOpacity
-                className={`px-4 py-2 rounded-full ${selectedType === "ACCESSORY" ? "bg-primary" : "bg-surface border border-border"}`}
-                onPress={() => setSelectedType("ACCESSORY")}
+                key={option.value}
+                className={`px-4 py-2 rounded-full ${priceFilter === option.value ? "bg-primary" : "bg-surface border border-border"}`}
+                onPress={() => setPriceFilter(option.value as "ALL" | "FREE" | "PAID")}
               >
-                <Text className={`font-semibold ${selectedType === "ACCESSORY" ? "text-white" : "text-foreground"}`}>
-                  Acessorios
+                <Text className={`font-semibold ${priceFilter === option.value ? "text-white" : "text-foreground"}`}>
+                  {option.label}
                 </Text>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
+            ))}
+          </View>
+
         </View>
 
         {/* Content */}
@@ -300,7 +335,7 @@ export default function ShopScreen() {
                     <View
                       key={item.id}
                       className="bg-surface rounded-2xl p-4 border border-border"
-                      style={{ width: "48%" }}
+                      style={{ width: columnWidth }}
                     >
                       {/* Item Icon */}
                       <View className="bg-background rounded-xl h-24 items-center justify-center mb-3">

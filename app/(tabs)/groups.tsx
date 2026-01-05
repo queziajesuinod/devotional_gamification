@@ -1,12 +1,14 @@
-import { ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, Text, View } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import { useNotifications } from "@/components/notification-provider";
 
 export default function GroupsScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const notifications = useNotifications();
   
   const { data: groupsData, isLoading, refetch } = trpc.groups.list.useQuery();
   const { data: myGroup } = trpc.groups.myGroup.useQuery();
@@ -25,18 +27,10 @@ export default function GroupsScreen() {
 
     try {
       await requestJoinMutation.mutateAsync({ groupId });
-      if (Platform.OS === "web") {
-        alert(`Solicitação enviada para ${groupName}!`);
-      } else {
-        Alert.alert("Sucesso", `Solicitação enviada para ${groupName}!`);
-      }
       refetch();
+      notifications.success(`Solicitação enviada para ${groupName}!`);
     } catch (error: any) {
-      if (Platform.OS === "web") {
-        alert(error.message || "Erro ao solicitar entrada");
-      } else {
-        Alert.alert("Erro", error.message || "Erro ao solicitar entrada");
-      }
+      notifications.error(error.message || "Erro ao solicitar entrada");
     }
   };
 
