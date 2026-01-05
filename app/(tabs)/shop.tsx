@@ -235,8 +235,8 @@ export default function ShopScreen() {
         </View>
 
         {/* Filters */}
-        <View className="px-4 flex-row items-start justify-between gap-3">
-          <View className="flex-1">
+        <View className="px-4 flex-row flex-wrap items-start justify-between gap-3">
+          <View className="flex-1 min-w-[220px]">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2">
                 <TouchableOpacity
@@ -292,7 +292,8 @@ export default function ShopScreen() {
           </View>
 
           {/* Price Filter */}
-          <View className="flex-row gap-2">
+          <View className="flex-1 min-w-[180px]">
+            <View className="flex-row flex-wrap gap-2 justify-end">
             {[
               { label: "Todos", value: "ALL" },
               { label: "Grátis", value: "FREE" },
@@ -308,6 +309,7 @@ export default function ShopScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
+            </View>
           </View>
 
         </View>

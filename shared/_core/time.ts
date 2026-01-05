@@ -54,9 +54,24 @@ const clampParts = (parts: CampoGrandeParts, overrides: Partial<CampoGrandeParts
   ...overrides,
 });
 
+const parseDateValue = (value: string | Date) => {
+  if (typeof value === "string") {
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2}))?/.exec(value);
+    if (match) {
+      const [_, year, month, day, hour, minute, second] = match;
+      const hasTime = typeof hour !== "undefined";
+      if (hasTime) {
+        return new Date(value);
+      }
+      return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12));
+    }
+  }
+  return new Date(value);
+};
+
 export const formatCampoGrandeDate = (value?: string | Date | null) => {
   if (!value) return "-";
-  const date = new Date(value);
+  const date = parseDateValue(value);
   if (!Number.isFinite(date.getTime())) return "-";
   const parts = toCampoGrandeParts(date);
   const campoGrandeDate = new Date(buildUtcFromParts(parts));

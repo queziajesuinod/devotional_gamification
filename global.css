@@ -14,3 +14,9 @@
     font-family: 'Poppins', sans-serif;
   }
 }
+
+@layer utilities {
+  .text-white {
+    color: #267b75 !important;
+  }
+}
