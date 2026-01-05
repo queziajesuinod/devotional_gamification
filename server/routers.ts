@@ -6,6 +6,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { adminRouter } from "./adminRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
+import { getCampoGrandeDateString } from "../shared/_core/time.js";
 import { checkAndAwardAllMedals, checkAndAwardBookMedal, checkTimeBasedMedals } from "./medal-helpers";
 import { getRarityLock, getRarityRule } from "../shared/shop-rules";
 
@@ -98,6 +99,13 @@ export const appRouter = router({
         equipped?.accessory?.avatarConfig,
       ].reduce((acc, patch) => applyPatch(acc, patch), baseConfig);
       const resolvedAvatarConfig = Object.keys(mergedConfig).length > 0 ? mergedConfig : null;
+      const formatDateValue = (value?: Date | string | null) => {
+        if (!value) return null;
+        if (typeof value === "string") {
+          return value;
+        }
+        return value.toISOString().split("T")[0];
+      };
 
       return {
         id: user.id,
@@ -116,6 +124,9 @@ export const appRouter = router({
         equippedAccessoryId: user.equippedAccessoryId,
         equippedHairStyleId: user.equippedHairStyleId,
         equippedHairColorId: user.equippedHairColorId,
+        gender: user.gender,
+        birthDate: formatDateValue(user.birthDate),
+        whatsapp: user.whatsapp,
       };
     }),
 
@@ -153,12 +164,12 @@ export const appRouter = router({
   // ============================================
   devotional: router({
     today: protectedProcedure.query(async ({ ctx }) => {
-      const today = new Date();
+      const today = getCampoGrandeDateString();
       const devotionalDay = await db.getDevotionalDayByDate(today);
 
       if (!devotionalDay) {
         return {
-          date: today.toISOString().split('T')[0],
+          date: today,
           bibleReference: null,
           devotionalText: null,
           reflectionQuestion: null,

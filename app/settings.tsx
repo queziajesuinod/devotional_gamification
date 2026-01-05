@@ -18,14 +18,88 @@ import { trpc } from "@/lib/trpc";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 
+type GenderValue = "male" | "female" | "";
+
+const GENDER_LABELS: Record<Exclude<GenderValue, "">, string> = {
+  male: "Masculino",
+  female: "Feminino",
+};
+
+const GENDER_OPTIONS: Array<{ value: GenderValue; label: string }> = [
+  { value: "male", label: "Masculino" },
+  { value: "female", label: "Feminino" },
+];
+
+const resolveGenderValue = (value?: string | null): GenderValue => {
+  if (!value) return "";
+  const normalized = value.toString().trim().toLowerCase();
+  if (["male", "masculino"].includes(normalized)) return "male";
+  if (["female", "feminino"].includes(normalized)) return "female";
+  return "";
+};
+
+const getGenderLabel = (value?: string | null) => {
+  const resolved = resolveGenderValue(value);
+  return resolved ? GENDER_LABELS[resolved] : "-";
+};
+
+const formatBirthDateForDisplay = (value?: string | null | Date) => {
+  if (!value) return "-";
+  const isoValue =
+    typeof value === "string" ? value : value.toISOString().split("T")[0];
+  const [year, month, day] = isoValue.split("-");
+  if (!day || !month || !year) return isoValue;
+  return `${day}/${month}/${year}`;
+};
+
+const formatBirthDateForInput = (value?: string | null | Date) => {
+  if (!value) return "";
+  const isoValue =
+    typeof value === "string" ? value : value.toISOString().split("T")[0];
+  const [year, month, day] = isoValue.split("-");
+  if (!day || !month || !year) return "";
+  return `${day}/${month}/${year}`;
+};
+
+const maskBirthDateInput = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  const day = digits.slice(0, 2);
+  const month = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+  let formatted = day;
+  if (digits.length > 2) {
+    formatted += `/${month}`;
+  }
+  if (digits.length > 4) {
+    formatted += `/${year}`;
+  }
+  return formatted;
+};
+
+const buildBirthDateIso = (digits: string) => {
+  const day = digits.slice(0, 2).padStart(2, "0");
+  const month = digits.slice(2, 4).padStart(2, "0");
+  const year = digits.slice(4, 8);
+  return `${year}-${month}-${day}`;
+};
+
+const isFullNameValid = (value: string) => {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  return words.length >= 2;
+};
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { user: authUser, logout } = useAuth();
   const { data: userData, refetch } = trpc.user.me.useQuery();
 
   const [editMode, setEditMode] = useState(false);
+  const [fullName, setFullName] = useState("");
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
+  const [gender, setGender] = useState<GenderValue>("");
+  const [birthDate, setBirthDate] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -120,10 +194,47 @@ export default function SettingsScreen() {
     }
   };
 
+  const resetProfileForm = () => {
+    setFullName("");
+    setNickname("");
+    setEmail("");
+    setGender("");
+    setBirthDate("");
+    setWhatsapp("");
+  };
+
+  const handleStartEdit = () => {
+    setFullName(userData?.name || "");
+    setNickname(userData?.nickname || "");
+    setEmail(userData?.email || "");
+    setGender(resolveGenderValue(userData?.gender));
+    setBirthDate(formatBirthDateForInput(userData?.birthDate));
+    setWhatsapp(userData?.whatsapp || "");
+    setError("");
+    setEditMode(true);
+  };
+
   const handleUpdateProfile = async () => {
-    if (!nickname.trim() && !email.trim()) {
-      setError("Preencha pelo menos um campo");
+    const trimmedFullName = fullName.trim();
+    if (trimmedFullName && !isFullNameValid(trimmedFullName)) {
+      setError("Informe um nome completo com pelo menos duas palavras");
       return;
+    }
+
+    const trimmedNickname = nickname.trim();
+    const trimmedEmail = email.trim();
+    const trimmedWhatsapp = whatsapp.trim();
+
+    const trimmedBirthDate = birthDate.trim();
+    let birthDatePayload: string | null = null;
+
+    if (trimmedBirthDate) {
+      const digits = trimmedBirthDate.replace(/\D/g, "");
+      if (digits.length !== 8) {
+        setError("Informe a data de nascimento completa (DD/MM/AAAA)");
+        return;
+      }
+      birthDatePayload = buildBirthDateIso(digits);
     }
 
     setLoading(true);
@@ -131,19 +242,23 @@ export default function SettingsScreen() {
 
     try {
       const apiUrl = getApiUrl();
-      const response = await axios.put(
-        `${apiUrl}/auth/profile`,
-        {
-          nickname: nickname.trim() || undefined,
-          email: email.trim().toLowerCase() || undefined,
-        },
-        {
-          withCredentials: true,
-        }
-      );
+      const payload: Record<string, unknown> = {};
+      if (trimmedFullName) {
+        payload.name = trimmedFullName;
+      }
+      if (trimmedNickname) payload.nickname = trimmedNickname;
+      if (trimmedEmail) payload.email = trimmedEmail.toLowerCase();
+      payload.gender = gender || null;
+      payload.birthDate = birthDatePayload;
+      payload.whatsapp = trimmedWhatsapp || null;
+
+      const response = await axios.put(`${apiUrl}/auth/profile`, payload, {
+        withCredentials: true,
+      });
 
       if (response.data.success) {
         await refetch();
+        resetProfileForm();
         setEditMode(false);
         if (Platform.OS === "web") {
           alert("Perfil atualizado com sucesso!");
@@ -272,7 +387,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
             <TouchableOpacity onPress={handlePickImage} disabled={avatarUploading}>
               <Text className="text-primary text-sm font-semibold">
-                {userData.avatarUrl ? "Alterar Foto" : "Adicionar Foto"}
+                Trocar Avatar
               </Text>
             </TouchableOpacity>
             <Text className="text-foreground text-2xl font-bold mt-2">
@@ -304,7 +419,7 @@ export default function SettingsScreen() {
                 Informações do Perfil
               </Text>
               {!editMode && (
-                <TouchableOpacity onPress={() => setEditMode(true)}>
+                <TouchableOpacity onPress={handleStartEdit}>
                   <Text className="text-primary font-semibold">Editar</Text>
                 </TouchableOpacity>
               )}
@@ -312,6 +427,21 @@ export default function SettingsScreen() {
 
             {editMode ? (
               <View className="gap-4">
+                <View>
+                  <Text className="text-foreground text-sm font-semibold mb-2">
+                    Nome completo
+                  </Text>
+                  <TextInput
+                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                    placeholder={userData.name || ""}
+                    placeholderTextColor="#9BA1A6"
+                    value={fullName}
+                    onChangeText={setFullName}
+                    autoCapitalize="words"
+                    editable={!loading}
+                  />
+                </View>
+
                 <View>
                   <Text className="text-foreground text-sm font-semibold mb-2">
                     Apelido
@@ -343,6 +473,71 @@ export default function SettingsScreen() {
                   />
                 </View>
 
+                <View>
+                  <Text className="text-foreground text-sm font-semibold mb-2">
+                    Sexo{" "}
+                    <Text className="text-muted text-xs">(opcional)</Text>
+                  </Text>
+                  <View className="flex-row gap-2">
+                    {GENDER_OPTIONS.map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        onPress={() =>
+                          setGender((current) =>
+                            current === option.value ? "" : option.value
+                          )
+                        }
+                        className={`flex-1 rounded-xl border px-4 py-3 items-center justify-center ${
+                          gender === option.value
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-background"
+                        }`}
+                      >
+                        <Text
+                          className={`font-semibold ${
+                            gender === option.value ? "text-primary" : "text-foreground"
+                          }`}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View>
+                  <Text className="text-foreground text-sm font-semibold mb-2">
+                    Data de nascimento{" "}
+                    <Text className="text-muted text-xs">(opcional)</Text>
+                  </Text>
+                  <TextInput
+                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                    placeholder="DD/MM/AAAA"
+                    placeholderTextColor="#9BA1A6"
+                    value={birthDate}
+                    onChangeText={(value) => setBirthDate(maskBirthDateInput(value))}
+                    keyboardType="numeric"
+                    maxLength={10}
+                    editable={!loading}
+                  />
+                </View>
+
+                <View>
+                  <Text className="text-foreground text-sm font-semibold mb-2">
+                    WhatsApp{" "}
+                    <Text className="text-muted text-xs">(opcional)</Text>
+                  </Text>
+                  <TextInput
+                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                    placeholder="+55 (00) 00000-0000"
+                    placeholderTextColor="#9BA1A6"
+                    value={whatsapp}
+                    onChangeText={setWhatsapp}
+                    keyboardType="phone-pad"
+                    editable={!loading}
+                  />
+                </View>
+
                 {error ? (
                   <View className="bg-error/10 p-3 rounded-xl">
                     <Text className="text-error text-sm text-center">{error}</Text>
@@ -354,8 +549,7 @@ export default function SettingsScreen() {
                     className="flex-1 bg-border py-3 rounded-full active:opacity-70"
                     onPress={() => {
                       setEditMode(false);
-                      setNickname(userData.nickname || "");
-                      setEmail(userData.email || "");
+                      resetProfileForm();
                       setError("");
                     }}
                     disabled={loading}
@@ -382,6 +576,12 @@ export default function SettingsScreen() {
             ) : (
               <View className="gap-3">
                 <View>
+                  <Text className="text-muted text-xs mb-1">Nome completo</Text>
+                  <Text className="text-foreground text-base">
+                    {userData.name || "-"}
+                  </Text>
+                </View>
+                <View>
                   <Text className="text-muted text-xs mb-1">Apelido</Text>
                   <Text className="text-foreground text-base">
                     {userData.nickname}
@@ -391,6 +591,26 @@ export default function SettingsScreen() {
                   <Text className="text-muted text-xs mb-1">Email</Text>
                   <Text className="text-foreground text-base">
                     {userData.email}
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-muted text-xs mb-1">Sexo</Text>
+                  <Text className="text-foreground text-base">
+                    {getGenderLabel(userData.gender)}
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-muted text-xs mb-1">
+                    Data de nascimento
+                  </Text>
+                  <Text className="text-foreground text-base">
+                    {formatBirthDateForDisplay(userData.birthDate)}
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-muted text-xs mb-1">WhatsApp</Text>
+                  <Text className="text-foreground text-base">
+                    {userData.whatsapp || "-"}
                   </Text>
                 </View>
               </View>

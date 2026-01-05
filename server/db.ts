@@ -239,11 +239,14 @@ export async function getActiveDevotionalPlan() {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getDevotionalDayByDate(date: Date) {
+export async function getDevotionalDayByDate(date: Date | string) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr =
+    typeof date === 'string'
+      ? date
+      : date.toISOString().split('T')[0];
   const result = await db
     .select()
     .from(devotionalDays)

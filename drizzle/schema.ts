@@ -62,6 +62,9 @@ export const users = pgTable(
     avatarUrl: varchar("avatarUrl", { length: 500 }),
     loginMethod: varchar("loginMethod", { length: 64 }),
     role: roleEnum("role").default("user").notNull(),
+    gender: varchar("gender", { length: 16 }),
+    birthDate: date("birthDate"),
+    whatsapp: varchar("whatsapp", { length: 32 }),
     
     // Gamification fields
     nickname: varchar("nickname", { length: 100 }).notNull(),

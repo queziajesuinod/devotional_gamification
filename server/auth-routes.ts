@@ -12,6 +12,17 @@ const upload = multer({ storage: multer.memoryStorage() });
 const COOKIE_NAME = "app_session_id";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const SALT_ROUNDS = 10;
+const normalizeGenderOption = (value?: string | null) => {
+  if (!value) return null;
+  const normalized = value.toString().trim().toLowerCase();
+  if (["masculino", "male"].includes(normalized)) return "male";
+  if (["feminino", "female"].includes(normalized)) return "female";
+  return null;
+};
+const isFullNameValid = (value: string) => {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  return words.length >= 2;
+};
 
 export function createAuthRouter(): Router {
   const router = Router();
@@ -57,6 +68,7 @@ export function createAuthRouter(): Router {
       // Create session token using openId (which is the user's ID for custom auth)
       const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.nickname,
+        fallbackName: user.email?.split("@")[0] || user.openId || undefined,
         expiresInMs: ONE_YEAR_MS,
       });
 
@@ -126,6 +138,7 @@ export function createAuthRouter(): Router {
       // Create session token
       const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.nickname,
+        fallbackName: user.email?.split("@")[0] || user.openId || undefined,
         expiresInMs: ONE_YEAR_MS,
       });
 
@@ -171,16 +184,27 @@ export function createAuthRouter(): Router {
         return;
       }
 
-      const { nickname, email } = req.body;
+      const { nickname, email, gender, birthDate, whatsapp, name } = req.body;
 
-      if (!nickname && !email) {
+      const cleanedNickname = typeof nickname === "string" ? nickname.trim() : undefined;
+      const cleanedEmail = typeof email === "string" ? email.trim().toLowerCase() : undefined;
+      const cleanedName = typeof name === "string" ? name.trim() : undefined;
+      const hasUpdate =
+        Boolean(cleanedNickname) ||
+        Boolean(cleanedEmail) ||
+        name !== undefined ||
+        gender !== undefined ||
+        birthDate !== undefined ||
+        whatsapp !== undefined;
+
+      if (!hasUpdate) {
         res.status(400).json({ error: "Nenhum campo para atualizar" });
         return;
       }
 
       // Check if email is already taken by another user
-      if (email) {
-        const existingUser = await getUserByEmail(email);
+      if (cleanedEmail) {
+        const existingUser = await getUserByEmail(cleanedEmail);
         if (existingUser && existingUser.id !== user.id) {
           res.status(400).json({ error: "Email já está em uso" });
           return;
@@ -198,8 +222,27 @@ export function createAuthRouter(): Router {
       const { eq } = await import("drizzle-orm");
 
       const updateData: any = {};
-      if (nickname) updateData.nickname = nickname.trim();
-      if (email) updateData.email = email.trim().toLowerCase();
+      if (name !== undefined) {
+        if (cleanedName && !isFullNameValid(cleanedName)) {
+          res
+            .status(400)
+            .json({ error: "Informe um nome completo com pelo menos duas palavras" });
+          return;
+        }
+        updateData.name = cleanedName || null;
+      }
+      if (cleanedNickname) updateData.nickname = cleanedNickname;
+      if (cleanedEmail) updateData.email = cleanedEmail;
+      if (gender !== undefined) {
+        updateData.gender = normalizeGenderOption(gender);
+      }
+      if (birthDate !== undefined) {
+        updateData.birthDate = birthDate || null;
+      }
+      if (whatsapp !== undefined) {
+        const normalizedWhatsapp = typeof whatsapp === "string" ? whatsapp.trim() : whatsapp;
+        updateData.whatsapp = normalizedWhatsapp || null;
+      }
 
       await db.update(users).set(updateData).where(eq(users.id, user.id));
 
@@ -216,6 +259,9 @@ export function createAuthRouter(): Router {
           level: updatedUser!.level,
           xpTotal: updatedUser!.xpTotal,
           denarioBalance: updatedUser!.denarioBalance,
+          gender: updatedUser!.gender,
+          birthDate: updatedUser!.birthDate,
+          whatsapp: updatedUser!.whatsapp,
         },
       });
     } catch (error) {

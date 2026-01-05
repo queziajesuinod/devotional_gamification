@@ -366,7 +366,7 @@ export default function ProfileScreen() {
 
           <View className="mt-4 w-full">
             <Text className="text-white/90 text-sm font-semibold mb-2">
-              Avatar base (4 opcoes)
+              Avatar base (4 opções)
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-3 pb-1">

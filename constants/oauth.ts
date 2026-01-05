@@ -76,10 +76,15 @@ export function registerOAuthRoutes(app: Express) {
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       await syncUser(userInfo);
-      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
-        name: userInfo.name || "",
-        expiresInMs: ONE_YEAR_MS,
-      });
+        const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
+          name: userInfo.name ?? undefined,
+          fallbackName:
+            userInfo.email?.split("@")[0] ||
+            userInfo.nickname ||
+            userInfo.openId ||
+            undefined,
+          expiresInMs: ONE_YEAR_MS,
+        });
 
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
@@ -111,10 +116,15 @@ export function registerOAuthRoutes(app: Express) {
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       const user = await syncUser(userInfo);
 
-      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
-        name: userInfo.name || "",
-        expiresInMs: ONE_YEAR_MS,
-      });
+        const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
+          name: userInfo.name ?? undefined,
+          fallbackName:
+            userInfo.email?.split("@")[0] ||
+            userInfo.nickname ||
+            userInfo.openId ||
+            undefined,
+          expiresInMs: ONE_YEAR_MS,
+        });
 
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });

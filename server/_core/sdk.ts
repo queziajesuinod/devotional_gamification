@@ -147,13 +147,19 @@ class SDKServer {
    */
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string } = {},
+    options: { expiresInMs?: number; name?: string; fallbackName?: string } = {},
   ): Promise<string> {
+    const normalize = (value?: string | null) => {
+      const candidate = value?.trim();
+      return candidate && candidate.length > 0 ? candidate : undefined;
+    };
+    const displayName =
+      normalize(options.name) ?? normalize(options.fallbackName) ?? "Usuário";
     return this.signSession(
       {
         openId,
         appId: ENV.appId,
-        name: options.name || "",
+        name: displayName,
       },
       options,
     );

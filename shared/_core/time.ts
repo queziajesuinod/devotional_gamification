@@ -74,3 +74,10 @@ export const getDelayToCampoGrandeNextMidnight = () => {
   const midnightTimestamp = buildUtcFromParts(midnightParts);
   return Math.max(midnightTimestamp - nowTimestamp, 0);
 };
+
+const padNumber = (value: number) => value.toString().padStart(2, "0");
+
+export const getCampoGrandeDateString = (date = new Date()) => {
+  const parts = toCampoGrandeParts(date);
+  return `${parts.year}-${padNumber(parts.month)}-${padNumber(parts.day)}`;
+};
