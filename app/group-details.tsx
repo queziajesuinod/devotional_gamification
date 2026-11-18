@@ -4,15 +4,19 @@ import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/hooks/use-auth";
+import { GroupWeekCard } from "@/components/group-week-card";
 
 export default function GroupDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = parseInt(id || "0");
 
   const { data, isLoading } = trpc.groups.details.useQuery({ groupId });
+  const { data: myGroup } = trpc.groups.myGroup.useQuery();
   const { user } = useAuth();
 
   const isLeader = !!(data?.group && user && data.group.leaderId === user.id);
+  // The weekly goal is private to the cell (members and leader)
+  const canSeeWeek = isLeader || myGroup?.groupId === groupId;
 
   const handleBack = () => {
     if (Platform.OS !== "web") {
@@ -76,11 +80,20 @@ export default function GroupDetailsScreen() {
 
         {/* Members List */}
         <View className="flex-1 px-4">
-          <Text className="text-lg font-bold text-foreground mb-3">Membros</Text>
           
           <FlatList
             data={data.members || []}
             keyExtractor={(item) => item.id.toString()}
+            ListHeaderComponent={
+              <>
+                {canSeeWeek && (
+                  <View className="mb-4">
+                    <GroupWeekCard groupId={groupId} />
+                  </View>
+                )}
+                <Text className="text-lg font-bold text-foreground mb-3">Membros</Text>
+              </>
+            }
             renderItem={({ item }) => (
               <View className="bg-surface p-4 rounded-xl mb-3 border border-border">
                 <View className="flex-row items-center justify-between">

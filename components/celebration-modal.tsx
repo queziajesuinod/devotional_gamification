@@ -33,11 +33,13 @@ export type ChallengeRewardResult = {
     xpReward: number;
     denarioReward: number;
   }[];
+  /** True when this completion finished every challenge of the day. */
+  dayComplete?: boolean;
 };
 
 /** Only interrupt the user with a full-screen moment when something special happened. */
 export const shouldCelebrate = (result: ChallengeRewardResult) =>
-  !!result.streak?.increased || !!result.levelUp || result.newMedals.length > 0;
+  !!result.streak?.increased || !!result.levelUp || result.newMedals.length > 0 || !!result.dayComplete;
 
 type Moment =
   | { kind: "rewards" }
@@ -114,8 +116,13 @@ export function CelebrationModal({
         >
           {moment.kind === "rewards" && (
             <>
-              <Text className="text-5xl mb-2">✨</Text>
-              <Text className="text-foreground text-2xl font-bold mb-4">Desafio concluído!</Text>
+              <Text className="text-5xl mb-2">{result.dayComplete ? "🙌" : "✨"}</Text>
+              <Text className="text-foreground text-2xl font-bold mb-1">
+                {result.dayComplete ? "Dia completo!" : "Desafio concluído!"}
+              </Text>
+              <Text className="text-muted text-sm mb-4 text-center">
+                {result.dayComplete ? "Você fez todos os desafios de hoje. Isso conta para suas missões!" : " "}
+              </Text>
               <View className="flex-row gap-3 mb-5">
                 <View className="bg-accent/20 px-4 py-2 rounded-full">
                   <Text className="text-foreground font-bold">+{result.xpEarned} XP</Text>

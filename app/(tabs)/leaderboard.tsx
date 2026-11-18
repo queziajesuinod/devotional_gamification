@@ -3,13 +3,15 @@ import { useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
+import { LeagueBoard } from "@/components/league-board";
 
-type Period = "monthly" | "yearly" | "groups";
+type Period = "league" | "monthly" | "yearly" | "groups";
 
 export default function LeaderboardScreen() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>("monthly");
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>("league");
+  const utils = trpc.useUtils();
 
   const { data: monthlyData, isLoading: monthlyLoading, refetch: refetchMonthly } = trpc.leaderboard.monthly.useQuery(undefined, {
     enabled: isAuthenticated && selectedPeriod === "monthly",
@@ -23,12 +25,22 @@ export default function LeaderboardScreen() {
     enabled: isAuthenticated && selectedPeriod === "groups",
   });
 
-  const currentData = selectedPeriod === "groups" ? null : (selectedPeriod === "monthly" ? monthlyData : yearlyData);
-  const isLoading = selectedPeriod === "groups" ? groupsLoading : (selectedPeriod === "monthly" ? monthlyLoading : yearlyLoading);
+  const currentData =
+    selectedPeriod === "monthly" ? monthlyData : selectedPeriod === "yearly" ? yearlyData : null;
+  const isLoading =
+    selectedPeriod === "league"
+      ? false
+      : selectedPeriod === "groups"
+        ? groupsLoading
+        : selectedPeriod === "monthly"
+          ? monthlyLoading
+          : yearlyLoading;
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    if (selectedPeriod === "monthly") {
+    if (selectedPeriod === "league") {
+      await utils.engagement.league.invalidate();
+    } else if (selectedPeriod === "monthly") {
       await refetchMonthly();
     } else if (selectedPeriod === "yearly") {
       await refetchYearly();
@@ -77,6 +89,14 @@ export default function LeaderboardScreen() {
         {/* Period Tabs */}
         <View className="p-4">
           <View className="flex-row gap-2">
+            <TouchableOpacity
+              className={`flex-1 py-3 rounded-full ${selectedPeriod === "league" ? "bg-primary" : "bg-surface border border-border"}`}
+              onPress={() => setSelectedPeriod("league")}
+            >
+              <Text className={`text-center font-bold ${selectedPeriod === "league" ? "text-white" : "text-foreground"}`}>
+                Liga
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               className={`flex-1 py-3 rounded-full ${selectedPeriod === "monthly" ? "bg-primary" : "bg-surface border border-border"}`}
               onPress={() => setSelectedPeriod("monthly")}
@@ -129,6 +149,8 @@ export default function LeaderboardScreen() {
             <View className="items-center py-10">
               <ActivityIndicator size="large" />
             </View>
+          ) : selectedPeriod === "league" ? (
+            <LeagueBoard />
           ) : selectedPeriod === "groups" ? (
             groupsData && groupsData.length > 0 ? (
               <View className="gap-2">

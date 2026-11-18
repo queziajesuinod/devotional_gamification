@@ -26,6 +26,8 @@ export const pointSourceEnum = pgEnum("point_source", [
   "PURCHASE",
   "MEDAL",
   "LEVEL_UP",
+  "QUEST",
+  "GROUP_CHEST",
 ]);
 export const shopItemTypeEnum = pgEnum("shop_item_type", [
   "BACKGROUND",
@@ -43,6 +45,8 @@ export const groupMemberStatusEnum = pgEnum("group_member_status", [
   "rejected",
 ]);
 export const medalTierEnum = pgEnum("medal_tier", ["BRONZE", "SILVER", "GOLD", "DIAMOND"]);
+export const leagueTierEnum = pgEnum("league_tier", ["BRONZE", "SILVER", "GOLD", "DIAMOND"]);
+export const encouragementTypeEnum = pgEnum("encouragement_type", ["PRAYED", "CHEER", "PROUD"]);
 export const medalCategoryEnum = pgEnum("medal_category", [
   "BIBLE_BOOK",
   "STREAK",
@@ -429,3 +433,106 @@ export const bibleReadingSegments = pgTable(
 
 export type BibleReadingSegment = typeof bibleReadingSegments.$inferSelect;
 export type InsertBibleReadingSegment = typeof bibleReadingSegments.$inferInsert;
+
+// ============================================
+// PHASE 2: ACTIVITY, QUESTS, CELL GOAL, ENCOURAGEMENT, LEAGUES
+// ============================================
+
+/** One row per user per app day (America/Campo_Grande). Source for weekly stats. */
+export const userActivityDays = pgTable(
+  "user_activity_days",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("userId").notNull(),
+    day: date("day").notNull(),
+    challengesCompleted: integer("challengesCompleted").default(0).notNull(),
+    xp: integer("xp").default(0).notNull(),
+    reflections: integer("reflections").default(0).notNull(),
+    readings: integer("readings").default(0).notNull(),
+    fullDay: boolean("fullDay").default(false).notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userDayIdx: uniqueIndex("user_activity_days_user_day_idx").on(table.userId, table.day),
+    dayIdx: index("user_activity_days_day_idx").on(table.day),
+  })
+);
+
+export type UserActivityDay = typeof userActivityDays.$inferSelect;
+
+export const weeklyQuestClaims = pgTable(
+  "weekly_quest_claims",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("userId").notNull(),
+    weekKey: varchar("weekKey", { length: 10 }).notNull(),
+    questId: varchar("questId", { length: 50 }).notNull(),
+    claimedAt: timestamp("claimedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userWeekQuestIdx: uniqueIndex("weekly_quest_claims_user_week_quest_idx").on(
+      table.userId,
+      table.weekKey,
+      table.questId
+    ),
+  })
+);
+
+export const groupChestClaims = pgTable(
+  "group_chest_claims",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("userId").notNull(),
+    groupId: integer("groupId").notNull(),
+    weekKey: varchar("weekKey", { length: 10 }).notNull(),
+    claimedAt: timestamp("claimedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userGroupWeekIdx: uniqueIndex("group_chest_claims_user_group_week_idx").on(
+      table.userId,
+      table.groupId,
+      table.weekKey
+    ),
+  })
+);
+
+/** Fixed-message encouragement between members of the same cell (no free text). */
+export const encouragements = pgTable(
+  "encouragements",
+  {
+    id: serial("id").primaryKey(),
+    fromUserId: integer("fromUserId").notNull(),
+    toUserId: integer("toUserId").notNull(),
+    groupId: integer("groupId").notNull(),
+    type: encouragementTypeEnum("type").notNull(),
+    day: date("day").notNull(),
+    seenAt: timestamp("seenAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    pairDayIdx: uniqueIndex("encouragements_from_to_day_idx").on(table.fromUserId, table.toUserId, table.day),
+    toUserIdx: index("encouragements_to_user_idx").on(table.toUserId, table.createdAt),
+    fromDayIdx: index("encouragements_from_day_idx").on(table.fromUserId, table.day),
+  })
+);
+
+/** A user's league for a given week, with the XP earned in it. */
+export const leagueMemberships = pgTable(
+  "league_memberships",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("userId").notNull(),
+    weekKey: varchar("weekKey", { length: 10 }).notNull(),
+    tier: leagueTierEnum("tier").default("BRONZE").notNull(),
+    xp: integer("xp").default(0).notNull(),
+    previousOutcome: varchar("previousOutcome", { length: 16 }),
+    previousRank: integer("previousRank"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userWeekIdx: uniqueIndex("league_memberships_user_week_idx").on(table.userId, table.weekKey),
+    weekTierXpIdx: index("league_memberships_week_tier_xp_idx").on(table.weekKey, table.tier, table.xp),
+  })
+);
+
+export type LeagueMembership = typeof leagueMemberships.$inferSelect;

@@ -16,6 +16,7 @@ import { trpc } from "@/lib/trpc";
 import { useNotifications } from "@/components/notification-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "expo-router";
+import { GroupWeekCard } from "@/components/group-week-card";
 
 const formatDate = (value?: string | Date | null) => {
   if (!value) return "-";
@@ -148,6 +149,8 @@ export default function LeaderDashboardScreen() {
               <Text className="text-muted">You do not lead a group yet.</Text>
             </View>
           )}
+
+          {group ? <GroupWeekCard groupId={group.id} readOnly /> : null}
 
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="flex-row items-center justify-between mb-3">

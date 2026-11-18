@@ -22,6 +22,7 @@ import { useNotifications } from "@/components/notification-provider";
 import { CelebrationModal, shouldCelebrate, type ChallengeRewardResult } from "@/components/celebration-modal";
 import { getLevelProgress, STREAK_MILESTONES } from "@shared/progression";
 import { syncDailyReminders } from "@/lib/reminders";
+import { EncouragementInbox, WeeklyQuestsCard } from "@/components/weekly-quests-card";
 
 const DEFAULT_AVATAR_CONFIG: NiceAvatarConfig = {
   sex: "man",
@@ -65,10 +66,13 @@ export default function DashboardScreen() {
     enabled: isAuthenticated,
   });
 
+  const utils = trpc.useUtils();
   const completeChallengeMutation = trpc.devotional.completeChallenge.useMutation({
     onSuccess: () => {
       refetchToday();
       refetchUser();
+      utils.engagement.weeklyQuests.invalidate();
+      utils.engagement.league.invalidate();
     },
   });
 
@@ -334,6 +338,7 @@ export default function DashboardScreen() {
 
         {/* Devotional Content */}
         <View className="p-6">
+          <EncouragementInbox />
           {todayData?.bibleReference ? (
             <>
               <View className="bg-surface rounded-2xl p-5 mb-4 border border-border">
@@ -395,6 +400,11 @@ export default function DashboardScreen() {
               <Text className="text-muted text-center">Nenhum devocional disponível para hoje.</Text>
             </View>
           )}
+
+          {/* Weekly quests */}
+          <View className="mt-4">
+            <WeeklyQuestsCard onRewardClaimed={() => refetchUser()} />
+          </View>
         </View>
       </ScrollView>
 

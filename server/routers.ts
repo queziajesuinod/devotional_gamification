@@ -17,13 +17,13 @@ import {
 import {
   MAX_STREAK_FREEZES,
   STREAK_FREEZE_PRICE,
-  getLevelTitle,
   getStreakStatus,
-  isTitleLevel,
   levelFromXp,
-  levelUpDenarioReward,
   weekKey,
 } from "../shared/progression";
+import { applyLevelUpRewards } from "./rewards";
+import { engagementRouter } from "./engagementRouter";
+import { addLeagueXp, recordActivity } from "./engagement";
 import { getRarityLock, getRarityRule } from "../shared/shop-rules";
 
 const ensureLeaderAccess = async (user: { id: number; role: string }, groupId: number) => {
@@ -58,6 +58,7 @@ export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   admin: adminRouter,
+  engagement: engagementRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -319,6 +320,15 @@ export const appRouter = router({
           description: `Desafio completado: ${challenge.title}`,
         });
 
+        // Phase 2: daily activity (quests, cell goal) and weekly league XP
+        const activity = await recordActivity({
+          userId: ctx.user.id,
+          xp: xpEarned,
+          challengeType: challenge.type,
+          devotionalDayId: challenge.devotionalDayId,
+        });
+        await addLeagueXp(ctx.user.id, xpEarned);
+
         // Update ranking scores
         const monthlyPeriod = await db.getActiveRankingPeriod("MONTH");
         if (monthlyPeriod) {
@@ -352,37 +362,8 @@ export const appRouter = router({
         newMedals.push(...(await checkTimeBasedMedals(ctx.user.id)));
 
         // Level-up rewards (denários only, so they never trigger further level-ups)
-        const userAfter = await db.getUserById(ctx.user.id);
-        const levelAfter = levelFromXp(userAfter?.xpTotal ?? 0);
-        let levelUp: {
-          from: number;
-          to: number;
-          denarioReward: number;
-          newTitle: { title: string; emoji: string } | null;
-        } | null = null;
-
-        if (levelAfter > levelBefore) {
-          let reward = 0;
-          let newTitle: { title: string; emoji: string } | null = null;
-          for (let level = levelBefore + 1; level <= levelAfter; level += 1) {
-            reward += levelUpDenarioReward(level);
-            if (isTitleLevel(level)) {
-              const { title, emoji } = getLevelTitle(level);
-              newTitle = { title, emoji };
-            }
-          }
-          await db.updateUserXpAndDenario(ctx.user.id, 0, reward);
-          await db.createPointTransaction({
-            userId: ctx.user.id,
-            source: "LEVEL_UP",
-            xp: 0,
-            denario: reward,
-            description: `Subiu para o nível ${levelAfter}`,
-          });
-          levelUp = { from: levelBefore, to: levelAfter, denarioReward: reward, newTitle };
-        }
-
-        const finalUser = levelUp ? await db.getUserById(ctx.user.id) : userAfter;
+        const levelUp = await applyLevelUpRewards(ctx.user.id, levelBefore);
+        const finalUser = await db.getUserById(ctx.user.id);
 
         return {
           success: true,
@@ -391,6 +372,7 @@ export const appRouter = router({
           streak: streak ?? null,
           levelUp,
           newMedals,
+          dayComplete: activity.dayComplete,
           xpBefore: userBefore?.xpTotal ?? 0,
           xpTotal: finalUser?.xpTotal ?? 0,
           denarioBalance: finalUser?.denarioBalance ?? 0,
