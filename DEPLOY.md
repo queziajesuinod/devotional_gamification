@@ -71,6 +71,23 @@ After the containers are running, execute the database migrations:
 docker-compose exec app pnpm db:push
 ```
 
+### Grant app user privileges
+
+Drizzle runs under the non-superuser account defined in `DB_USER`. After migrations (which typically run as a superuser), run `scripts/grant-app-user-privileges.sql` so that the service account can read and write every table and sequence the app needs:
+
+```bash
+# replace `postgres`/`devocional_quest` with your superuser/database if different
+docker-compose exec postgres psql -U postgres -d devocional_quest -v app_user=$DB_USER -f scripts/grant-app-user-privileges.sql
+```
+
+If you already have `psql` access outside Docker, you can run the same script directly:
+
+```bash
+psql -U postgres -d devocional_quest -v app_user=$DB_USER -f scripts/grant-app-user-privileges.sql
+```
+
+By default the helper targets the `public` schema; pass `-v app_schema=<schema>` if you use another schema (e.g., `devocional`).
+
 ### 5. Seed Initial Data
 
 Populate the database with initial devotional content and groups:

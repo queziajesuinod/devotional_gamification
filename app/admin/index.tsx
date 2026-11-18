@@ -1,8 +1,9 @@
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   ScrollView,
   Text,
@@ -14,6 +15,7 @@ import {
 import { ScreenContainer } from "@/components/screen-container";
 import { NiceAvatar, genNiceAvatarConfig, type NiceAvatarConfig } from "@/components/nice-avatar";
 import { trpc } from "@/lib/trpc";
+import { useNotifications } from "@/components/notification-provider";
 import { SHOP_RARITY_RULES, applyRarityDefaultPrice, type ShopRarity } from "@/shared/shop-rules";
 
 type ToggleProps = {
@@ -210,7 +212,13 @@ const PaginationControls = ({
   );
 };
 
-type ShopItemType = "BACKGROUND" | "CLOTHES" | "ACCESSORY" | "HAIR_STYLE" | "HAIR_COLOR";
+type ShopItemType =
+  | "BACKGROUND"
+  | "CLOTHES"
+  | "ACCESSORY"
+  | "HAIR_STYLE"
+  | "HAIR_COLOR"
+  | "BASE_FEATURE";
 
 type AvatarOptionKind = "color" | "text";
 
@@ -268,6 +276,7 @@ type AvatarOptionGroup = {
   type?: ShopItemType;
   kind?: AvatarOptionKind;
   note?: string;
+  transform?: (value: string) => unknown;
 };
 
 const SHOP_ITEM_TYPES: ShopItemType[] = [
@@ -276,6 +285,7 @@ const SHOP_ITEM_TYPES: ShopItemType[] = [
   "HAIR_COLOR",
   "CLOTHES",
   "ACCESSORY",
+  "BASE_FEATURE",
 ];
 
 const CHALLENGE_TYPES: { value: ChallengeType; label: string }[] = [
@@ -313,85 +323,255 @@ const SHOP_ITEM_TYPE_LABELS: Record<ShopItemType, string> = {
   HAIR_COLOR: "Cabelo cor",
   CLOTHES: "Roupas",
   ACCESSORY: "Acessorios",
+  BASE_FEATURE: "Base do avatar",
 };
+
+const BACKGROUND_COLOR_PALETTE = [
+  "#000000",
+  "#c2410c",
+  "#ff3b30",
+  "#ffffff",
+  "#d1d5db",
+  "#fecaca",
+  "#93c5fd",
+  "#86efac",
+  "#fde68a",
+  "#c4b5fd",
+  "#f9a8d4",
+  "#a5b4fc",
+  "#5eead4",
+  "#fdba74",
+  "#9287FF",
+  "#6BD9E9",
+  "#FC909F",
+  "#F4D150",
+  "#E0DDFF",
+  "#D2EFF3",
+  "#FFEDEF",
+  "#FFEBA4",
+  "#506AF4",
+  "#F48150",
+  "#74D153",
+];
+const FACE_COLOR_PALETTE = ["#F9C9B6", "#AC6651", "#FFDAB9", "#FBE8A6", "#8B5E3C"];
+const HAIR_COLOR_PALETTE = [
+  "#000000",
+  "#ffffff",
+  "#77311D",
+  "#FC909F",
+  "#D2EFF3",
+  "#506AF4",
+  "#F48150",
+  "#FFD166",
+  "#7C3AED",
+  "#10B981",
+  "#F97316",
+];
+const SHIRT_COLOR_PALETTE = [
+  "#9287FF",
+  "#6BD9E9",
+  "#FC909F",
+  "#F4D150",
+  "#77311D",
+  "#A855F7",
+  "#22C55E",
+  "#F97316",
+];
+const HAT_COLOR_PALETTE = [...HAIR_COLOR_PALETTE];
+const GLASSES_STYLE_OPTIONS = [
+  "none",
+  "round",
+  "square",
+  "rayban-likeish",
+  "sunglasses-reflection",
+];
+const FACE_DECORATION_OPTIONS = [
+  "none",
+  "moustache",
+  "moustache-flanders",
+  "scruff",
+  "hp thunderbolt",
+];
+const ACCESSORY_TYPE_OPTIONS = ["none", "scarf"];
+const ACCESSORY_COLOR_PALETTE = [
+  "#d4d4d8",
+  "#111827",
+  "#f97316",
+  "#a855f7",
+  "#22c55e",
+  "#ec4899",
+];
+const BACKGROUND_PATTERN_OPTIONS = ["none", "lines", "dots", "crosshatch"];
+const BACKGROUND_SPECIAL_OPTIONS = [
+  "none",
+  "dalmatian",
+  "wavey",
+  "broken-tile",
+  "plain",
+];
+const HAIR_STYLE_OPTIONS = [
+  "normal",
+  "thick",
+  "mohawk",
+  "womanLong",
+  "womanShort",
+  "bangs",
+  "kpop",
+  "fonze",
+  "metal",
+  "dougFunny",
+  "mrClean",
+  "mrT",
+  "turban",
+  "dannyPhantom",
+  "full-cover",
+  "pixie",
+  "beanie",
+  "cap",
+  "cap-back",
+  "cap-ponytail",
+  "cap-short",
+  "cap-long",
+  "cap-link",
+  "goku",
+];
+const EYE_STYLE_OPTIONS = [
+  "round",
+  "happy",
+  "long",
+  "makeup",
+  "cartoon",
+  "blink",
+  "circle",
+  "oval",
+  "smile",
+];
+const NOSE_STYLE_OPTIONS = ["round", "curve", "pointed", "short", "long"];
+const MOUTH_STYLE_OPTIONS = [
+  "smile",
+  "sad",
+  "pucker",
+  "frown",
+  "laughing",
+  "surprised",
+  "nervous",
+  "laugh",
+  "peace",
+];
+const SHIRT_STYLE_OPTIONS = [
+  "hoody",
+  "short",
+  "polo",
+  "open",
+  "crew",
+  "collared",
+  "z-warrior",
+  "vercel",
+  "vercel-circle",
+  "react",
+  "zeit",
+  "zeit-circle",
+  "nike",
+  "google",
+  "js",
+  "triforce",
+  "svelte",
+  "astand",
+  "mtg",
+  "godot",
+  "github-circle",
+  "mango",
+  "figma",
+  "wortiger",
+];
+const SEX_OPTIONS = ["man", "woman"];
+const SHAPE_OPTIONS = ["circle", "rounded", "square"];
+const GRADIENT_TOGGLE_OPTIONS = ["false", "true"];
 
 const USER_ROLES = ["user", "leader", "admin"] as const;
 
 const AVATAR_OPTION_GROUPS: AvatarOptionGroup[] = [
   {
+    key: "sex",
+    label: "Sexo (sex)",
+    kind: "text",
+    values: SEX_OPTIONS,
+    note: "Define o sexo base do avatar.",
+    type: "BASE_FEATURE",
+  },
+  {
+    key: "faceColor",
+    label: "Pele (faceColor)",
+    kind: "color",
+    values: FACE_COLOR_PALETTE,
+    note: "Base avatar: nao ocupa slot.",
+    type: "BASE_FEATURE",
+  },
+  {
     key: "bgColor",
     label: "Fundo (bgColor)",
     type: "BACKGROUND",
     kind: "color",
-    values: [
-      "#9287FF",
-      "#6BD9E9",
-      "#FC909F",
-      "#F4D150",
-      "#E0DDFF",
-      "#D2EFF3",
-      "#FFEDEF",
-      "#FFEBA4",
-      "#506AF4",
-      "#F48150",
-      "#74D153",
-    ],
+    values: BACKGROUND_COLOR_PALETTE,
+  },
+  {
+    key: "bgPattern",
+    label: "Padrão do fundo (bgPattern)",
+    type: "BACKGROUND",
+    kind: "text",
+    values: BACKGROUND_PATTERN_OPTIONS,
+    note: "Combine com fundos especiais.",
+  },
+  {
+    key: "bgSpecial",
+    label: "Efeito especial (bgSpecial)",
+    type: "BACKGROUND",
+    kind: "text",
+    values: BACKGROUND_SPECIAL_OPTIONS,
+    note: "Adiciona texturas dinâmicas.",
   },
   {
     key: "hairStyle",
     label: "Cabelo estilo (hairStyle)",
     type: "HAIR_STYLE",
     kind: "text",
-    values: ["normal", "thick", "mohawk", "womanLong", "womanShort"],
+    values: HAIR_STYLE_OPTIONS,
   },
   {
     key: "hairColor",
     label: "Cabelo cor (hairColor)",
     type: "HAIR_COLOR",
     kind: "color",
-    values: ["#000", "#fff", "#77311D", "#FC909F", "#D2EFF3", "#506AF4", "#F48150"],
-  },
-  {
-    key: "shirtStyle",
-    label: "Roupa estilo (shirtStyle)",
-    type: "CLOTHES",
-    kind: "text",
-    values: ["hoody", "short", "polo"],
-  },
-  {
-    key: "shirtColor",
-    label: "Roupa cor (shirtColor)",
-    type: "CLOTHES",
-    kind: "color",
-    values: ["#9287FF", "#6BD9E9", "#FC909F", "#F4D150", "#77311D"],
+    values: HAIR_COLOR_PALETTE,
   },
   {
     key: "hatStyle",
     label: "Chapeu estilo (hatStyle)",
     type: "ACCESSORY",
     kind: "text",
-    values: ["beanie", "turban", "none"],
+    values: ["beanie", "turban", "none", "cap", "cap-back", "cap-ponytail"],
   },
   {
     key: "hatColor",
     label: "Chapeu cor (hatColor)",
     type: "ACCESSORY",
     kind: "color",
-    values: ["#000", "#fff", "#77311D", "#FC909F", "#D2EFF3", "#506AF4", "#F48150"],
+    values: HAT_COLOR_PALETTE,
   },
   {
     key: "glassesStyle",
     label: "Oculos (glassesStyle)",
     type: "ACCESSORY",
     kind: "text",
-    values: ["round", "square", "none"],
+    values: GLASSES_STYLE_OPTIONS,
   },
   {
-    key: "faceColor",
-    label: "Pele (faceColor)",
-    kind: "color",
-    note: "Base avatar: nao ocupa slot.",
-    values: ["#F9C9B6", "#AC6651"],
+    key: "faceDecoration",
+    label: "Decoração facial (faceDecoration)",
+    kind: "text",
+    values: FACE_DECORATION_OPTIONS,
+    note: "Moustache e efeitos extras.",
+    type: "BASE_FEATURE",
   },
   {
     key: "earSize",
@@ -399,38 +579,89 @@ const AVATAR_OPTION_GROUPS: AvatarOptionGroup[] = [
     kind: "text",
     note: "Base avatar: nao ocupa slot.",
     values: ["small", "big"],
+    type: "BASE_FEATURE",
   },
   {
     key: "eyeStyle",
     label: "Olho (eyeStyle)",
     kind: "text",
     note: "Base avatar: nao ocupa slot.",
-    values: ["circle", "oval", "smile"],
+    values: EYE_STYLE_OPTIONS,
+    type: "BASE_FEATURE",
   },
   {
     key: "eyeBrowStyle",
     label: "Sobrancelha (eyeBrowStyle)",
     kind: "text",
     note: "Base avatar: nao ocupa slot.",
-    values: ["up", "upWoman"],
+    values: ["up", "upWoman", "down"],
+    type: "BASE_FEATURE",
   },
   {
     key: "noseStyle",
     label: "Nariz (noseStyle)",
     kind: "text",
     note: "Base avatar: nao ocupa slot.",
-    values: ["short", "long", "round"],
+    values: NOSE_STYLE_OPTIONS,
+    type: "BASE_FEATURE",
   },
   {
     key: "mouthStyle",
     label: "Boca (mouthStyle)",
     kind: "text",
     note: "Base avatar: nao ocupa slot.",
-    values: ["laugh", "smile", "peace"],
+    values: MOUTH_STYLE_OPTIONS,
+    type: "BASE_FEATURE",
+  },
+  {
+    key: "shirtStyle",
+    label: "Roupa estilo (shirtStyle)",
+    type: "CLOTHES",
+    kind: "text",
+    values: SHIRT_STYLE_OPTIONS,
+  },
+  {
+    key: "shirtColor",
+    label: "Roupa cor (shirtColor)",
+    type: "CLOTHES",
+    kind: "color",
+    values: SHIRT_COLOR_PALETTE,
+  },
+  {
+    key: "accType",
+    label: "Acessório extra (accType)",
+    type: "ACCESSORY",
+    kind: "text",
+    values: ACCESSORY_TYPE_OPTIONS,
+  },
+  {
+    key: "accColor",
+    label: "Cor do acessório (accColor)",
+    type: "ACCESSORY",
+    kind: "color",
+    values: ACCESSORY_COLOR_PALETTE,
+  },
+  {
+    key: "shape",
+    label: "Forma do avatar (shape)",
+    kind: "text",
+    values: SHAPE_OPTIONS,
+    note: "Define bordas circulares ou quadradas.",
+    type: "BASE_FEATURE",
+  },
+  {
+    key: "isGradient",
+    label: "Fundo gradiente (isGradient)",
+    kind: "text",
+    values: GRADIENT_TOGGLE_OPTIONS,
+    transform: (value: string) => value === "true",
+    note: "Converte para booleano no patch.",
+    type: "BASE_FEATURE",
   },
 ];
 export default function AdminPanelScreen() {
   const isWebPlatform = Platform.OS === "web";
+  const notifications = useNotifications();
 
   const adminMe = trpc.admin.me.useQuery();
   const isAdmin = !!adminMe.data;
@@ -546,6 +777,7 @@ export default function AdminPanelScreen() {
   const medalDelete = trpc.admin.medals.delete.useMutation({
     onSuccess: () => medalsQuery.refetch(),
   });
+  const medalRecalculate = trpc.medals.checkMedals.useMutation();
   const [shopEditingId, setShopEditingId] = useState<number | null>(null);
   const [shopForm, setShopForm] = useState({
     name: "",
@@ -560,6 +792,10 @@ export default function AdminPanelScreen() {
   const [selectedAvatarGroupKey, setSelectedAvatarGroupKey] = useState(
     AVATAR_OPTION_GROUPS[0]?.key ?? "bgColor"
   );
+  const [baseAvatarStylesList, setBaseAvatarStylesList] = useState<string[]>([]);
+  const [baseAvatarLoading, setBaseAvatarLoading] = useState(false);
+  const [baseAvatarError, setBaseAvatarError] = useState<string | null>(null);
+  const [selectedBaseAvatarUrl, setSelectedBaseAvatarUrl] = useState<string | null>(null);
 
   const [groupEditingId, setGroupEditingId] = useState<number | null>(null);
   const [groupForm, setGroupForm] = useState({
@@ -698,6 +934,19 @@ export default function AdminPanelScreen() {
     });
   };
 
+  const handleRecalculateMedals = async () => {
+    try {
+      await medalRecalculate.mutateAsync();
+      medalsQuery.refetch();
+      notifications.success("Medalhas recalculadas com sucesso");
+    } catch (error) {
+      console.error("Failed to recalculate medals", error);
+      const message =
+        error instanceof Error ? error.message : "Erro ao recalcular medalhas";
+      notifications.error(message);
+    }
+  };
+
   const addDayChallenge = () => {
     setDayChallenges((prev) => [
       ...prev,
@@ -790,6 +1039,63 @@ export default function AdminPanelScreen() {
     return { ...avatarPreviewBase, ...shopAvatarPatch } as NiceAvatarConfig;
   }, [avatarPreviewBase, shopAvatarPatch]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!isWebPlatform) return;
+    const loadAvatars = async () => {
+      setBaseAvatarLoading(true);
+      setBaseAvatarError(null);
+      try {
+        const response = await fetch(
+          "https://my-avatar-creator.vercel.app/api/avatars?set=basic",
+          { cache: "no-store" }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to load avatar styles");
+        }
+        const payload = (await response.json()) as { avatars?: string[] };
+        if (!cancelled && Array.isArray(payload.avatars)) {
+          setBaseAvatarStylesList(payload.avatars);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setBaseAvatarError("Erro ao carregar estilos da API");
+        }
+      } finally {
+        if (!cancelled) {
+          setBaseAvatarLoading(false);
+        }
+      }
+    };
+    loadAvatars();
+    return () => {
+      cancelled = true;
+    };
+  }, [isWebPlatform]);
+
+  useEffect(() => {
+    if (!shopForm.imageUrl) {
+      setSelectedBaseAvatarUrl(null);
+      return;
+    }
+    if (baseAvatarStylesList.includes(shopForm.imageUrl)) {
+      setSelectedBaseAvatarUrl(shopForm.imageUrl);
+    } else {
+      setSelectedBaseAvatarUrl(null);
+    }
+  }, [shopForm.imageUrl, baseAvatarStylesList]);
+
+  const handleBaseAvatarSelect = (url: string) => {
+    setSelectedBaseAvatarUrl(url);
+    setShopForm((prev) => ({
+      ...prev,
+      imageUrl: url,
+      avatarConfig: "",
+      type: "BASE_FEATURE",
+      name: prev.name || "Base avatar style",
+    }));
+  };
+
   if (!isWebPlatform) {
     return (
       <ScreenContainer className="items-center justify-center">
@@ -799,13 +1105,17 @@ export default function AdminPanelScreen() {
   }
 
 const applyAvatarOption = (group: AvatarOptionGroup, value: string) => {
-  const patch = { [group.key]: value };
-  setShopForm((prev) => ({
-    ...prev,
-    avatarConfig: JSON.stringify(patch),
-    type: group.type ?? prev.type,
-    name: prev.name || `${group.key}:${value}`,
-  }));
+  setShopForm((prev) => {
+    const existingConfig = parseAvatarConfigInput(prev.avatarConfig).config ?? {};
+    const normalizedValue = group.transform ? group.transform(value) : value;
+    const nextConfig = { ...existingConfig, [group.key]: normalizedValue };
+    return {
+      ...prev,
+      avatarConfig: JSON.stringify(nextConfig),
+      type: group.type ?? prev.type,
+      name: prev.name || `${group.key}:${value}`,
+    };
+  });
 };
 
 const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) => {
@@ -1125,6 +1435,43 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         Esse atributo eh do avatar base. Escolha o type manualmente.
                       </Text>
                     ) : null}
+                    {selectedAvatarGroup?.type === "BASE_FEATURE" && (
+                      <View className="gap-3">
+                        <Text className="text-xs text-muted">Estilos base (API)</Text>
+                        {baseAvatarLoading ? (
+                          <View className="items-center">
+                            <ActivityIndicator size="small" />
+                          </View>
+                        ) : baseAvatarError ? (
+                          <Text className="text-error text-xs">{baseAvatarError}</Text>
+                        ) : baseAvatarStylesList.length === 0 ? (
+                          <Text className="text-xs text-muted">Nenhum estilo encontrado.</Text>
+                        ) : (
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            <View className="flex-row gap-2">
+                              {baseAvatarStylesList.map((url) => {
+                                const isSelected = selectedBaseAvatarUrl === url;
+                                return (
+                                  <TouchableOpacity
+                                    key={url}
+                                    className={`rounded-lg border ${
+                                      isSelected ? "border-primary" : "border-border"
+                                    }`}
+                                    onPress={() => handleBaseAvatarSelect(url)}
+                                  >
+                                    <Image
+                                      source={{ uri: url }}
+                                      className="h-20 w-20 rounded-lg"
+                                      style={{ width: 80, height: 80 }}
+                                    />
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          </ScrollView>
+                        )}
+                      </View>
+                    )}
                   </View>
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
@@ -2053,9 +2400,24 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
           </View>
 
           <View className="bg-surface rounded-2xl p-4 border border-border">
-            <View className="mb-4">
-              <Text className="text-lg font-bold text-foreground">Medals</Text>
-              <Text className="text-xs text-muted">Define achievement medals and ordering.</Text>
+            <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
+              <View>
+                <Text className="text-lg font-bold text-foreground">Medals</Text>
+                <Text className="text-xs text-muted">Define achievement medals and ordering.</Text>
+              </View>
+              <TouchableOpacity
+                className={`px-4 py-2 rounded-full items-center justify-center ${
+                  medalRecalculate.isLoading ? "bg-muted/40" : "bg-primary"
+                }`}
+                onPress={handleRecalculateMedals}
+                disabled={medalRecalculate.isLoading}
+              >
+                {medalRecalculate.isLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text className="text-white text-xs font-semibold">Recalcular medalhas</Text>
+                )}
+              </TouchableOpacity>
             </View>
             <PaginationControls
               page={medalsPagination.page}

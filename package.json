@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "recalculate:levels": "cross-env NODE_ENV=development tsx scripts/recalculate-levels.ts",
     "backfill:reading-segments": "cross-env NODE_ENV=development tsx scripts/backfill-reading-segments.ts",
     "import:devotional-json": "cross-env NODE_ENV=development tsx scripts/import-devotional-json.ts",
     "android": "expo start --android",

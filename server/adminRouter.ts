@@ -26,7 +26,7 @@ async function requireDb() {
 
 const shopItemSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(["BACKGROUND", "CLOTHES", "ACCESSORY", "HAIR_STYLE", "HAIR_COLOR"]),
+  type: z.enum(["BACKGROUND", "CLOTHES", "ACCESSORY", "HAIR_STYLE", "HAIR_COLOR", "BASE_FEATURE"]),
   rarity: z.enum(["COMMON", "RARE", "EPIC"]).default("COMMON"),
   imageUrl: z.string().url().optional().nullable(),
   avatarConfig: z.string().optional().nullable(),

@@ -1,5 +1,6 @@
 import { getDb } from "./db";
 import { medals } from "../drizzle/schema";
+import { defaultMedalRewards } from "../shared/medal-rewards";
 
 /**
  * Seed medals data
@@ -248,7 +249,7 @@ export async function seedMedals() {
     
     // Insert medals
     for (const medal of medalData) {
-      await db.insert(medals).values(medal);
+      await db.insert(medals).values({ ...defaultMedalRewards(medal.requirement), ...medal });
     }
     
     console.log(`✅ Seeded ${medalData.length} medals successfully`);

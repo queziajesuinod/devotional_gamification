@@ -34,6 +34,15 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { getCampoGrandeDateString } from "../shared/_core/time";
+import {
+  MAX_STREAK_FREEZES,
+  STREAK_FREEZE_PRICE,
+  STREAK_MILESTONES,
+  diffDateStrings,
+  levelFromXp,
+  weekKey,
+} from "../shared/progression";
 
 let _pool: Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -190,14 +199,24 @@ export async function updateUserXpAndDenario(userId: number, xpDelta: number, de
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db
+  const [updated] = await db
     .update(users)
     .set({
       xpTotal: sql`${users.xpTotal} + ${xpDelta}`,
       denarioBalance: sql`${users.denarioBalance} + ${denarioDelta}`,
-      level: sql`FLOOR((${users.xpTotal} + ${xpDelta}) / 100) + 1`,
     })
-    .where(eq(users.id, userId));
+    .where(eq(users.id, userId))
+    .returning({ xpTotal: users.xpTotal, level: users.level });
+
+  if (!updated) return null;
+
+  // Level follows the curve in shared/progression.ts
+  const newLevel = levelFromXp(updated.xpTotal);
+  if (newLevel !== updated.level) {
+    await db.update(users).set({ level: newLevel }).where(eq(users.id, userId));
+  }
+
+  return { xpTotal: updated.xpTotal, levelBefore: updated.level, levelAfter: newLevel };
 }
 
 export async function updateUserAvatar(
@@ -321,10 +340,12 @@ export async function completeUserChallenge(
     .where(and(eq(userChallenges.userId, userId), eq(userChallenges.challengeId, challengeId)));
     
   // Update user's streak
-  await updateUserStreak(userId);
-  
+  const streak = await updateUserStreak(userId);
+
   // Add points to user's group
   await addPointsToUserGroup(userId, xpEarned);
+
+  return { streak };
 }
 
 export async function getChallengeById(challengeId: number) {
@@ -364,68 +385,163 @@ export async function getUserReflections(userId: number) {
   return result;
 }
 
-export async function updateUserStreak(userId: number) {
+export type StreakUpdateResult = {
+  currentStreak: number;
+  longestStreak: number;
+  increased: boolean;
+  wasReset: boolean;
+  freezesUsed: number;
+  freezesLeft: number;
+  milestoneReached: number | null;
+  bonusDenarios: number;
+};
+
+/**
+ * Updates the streak using the app's day (America/Campo_Grande), not the server clock.
+ * Missed days are covered by "Graças" (streak freezes) when available; one Graça is
+ * granted per week (up to MAX_STREAK_FREEZES).
+ */
+export async function updateUserStreak(userId: number): Promise<StreakUpdateResult | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Get user's current streak data
   const user = await getUserById(userId);
   if (!user) return;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const lastActivity = user.lastActivityDate ? new Date(user.lastActivityDate) : null;
-  
+  const today = getCampoGrandeDateString();
+  const lastActivity = user.lastActivityDate ? String(user.lastActivityDate).slice(0, 10) : null;
+
+  // Weekly Graça grant
+  let freezes = user.streakFreezes ?? 0;
+  const currentWeek = weekKey(today);
+  const grantWeek = user.streakFreezeWeek !== currentWeek;
+  if (grantWeek) {
+    freezes = Math.min(MAX_STREAK_FREEZES, freezes + 1);
+  }
+
+  const daysDiff = lastActivity ? diffDateStrings(lastActivity, today) : null;
+
+  if (daysDiff !== null && daysDiff <= 0) {
+    // Already counted today
+    if (grantWeek) {
+      await db
+        .update(users)
+        .set({ streakFreezes: freezes, streakFreezeWeek: currentWeek })
+        .where(eq(users.id, userId));
+    }
+    return {
+      currentStreak: user.currentStreak,
+      longestStreak: user.longestStreak,
+      increased: false,
+      wasReset: false,
+      freezesUsed: 0,
+      freezesLeft: freezes,
+      milestoneReached: null,
+      bonusDenarios: 0,
+    };
+  }
+
   let newStreak = 1;
-  
-  if (lastActivity) {
-    lastActivity.setHours(0, 0, 0, 0);
-    const daysDiff = Math.floor((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysDiff === 0) {
-      // Same day, don't update streak
-      return;
-    } else if (daysDiff === 1) {
-      // Consecutive day, increment streak
+  let freezesUsed = 0;
+  let wasReset = false;
+
+  if (daysDiff === 1) {
+    newStreak = (user.currentStreak || 0) + 1;
+  } else if (daysDiff !== null && daysDiff > 1) {
+    const missedDays = daysDiff - 1;
+    if (user.currentStreak > 0 && missedDays <= freezes) {
+      freezesUsed = missedDays;
+      freezes -= missedDays;
       newStreak = (user.currentStreak || 0) + 1;
     } else {
-      // Streak broken, reset to 1
-      newStreak = 1;
+      wasReset = user.currentStreak > 0;
     }
   }
-  
+
   const newLongestStreak = Math.max(newStreak, user.longestStreak || 0);
-  
-  // Check for milestone rewards
-  const milestones = [7, 30, 100];
-  let milestoneReached = null;
-  let bonusDenarios = 0;
-  
-  for (const milestone of milestones) {
-    if (newStreak === milestone) {
-      milestoneReached = milestone;
-      bonusDenarios = milestone === 7 ? 50 : milestone === 30 ? 200 : 500;
-      break;
-    }
-  }
-  
+  const milestone = STREAK_MILESTONES.find((m) => m.days === newStreak) ?? null;
+  const bonusDenarios = milestone?.denarios ?? 0;
+
   await db
     .update(users)
     .set({
       currentStreak: newStreak,
       longestStreak: newLongestStreak,
-      lastActivityDate: sql`CURRENT_DATE`,
+      lastActivityDate: today,
+      streakFreezes: freezes,
+      streakFreezeWeek: currentWeek,
       ...(bonusDenarios > 0 ? { denarioBalance: sql`${users.denarioBalance} + ${bonusDenarios}` } : {}),
     })
     .where(eq(users.id, userId));
-    
-  return { 
-    currentStreak: newStreak, 
+
+  if (bonusDenarios > 0) {
+    await createPointTransaction({
+      userId,
+      source: "BONUS_STREAK",
+      xp: 0,
+      denario: bonusDenarios,
+      description: `Marco de sequência: ${newStreak} dias`,
+    });
+  }
+
+  return {
+    currentStreak: newStreak,
     longestStreak: newLongestStreak,
-    milestoneReached,
+    increased: true,
+    wasReset,
+    freezesUsed,
+    freezesLeft: freezes,
+    milestoneReached: milestone?.days ?? null,
     bonusDenarios,
   };
+}
+
+/** Buy one Graça (streak freeze) with denários. Returns null if not allowed. */
+export async function buyStreakFreeze(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Apply this week's free Graça first so a purchase is never wasted by the cap
+  const currentWeek = weekKey(getCampoGrandeDateString());
+  await db
+    .update(users)
+    .set({
+      streakFreezes: sql`LEAST(${users.streakFreezes} + 1, ${MAX_STREAK_FREEZES})`,
+      streakFreezeWeek: currentWeek,
+    })
+    .where(
+      and(
+        eq(users.id, userId),
+        sql`${users.streakFreezeWeek} IS DISTINCT FROM ${currentWeek}`
+      )
+    );
+
+  const [updated] = await db
+    .update(users)
+    .set({
+      streakFreezes: sql`${users.streakFreezes} + 1`,
+      denarioBalance: sql`${users.denarioBalance} - ${STREAK_FREEZE_PRICE}`,
+    })
+    .where(
+      and(
+        eq(users.id, userId),
+        sql`${users.streakFreezes} < ${MAX_STREAK_FREEZES}`,
+        gte(users.denarioBalance, STREAK_FREEZE_PRICE)
+      )
+    )
+    .returning({ streakFreezes: users.streakFreezes, denarioBalance: users.denarioBalance });
+
+  if (!updated) return null;
+
+  await createPointTransaction({
+    userId,
+    source: "PURCHASE",
+    xp: 0,
+    denario: -STREAK_FREEZE_PRICE,
+    description: "Compra de Graça (proteção de sequência)",
+  });
+
+  return updated;
 }
 
 // ============================================
@@ -579,7 +695,13 @@ export async function equipItem(userId: number, itemId: number) {
 
 export async function unequipItem(
   userId: number,
-  itemType: "BACKGROUND" | "CLOTHES" | "ACCESSORY" | "HAIR_STYLE" | "HAIR_COLOR"
+  itemType:
+    | "BACKGROUND"
+    | "CLOTHES"
+    | "ACCESSORY"
+    | "HAIR_STYLE"
+    | "HAIR_COLOR"
+    | "BASE_FEATURE"
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1103,18 +1225,39 @@ export async function awardMedal(userId: number, medalId: number, progress: numb
       .limit(1);
 
     if (existing.length > 0) {
-      return existing[0];
+      return { ...existing[0], isNew: false as const, medal: null };
     }
 
-    // Award the medal
-    await db.insert(userMedals).values({
-      userId,
-      medalId,
-      progress,
-      earnedAt: new Date(),
-    });
+    // Award the medal (unique index guards against concurrent double awards)
+    const inserted = await db
+      .insert(userMedals)
+      .values({
+        userId,
+        medalId,
+        progress,
+        earnedAt: new Date(),
+      })
+      .onConflictDoNothing()
+      .returning({ id: userMedals.id });
 
-    return { userId, medalId, progress };
+    if (inserted.length === 0) {
+      return { userId, medalId, progress, isNew: false as const, medal: null };
+    }
+
+    // Grant the medal's rewards
+    const [medal] = await db.select().from(medals).where(eq(medals.id, medalId)).limit(1);
+    if (medal && (medal.xpReward > 0 || medal.denarioReward > 0)) {
+      await updateUserXpAndDenario(userId, medal.xpReward, medal.denarioReward);
+      await createPointTransaction({
+        userId,
+        source: "MEDAL",
+        xp: medal.xpReward,
+        denario: medal.denarioReward,
+        description: `Medalha conquistada: ${medal.name}`,
+      });
+    }
+
+    return { userId, medalId, progress, isNew: true as const, medal: medal ?? null };
   } catch (error) {
     console.error("Error awarding medal:", error);
     return null;

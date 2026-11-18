@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 import axios from "axios";
 import { useNotifications } from "@/components/notification-provider";
+import { ReminderSettings } from "@/components/reminder-settings";
 
 type GenderValue = "male" | "female" | "";
 
@@ -562,6 +563,12 @@ export default function SettingsScreen() {
               </View>
             )}
           </View>
+
+          {/* Daily reminder */}
+          <ReminderSettings
+            doneToday={userData?.streakStatus === "done_today"}
+            streak={userData?.currentStreak ?? 0}
+          />
 
           {/* Change Password */}
           <View className="bg-surface rounded-xl p-4 border border-border mb-4">

@@ -16,7 +16,13 @@ import * as Haptics from "expo-haptics";
 import { NiceAvatar } from "@/components/nice-avatar";
 import { useNotifications } from "@/components/notification-provider";
 
-type ItemType = "BACKGROUND" | "CLOTHES" | "ACCESSORY" | "HAIR_STYLE" | "HAIR_COLOR";
+type ItemType =
+  | "BACKGROUND"
+  | "CLOTHES"
+  | "ACCESSORY"
+  | "HAIR_STYLE"
+  | "HAIR_COLOR"
+  | "BASE_FEATURE";
 type Rarity = "COMMON" | "RARE" | "EPIC";
 type TabType = "buy" | "myItems";
 
@@ -26,20 +32,22 @@ const RARITY_COLORS = {
   EPIC: { bg: "bg-warning/20", text: "text-warning", label: "Epico" },
 };
 
-const TYPE_LABELS = {
+const TYPE_LABELS: Record<ItemType, string> = {
   BACKGROUND: "Fundo",
   HAIR_STYLE: "Cabelo estilo",
   HAIR_COLOR: "Cabelo cor",
   CLOTHES: "Roupas",
   ACCESSORY: "Acessorios",
+  BASE_FEATURE: "Base do avatar",
 };
 
-const TYPE_ICONS = {
+const TYPE_ICONS: Record<ItemType, string> = {
   BACKGROUND: "BG",
   HAIR_STYLE: "HS",
   HAIR_COLOR: "HC",
   CLOTHES: "CL",
   ACCESSORY: "AC",
+  BASE_FEATURE: "BA",
 };
 
 export default function ShopScreen() {
@@ -188,16 +196,18 @@ export default function ShopScreen() {
     HAIR_STYLE: filteredUserItems.filter((ui) => ui.item.type === "HAIR_STYLE"),
     HAIR_COLOR: filteredUserItems.filter((ui) => ui.item.type === "HAIR_COLOR"),
     CLOTHES: filteredUserItems.filter((ui) => ui.item.type === "CLOTHES"),
-    ACCESSORY: filteredUserItems.filter((ui) => ui.item.type === "ACCESSORY"),
-  };
+  ACCESSORY: filteredUserItems.filter((ui) => ui.item.type === "ACCESSORY"),
+  BASE_FEATURE: filteredUserItems.filter((ui) => ui.item.type === "BASE_FEATURE"),
+};
 
-  const groupedSections = [
-    { key: "BACKGROUND", label: "Fundos" },
-    { key: "HAIR_STYLE", label: "Cabelo estilo" },
-    { key: "HAIR_COLOR", label: "Cabelo cor" },
-    { key: "CLOTHES", label: "Roupas" },
-    { key: "ACCESSORY", label: "Acessorios" },
-  ] as const;
+const groupedSections = [
+  { key: "BACKGROUND", label: "Fundos" },
+  { key: "HAIR_STYLE", label: "Cabelo estilo" },
+  { key: "HAIR_COLOR", label: "Cabelo cor" },
+  { key: "CLOTHES", label: "Roupas" },
+  { key: "ACCESSORY", label: "Acessorios" },
+  { key: "BASE_FEATURE", label: "Base do avatar" },
+] as const;
 
 
   return (
@@ -279,17 +289,25 @@ export default function ShopScreen() {
                   Roupas
                 </Text>
               </TouchableOpacity>
-                <TouchableOpacity
-                  className={`px-4 py-2 rounded-full ${selectedType === "ACCESSORY" ? "bg-primary" : "bg-surface border border-border"}`}
-                  onPress={() => setSelectedType("ACCESSORY")}
-                >
-                  <Text className={`font-semibold ${selectedType === "ACCESSORY" ? "text-white" : "text-foreground"}`}>
-                    Acessorios
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
+            <TouchableOpacity
+              className={`px-4 py-2 rounded-full ${selectedType === "ACCESSORY" ? "bg-primary" : "bg-surface border border-border"}`}
+              onPress={() => setSelectedType("ACCESSORY")}
+            >
+              <Text className={`font-semibold ${selectedType === "ACCESSORY" ? "text-white" : "text-foreground"}`}>
+                Acessorios
+              </Text>
+            </TouchableOpacity>
+              <TouchableOpacity
+                className={`px-4 py-2 rounded-full ${selectedType === "BASE_FEATURE" ? "bg-primary" : "bg-surface border border-border"}`}
+                onPress={() => setSelectedType("BASE_FEATURE")}
+              >
+                <Text className={`font-semibold ${selectedType === "BASE_FEATURE" ? "text-white" : "text-foreground"}`}>
+                  Base
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
 
           {/* Price Filter */}
           <View className="flex-1 min-w-[180px]">

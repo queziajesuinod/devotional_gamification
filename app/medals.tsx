@@ -11,6 +11,7 @@ import {
 import { ScreenContainer } from "@/components/screen-container";
 import { useRouter } from "expo-router";
 import { trpc } from "@/lib/trpc";
+import { MEDAL_TIER_COLOR, MEDAL_TIER_LABEL } from "@shared/medal-rewards";
 
 type TabType = "all" | "earned" | "available";
 
@@ -210,7 +211,7 @@ export default function MedalsScreen() {
                             {medal.isEarned && (
                               <View className="bg-primary rounded-full px-3 py-1">
                                   <Text className="text-white text-xs font-bold">
-                                    ?o&rdquo; Conquistada
+                                    ✓ Conquistada
                                   </Text>
                               </View>
                             )}
@@ -222,6 +223,39 @@ export default function MedalsScreen() {
                           >
                             {medal.description}
                           </Text>
+                          <View className="flex-row items-center gap-2 mt-2">
+                            <Text
+                              className="text-xs font-bold"
+                              style={{ color: MEDAL_TIER_COLOR[medal.tier] ?? MEDAL_TIER_COLOR.BRONZE }}
+                            >
+                              {MEDAL_TIER_LABEL[medal.tier] ?? "Bronze"}
+                            </Text>
+                            {(medal.xpReward > 0 || medal.denarioReward > 0) && (
+                              <Text className="text-xs text-muted">
+                                · {medal.xpReward > 0 ? `+${medal.xpReward} XP ` : ""}
+                                {medal.denarioReward > 0 ? `+${medal.denarioReward} 💰` : ""}
+                              </Text>
+                            )}
+                          </View>
+                          {!medal.isEarned &&
+                            medal.progressTarget !== null &&
+                            medal.progressTarget > 0 &&
+                            medal.progressCurrent !== null && (
+                              <View className="mt-2">
+                                <View className="bg-border h-2 rounded-full overflow-hidden">
+                                  <View
+                                    className="bg-primary h-2 rounded-full"
+                                    style={{
+                                      width: `${Math.round((medal.progressCurrent / medal.progressTarget) * 100)}%`,
+                                    }}
+                                  />
+                                </View>
+                                <Text className="text-xs text-muted mt-1">
+                                  {medal.progressCurrent}/{medal.progressTarget} · faltam{" "}
+                                  {medal.progressTarget - medal.progressCurrent}
+                                </Text>
+                              </View>
+                            )}
                           {medal.isEarned && medal.earnedAt && (
                             <Text className="text-xs text-primary mt-2">
                               Conquistada em{" "}

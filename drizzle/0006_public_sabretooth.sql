@@ -1,0 +1,1 @@
+ALTER TYPE "public"."shop_item_type" ADD VALUE 'BASE_FEATURE';

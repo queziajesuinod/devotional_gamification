@@ -24,6 +24,8 @@ export const pointSourceEnum = pgEnum("point_source", [
   "BONUS_STREAK",
   "ADMIN",
   "PURCHASE",
+  "MEDAL",
+  "LEVEL_UP",
 ]);
 export const shopItemTypeEnum = pgEnum("shop_item_type", [
   "BACKGROUND",
@@ -31,6 +33,7 @@ export const shopItemTypeEnum = pgEnum("shop_item_type", [
   "ACCESSORY",
   "HAIR_STYLE",
   "HAIR_COLOR",
+  "BASE_FEATURE",
 ]);
 export const shopItemRarityEnum = pgEnum("shop_item_rarity", ["COMMON", "RARE", "EPIC"]);
 export const rankingPeriodTypeEnum = pgEnum("ranking_period_type", ["MONTH", "YEAR"]);
@@ -39,6 +42,7 @@ export const groupMemberStatusEnum = pgEnum("group_member_status", [
   "approved",
   "rejected",
 ]);
+export const medalTierEnum = pgEnum("medal_tier", ["BRONZE", "SILVER", "GOLD", "DIAMOND"]);
 export const medalCategoryEnum = pgEnum("medal_category", [
   "BIBLE_BOOK",
   "STREAK",
@@ -86,6 +90,9 @@ export const users = pgTable(
     currentStreak: integer("currentStreak").default(0).notNull(),
     longestStreak: integer("longestStreak").default(0).notNull(),
     lastActivityDate: date("lastActivityDate"),
+    // "Graças": streak freezes that protect a missed day
+    streakFreezes: integer("streakFreezes").default(1).notNull(),
+    streakFreezeWeek: varchar("streakFreezeWeek", { length: 10 }),
     
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -338,6 +345,9 @@ export const medals = pgTable(
     iconUrlGray: varchar("iconUrlGray", { length: 512 }),
     iconEmoji: varchar("iconEmoji", { length: 10 }),
     requirement: text("requirement").notNull(), // JSON string with requirement details
+    tier: medalTierEnum("tier").default("BRONZE").notNull(),
+    xpReward: integer("xpReward").default(0).notNull(),
+    denarioReward: integer("denarioReward").default(0).notNull(),
     order: integer("order").default(0).notNull(), // Display order within category
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),

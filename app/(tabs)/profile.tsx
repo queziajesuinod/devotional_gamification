@@ -17,7 +17,13 @@ import { useRouter } from "expo-router";
 import { NiceAvatar } from "@/components/nice-avatar";
 import { useNotifications } from "@/components/notification-provider";
 
-type ItemType = "BACKGROUND" | "CLOTHES" | "ACCESSORY" | "HAIR_STYLE" | "HAIR_COLOR";
+type ItemType =
+  | "BACKGROUND"
+  | "CLOTHES"
+  | "ACCESSORY"
+  | "HAIR_STYLE"
+  | "HAIR_COLOR"
+  | "BASE_FEATURE";
 
 type AvatarConfig = Record<string, string | number | boolean | null>;
 
@@ -37,6 +43,7 @@ const TYPE_LABELS: Record<ItemType, string> = {
   HAIR_COLOR: "Cabelo cor",
   CLOTHES: "Roupas",
   ACCESSORY: "Acessorios",
+  BASE_FEATURE: "Base do avatar",
 };
 
 const TYPE_ICONS: Record<ItemType, string> = {
@@ -45,6 +52,7 @@ const TYPE_ICONS: Record<ItemType, string> = {
   HAIR_COLOR: "HC",
   CLOTHES: "CL",
   ACCESSORY: "AC",
+  BASE_FEATURE: "BA",
 };
 
 const GROUP_SECTIONS = [
@@ -273,6 +281,7 @@ export default function ProfileScreen() {
     HAIR_COLOR: userItems?.filter((ui) => ui.item.type === "HAIR_COLOR") || [],
     CLOTHES: userItems?.filter((ui) => ui.item.type === "CLOTHES") || [],
     ACCESSORY: userItems?.filter((ui) => ui.item.type === "ACCESSORY") || [],
+    BASE_FEATURE: userItems?.filter((ui) => ui.item.type === "BASE_FEATURE") || [],
   };
 
   const renderAvatarItemCard = (ui: UserItem) => {

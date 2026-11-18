@@ -19,6 +19,9 @@ import { useRouter } from "expo-router";
 import { NiceAvatar, type NiceAvatarConfig } from "@/components/nice-avatar";
 import { formatCampoGrandeDate, getDelayToCampoGrandeNextMidnight } from "@shared/_core/time";
 import { useNotifications } from "@/components/notification-provider";
+import { CelebrationModal, shouldCelebrate, type ChallengeRewardResult } from "@/components/celebration-modal";
+import { getLevelProgress, STREAK_MILESTONES } from "@shared/progression";
+import { syncDailyReminders } from "@/lib/reminders";
 
 const DEFAULT_AVATAR_CONFIG: NiceAvatarConfig = {
   sex: "man",
@@ -45,6 +48,7 @@ export default function DashboardScreen() {
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
   const [reflectionText, setReflectionText] = useState("");
   const [selectedChallengeId, setSelectedChallengeId] = useState<number | null>(null);
+  const [celebration, setCelebration] = useState<ChallengeRewardResult | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -68,6 +72,30 @@ export default function DashboardScreen() {
     },
   });
 
+  const buyFreezeMutation = trpc.user.buyStreakFreeze.useMutation({
+    onSuccess: () => {
+      refetchUser();
+      notifications.success("Graça adquirida! 🕊️");
+    },
+    onError: (error) => notifications.error(error.message),
+  });
+
+  // Keep local reminders in sync with today's progress
+  const doneToday = userData?.streakStatus === "done_today";
+  const currentStreak = userData?.currentStreak;
+  useEffect(() => {
+    if (currentStreak === undefined) return;
+    syncDailyReminders({ doneToday, streak: currentStreak }).catch(() => {});
+  }, [doneToday, currentStreak]);
+
+  const showRewards = (result: ChallengeRewardResult, fallbackMessage: string) => {
+    if (shouldCelebrate(result)) {
+      setCelebration(result);
+    } else {
+      notifications.success(`${fallbackMessage} +${result.xpEarned} XP · +${result.denariosEarned} 💰`);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await Promise.all([refetchUser(), refetchToday()]);
@@ -88,8 +116,8 @@ export default function DashboardScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     try {
-      await completeChallengeMutation.mutateAsync({ challengeId });
-      notifications.success("Desafio concluído!");
+      const result = await completeChallengeMutation.mutateAsync({ challengeId });
+      showRewards(result, "Desafio concluído!");
     } catch (error: any) {
       console.error("Error completing challenge:", error);
       notifications.error(error.message || "Erro ao completar desafio");
@@ -109,14 +137,14 @@ export default function DashboardScreen() {
     }
 
     try {
-      await completeChallengeMutation.mutateAsync({ 
+      const result = await completeChallengeMutation.mutateAsync({
         challengeId: selectedChallengeId,
         responseText: reflectionText,
       });
-      notifications.success("Reflexão salva!");
       setReflectionModalVisible(false);
       setReflectionText("");
       setSelectedChallengeId(null);
+      showRewards(result, "Reflexão salva!");
     } catch (error: any) {
       console.error("Error completing reflection:", error);
       notifications.error(error.message || "Erro ao completar reflexão");
@@ -169,6 +197,14 @@ export default function DashboardScreen() {
       : null;
   const headerAvatarConfig = avatarConfig ?? DEFAULT_AVATAR_CONFIG;
   const showNiceAvatar = !!avatarConfig || !userData?.avatarUrl;
+  const levelProgress = getLevelProgress(userData?.xpTotal || 0);
+  const streak = userData?.currentStreak || 0;
+  const streakStatus = userData?.streakStatus ?? "none";
+  const effectiveStreak = streakStatus === "broken" ? 0 : streak;
+  const nextMilestone = STREAK_MILESTONES.find((m) => m.days > effectiveStreak) ?? null;
+  const freezes = userData?.streakFreezes ?? 0;
+  const maxFreezes = userData?.maxStreakFreezes ?? 2;
+  const freezePrice = userData?.streakFreezePrice ?? 60;
 
   return (
     <ScreenContainer>
@@ -192,14 +228,18 @@ export default function DashboardScreen() {
           </View>
           <View className="flex-row items-center gap-4">
             <View className="bg-white/20 px-3 py-1 rounded-full">
-              <Text className="text-white text-sm font-semibold">Nível {userData?.level || 1}</Text>
+              <Text className="text-white text-sm font-semibold">
+                {levelProgress.title.emoji} Nível {levelProgress.level}
+              </Text>
             </View>
             <View className="flex-1">
-              <Text className="text-white/80 text-xs">XP: {userData?.xpTotal || 0}</Text>
+              <Text className="text-white/80 text-xs">
+                {levelProgress.title.title} · {levelProgress.xpIntoLevel}/{levelProgress.xpForNextLevel} XP
+              </Text>
               <View className="bg-white/20 h-2 rounded-full mt-1">
                 <View
                   className="bg-accent h-2 rounded-full"
-                  style={{ width: `${((userData?.xpTotal || 0) % 100)}%` }}
+                  style={{ width: `${levelProgress.percent}%` }}
                 />
               </View>
             </View>
@@ -209,46 +249,87 @@ export default function DashboardScreen() {
           </View>
           
           {/* Streak Badge */}
-          {(userData?.currentStreak || 0) > 0 && (
-            <View className="mt-4 bg-white/10 rounded-2xl p-4 border-2 border-white/20">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-3">
-                  <Text className="text-4xl">🔥</Text>
-                  <View>
-                    <Text className="text-white text-2xl font-bold">{userData?.currentStreak || 0} dias</Text>
-                    <Text className="text-white/70 text-xs">Sequência atual</Text>
-                  </View>
-                </View>
-                <View className="items-end">
-                  <Text className="text-white/70 text-xs">Recorde</Text>
-                  <Text className="text-white text-lg font-semibold">{userData?.longestStreak || 0} dias</Text>
+          <View className="mt-4 bg-white/10 rounded-2xl p-4 border-2 border-white/20">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <Text className="text-4xl">{effectiveStreak === 0 ? "🌱" : "🔥"}</Text>
+                <View>
+                  <Text className="text-white text-2xl font-bold">
+                    {effectiveStreak} {effectiveStreak === 1 ? "dia" : "dias"}
+                  </Text>
+                  <Text className="text-white/70 text-xs">Sequência atual</Text>
                 </View>
               </View>
-              
-              {/* Milestone Progress */}
-              <View className="mt-3">
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-white/60 text-xs">Próximo marco:</Text>
-                  <Text className="text-white text-xs font-semibold">
-                    {(userData?.currentStreak || 0) < 7 ? `7 dias (${7 - (userData?.currentStreak || 0)} restantes)` :
-                     (userData?.currentStreak || 0) < 30 ? `30 dias (${30 - (userData?.currentStreak || 0)} restantes)` :
-                     (userData?.currentStreak || 0) < 100 ? `100 dias (${100 - (userData?.currentStreak || 0)} restantes)` :
-                     "Todos os marcos alcançados! 🎉"}
-                  </Text>
-                </View>
-                <View className="flex-row gap-2">
-                  <View className={`flex-1 h-2 rounded-full ${(userData?.currentStreak || 0) >= 7 ? 'bg-accent' : 'bg-white/20'}`} />
-                  <View className={`flex-1 h-2 rounded-full ${(userData?.currentStreak || 0) >= 30 ? 'bg-accent' : 'bg-white/20'}`} />
-                  <View className={`flex-1 h-2 rounded-full ${(userData?.currentStreak || 0) >= 100 ? 'bg-accent' : 'bg-white/20'}`} />
-                </View>
-                <View className="flex-row justify-between mt-1">
-                  <Text className="text-white/60 text-xs">7d</Text>
-                  <Text className="text-white/60 text-xs">30d</Text>
-                  <Text className="text-white/60 text-xs">100d</Text>
-                </View>
+              <View className="items-end">
+                <Text className="text-white/70 text-xs">Recorde</Text>
+                <Text className="text-white text-lg font-semibold">{userData?.longestStreak || 0} dias</Text>
               </View>
             </View>
-          )}
+
+            {/* Status line */}
+            <View className="mt-3 bg-black/10 rounded-xl px-3 py-2">
+              <Text className="text-white text-xs">
+                {streakStatus === "done_today" && "✅ Sequência garantida hoje. Volte amanhã!"}
+                {streakStatus === "at_risk" && "⏳ Complete um desafio hoje para manter sua sequência!"}
+                {streakStatus === "protected" &&
+                  "🕊️ Você perdeu um dia, mas uma Graça protege sua sequência se fizer um desafio hoje."}
+                {streakStatus === "broken" &&
+                  "🌱 Todo dia é um recomeço. Complete um desafio para iniciar uma nova sequência."}
+                {streakStatus === "none" && "🌱 Complete um desafio para começar sua sequência!"}
+              </Text>
+            </View>
+
+            {/* Graças (streak freezes) */}
+            <View className="mt-3 flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1">
+                {Array.from({ length: maxFreezes }).map((_, i) => (
+                  <Text key={i} className="text-lg" style={{ opacity: i < freezes ? 1 : 0.3 }}>
+                    🕊️
+                  </Text>
+                ))}
+                <Text className="text-white/80 text-xs ml-2 flex-1">
+                  {freezes} {freezes === 1 ? "Graça" : "Graças"}: protegem um dia perdido
+                </Text>
+              </View>
+              {freezes < maxFreezes && (
+                <TouchableOpacity
+                  className="bg-white/20 px-3 py-1 rounded-full active:opacity-70"
+                  disabled={buyFreezeMutation.isPending || (userData?.denarioBalance ?? 0) < freezePrice}
+                  style={{ opacity: (userData?.denarioBalance ?? 0) < freezePrice ? 0.5 : 1 }}
+                  onPress={() => buyFreezeMutation.mutate()}
+                >
+                  <Text className="text-white text-xs font-bold">+1 por {freezePrice} 💰</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Milestone Progress */}
+            <View className="mt-3">
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-white/60 text-xs">Próximo marco:</Text>
+                <Text className="text-white text-xs font-semibold">
+                  {nextMilestone
+                    ? `${nextMilestone.days} dias (faltam ${nextMilestone.days - effectiveStreak}) · +${nextMilestone.denarios} 💰`
+                    : "Todos os marcos alcançados! 🎉"}
+                </Text>
+              </View>
+              <View className="flex-row gap-2">
+                {STREAK_MILESTONES.map((m) => (
+                  <View
+                    key={m.days}
+                    className={`flex-1 h-2 rounded-full ${effectiveStreak >= m.days ? "bg-accent" : "bg-white/20"}`}
+                  />
+                ))}
+              </View>
+              <View className="flex-row justify-between mt-1">
+                {STREAK_MILESTONES.map((m) => (
+                  <Text key={m.days} className="text-white/60 text-xs">
+                    {m.days}d
+                  </Text>
+                ))}
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* Devotional Content */}
@@ -316,6 +397,8 @@ export default function DashboardScreen() {
           )}
         </View>
       </ScrollView>
+
+      <CelebrationModal result={celebration} onClose={() => setCelebration(null)} />
 
       {/* Reflection Modal */}
       <Modal

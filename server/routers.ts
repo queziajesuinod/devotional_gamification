@@ -7,7 +7,23 @@ import { adminRouter } from "./adminRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { getCampoGrandeDateString } from "../shared/_core/time.js";
-import { checkAndAwardAllMedals, checkAndAwardBookMedal, checkTimeBasedMedals } from "./medal-helpers";
+import {
+  checkAndAwardAllMedals,
+  checkAndAwardBookMedal,
+  checkTimeBasedMedals,
+  getMedalsWithProgress,
+  type EarnedMedal,
+} from "./medal-helpers";
+import {
+  MAX_STREAK_FREEZES,
+  STREAK_FREEZE_PRICE,
+  getLevelTitle,
+  getStreakStatus,
+  isTitleLevel,
+  levelFromXp,
+  levelUpDenarioReward,
+  weekKey,
+} from "../shared/progression";
 import { getRarityLock, getRarityRule } from "../shared/shop-rules";
 
 const ensureLeaderAccess = async (user: { id: number; role: string }, groupId: number) => {
@@ -107,6 +123,14 @@ export const appRouter = router({
         return value.toISOString().split("T")[0];
       };
 
+      // The weekly Graça is granted lazily on the next activity; show it as available already
+      const today = getCampoGrandeDateString();
+      const availableFreezes =
+        user.streakFreezeWeek !== weekKey(today)
+          ? Math.min(MAX_STREAK_FREEZES, user.streakFreezes + 1)
+          : user.streakFreezes;
+      const lastActivityDate = formatDateValue(user.lastActivityDate);
+
       return {
         id: user.id,
         name: user.name,
@@ -114,10 +138,19 @@ export const appRouter = router({
         email: user.email,
         avatarUrl: user.avatarUrl,
         xpTotal: user.xpTotal,
-        level: user.level,
+        level: levelFromXp(user.xpTotal),
         denarioBalance: user.denarioBalance,
         currentStreak: user.currentStreak,
         longestStreak: user.longestStreak,
+        streakFreezes: availableFreezes,
+        maxStreakFreezes: MAX_STREAK_FREEZES,
+        streakFreezePrice: STREAK_FREEZE_PRICE,
+        streakStatus: getStreakStatus({
+          currentStreak: user.currentStreak,
+          lastActivityDate: lastActivityDate,
+          freezes: availableFreezes,
+          today,
+        }),
         avatarConfig: resolvedAvatarConfig,
         equippedBackgroundId: user.equippedBackgroundId,
         equippedClothesId: user.equippedClothesId,
@@ -128,6 +161,17 @@ export const appRouter = router({
         birthDate: formatDateValue(user.birthDate),
         whatsapp: user.whatsapp,
       };
+    }),
+
+    buyStreakFreeze: protectedProcedure.mutation(async ({ ctx }) => {
+      const result = await db.buyStreakFreeze(ctx.user.id);
+      if (!result) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Você já tem o máximo de Graças (${MAX_STREAK_FREEZES}) ou não tem ${STREAK_FREEZE_PRICE} denários.`,
+        });
+      }
+      return result;
     }),
 
     updateAvatar: protectedProcedure
@@ -251,9 +295,17 @@ export const appRouter = router({
 
         const xpEarned = challenge.baseXp;
         const denariosEarned = challenge.baseDenario;
+        const userBefore = await db.getUserById(ctx.user.id);
+        const levelBefore = levelFromXp(userBefore?.xpTotal ?? 0);
 
-        // Complete the challenge
-        await db.completeUserChallenge(ctx.user.id, input.challengeId, xpEarned, denariosEarned, input.responseText);
+        // Complete the challenge (also updates streak and group points)
+        const { streak } = await db.completeUserChallenge(
+          ctx.user.id,
+          input.challengeId,
+          xpEarned,
+          denariosEarned,
+          input.responseText
+        );
 
         // Update user XP and Denario
         await db.updateUserXpAndDenario(ctx.user.id, xpEarned, denariosEarned);
@@ -278,6 +330,8 @@ export const appRouter = router({
           await db.updateUserRankingScore(yearlyPeriod.id, ctx.user.id, xpEarned);
         }
 
+        const newMedals: EarnedMedal[] = [];
+
         if (challenge.type === "READING") {
           const readingResults = await db.recordBibleReadingForDay(
             ctx.user.id,
@@ -286,21 +340,60 @@ export const appRouter = router({
 
           for (const result of readingResults) {
             if (result.progress?.isCompleted) {
-              await checkAndAwardBookMedal(ctx.user.id, result.bookName);
+              newMedals.push(...(await checkAndAwardBookMedal(ctx.user.id, result.bookName)));
             }
           }
         }
 
-        // Check and award medals
-        await checkAndAwardAllMedals(ctx.user.id);
-        
+        // Check and award medals (rewards are credited inside awardMedal)
+        newMedals.push(...(await checkAndAwardAllMedals(ctx.user.id)));
+
         // Check time-based medals (early bird, night owl)
-        await checkTimeBasedMedals(ctx.user.id);
+        newMedals.push(...(await checkTimeBasedMedals(ctx.user.id)));
+
+        // Level-up rewards (denários only, so they never trigger further level-ups)
+        const userAfter = await db.getUserById(ctx.user.id);
+        const levelAfter = levelFromXp(userAfter?.xpTotal ?? 0);
+        let levelUp: {
+          from: number;
+          to: number;
+          denarioReward: number;
+          newTitle: { title: string; emoji: string } | null;
+        } | null = null;
+
+        if (levelAfter > levelBefore) {
+          let reward = 0;
+          let newTitle: { title: string; emoji: string } | null = null;
+          for (let level = levelBefore + 1; level <= levelAfter; level += 1) {
+            reward += levelUpDenarioReward(level);
+            if (isTitleLevel(level)) {
+              const { title, emoji } = getLevelTitle(level);
+              newTitle = { title, emoji };
+            }
+          }
+          await db.updateUserXpAndDenario(ctx.user.id, 0, reward);
+          await db.createPointTransaction({
+            userId: ctx.user.id,
+            source: "LEVEL_UP",
+            xp: 0,
+            denario: reward,
+            description: `Subiu para o nível ${levelAfter}`,
+          });
+          levelUp = { from: levelBefore, to: levelAfter, denarioReward: reward, newTitle };
+        }
+
+        const finalUser = levelUp ? await db.getUserById(ctx.user.id) : userAfter;
 
         return {
           success: true,
           xpEarned,
           denariosEarned,
+          streak: streak ?? null,
+          levelUp,
+          newMedals,
+          xpBefore: userBefore?.xpTotal ?? 0,
+          xpTotal: finalUser?.xpTotal ?? 0,
+          denarioBalance: finalUser?.denarioBalance ?? 0,
         };
       }),
   }),
@@ -396,7 +489,14 @@ export const appRouter = router({
     unequipItem: protectedProcedure
       .input(
         z.object({
-          itemType: z.enum(["BACKGROUND", "CLOTHES", "ACCESSORY", "HAIR_STYLE", "HAIR_COLOR"]),
+        itemType: z.enum([
+          "BACKGROUND",
+          "CLOTHES",
+          "ACCESSORY",
+          "HAIR_STYLE",
+          "HAIR_COLOR",
+          "BASE_FEATURE",
+        ]),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -590,7 +690,7 @@ export const appRouter = router({
   medals: router({
     // Get all medals with user's progress
     list: protectedProcedure.query(async ({ ctx }) => {
-      return await db.getUserMedalsWithProgress(ctx.user.id);
+      return await getMedalsWithProgress(ctx.user.id);
     }),
 
     // Get only earned medals

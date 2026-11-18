@@ -67,6 +67,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    "expo-notifications",
     [
       "expo-audio",
       {
