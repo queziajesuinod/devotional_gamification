@@ -129,24 +129,28 @@ const freeItems = [
 
 export async function seedFreeItems() {
   console.log("🎨 Seeding shop items (free + premium)...");
-  
+
   const db = await getDb();
   if (!db) {
     throw new Error("Database connection not available");
   }
-  
+
   try {
     // Clear existing shop items
     await db.delete(shopItems);
-    
+
     // Insert all items
     for (const item of freeItems) {
       await db.insert(shopItems).values(item);
     }
-    
+
     console.log(`✅ Seeded ${freeItems.length} shop items successfully`);
-    console.log(`   - ${freeItems.filter(i => i.priceDenario === 0).length} free items`);
-    console.log(`   - ${freeItems.filter(i => i.priceDenario > 0).length} premium items`);
+    console.log(
+      `   - ${freeItems.filter((i) => i.priceDenario === 0).length} free items`,
+    );
+    console.log(
+      `   - ${freeItems.filter((i) => i.priceDenario > 0).length} premium items`,
+    );
   } catch (error) {
     console.error("❌ Error seeding shop items:", error);
     throw error;

@@ -24,9 +24,13 @@ import {
 import { applyLevelUpRewards } from "./rewards";
 import { engagementRouter } from "./engagementRouter";
 import { addLeagueXp, recordActivity } from "./engagement";
-import { getRarityLock, getRarityRule } from "../shared/shop-rules";
+import { getItemLock } from "../shared/shop-rules";
+import { CHARACTER_KEYS, DEFAULT_CHARACTER, resolveFigurine } from "../shared/character-catalog";
 
-const ensureLeaderAccess = async (user: { id: number; role: string }, groupId: number) => {
+const ensureLeaderAccess = async (
+  user: { id: number; role: string },
+  groupId: number,
+) => {
   if (user.role !== "admin" && user.role !== "leader") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Leader role required" });
   }
@@ -40,7 +44,10 @@ const ensureLeaderAccess = async (user: { id: number; role: string }, groupId: n
   return group;
 };
 
-const ensureLeaderRequestAccess = async (user: { id: number; role: string }, requestId: number) => {
+const ensureLeaderRequestAccess = async (
+  user: { id: number; role: string },
+  requestId: number,
+) => {
   if (user.role !== "admin" && user.role !== "leader") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Leader role required" });
   }
@@ -93,7 +100,10 @@ export const appRouter = router({
         return {};
       };
 
-      const applyPatch = (base: Record<string, unknown>, patchValue?: string | null) => {
+      const applyPatch = (
+        base: Record<string, unknown>,
+        patchValue?: string | null,
+      ) => {
         if (!patchValue) return base;
         try {
           const patch = JSON.parse(patchValue) as Record<string, unknown>;
@@ -115,7 +125,8 @@ export const appRouter = router({
         equipped?.clothes?.avatarConfig,
         equipped?.accessory?.avatarConfig,
       ].reduce((acc, patch) => applyPatch(acc, patch), baseConfig);
-      const resolvedAvatarConfig = Object.keys(mergedConfig).length > 0 ? mergedConfig : null;
+      const resolvedAvatarConfig =
+        Object.keys(mergedConfig).length > 0 ? mergedConfig : null;
       const formatDateValue = (value?: Date | string | null) => {
         if (!value) return null;
         if (typeof value === "string") {
@@ -153,6 +164,7 @@ export const appRouter = router({
           today,
         }),
         avatarConfig: resolvedAvatarConfig,
+        figurine: resolveFigurine(user.characterKey, equipped),
         equippedBackgroundId: user.equippedBackgroundId,
         equippedClothesId: user.equippedClothesId,
         equippedAccessoryId: user.equippedAccessoryId,
@@ -163,6 +175,13 @@ export const appRouter = router({
         whatsapp: user.whatsapp,
       };
     }),
+
+    setCharacter: protectedProcedure
+      .input(z.object({ characterKey: z.enum(CHARACTER_KEYS as [string, ...string[]]) }))
+      .mutation(async ({ ctx, input }) => {
+        await db.setUserCharacter(ctx.user.id, input.characterKey);
+        return { success: true };
+      }),
 
     buyStreakFreeze: protectedProcedure.mutation(async ({ ctx }) => {
       const result = await db.buyStreakFreeze(ctx.user.id);
@@ -180,14 +199,14 @@ export const appRouter = router({
         z.object({
           avatarConfig: z.record(
             z.string(),
-            z.union([z.string(), z.number(), z.boolean(), z.null()])
+            z.union([z.string(), z.number(), z.boolean(), z.null()]),
           ),
           equippedBackgroundId: z.number().nullable().optional(),
           equippedClothesId: z.number().nullable().optional(),
           equippedAccessoryId: z.number().nullable().optional(),
           equippedHairStyleId: z.number().nullable().optional(),
           equippedHairColorId: z.number().nullable().optional(),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         await db.updateUserAvatar(
@@ -197,7 +216,7 @@ export const appRouter = router({
           input.equippedClothesId,
           input.equippedAccessoryId,
           input.equippedHairStyleId,
-          input.equippedHairColorId
+          input.equippedHairColorId,
         );
 
         return { success: true };
@@ -222,12 +241,17 @@ export const appRouter = router({
         };
       }
 
-      const challenges = await db.getChallengesByDevotionalDayId(devotionalDay.id);
+      const challenges = await db.getChallengesByDevotionalDayId(
+        devotionalDay.id,
+      );
 
       // Get user challenge status for each challenge
       const challengesWithStatus = await Promise.all(
         challenges.map(async (challenge) => {
-          const userChallenge = await db.getUserChallengeStatus(ctx.user.id, challenge.id);
+          const userChallenge = await db.getUserChallengeStatus(
+            ctx.user.id,
+            challenge.id,
+          );
 
           // If no user challenge exists, create one
           if (!userChallenge) {
@@ -250,7 +274,7 @@ export const appRouter = router({
             completedAt: userChallenge?.completedAt,
             responseText: userChallenge?.responseText || null,
           };
-        })
+        }),
       );
 
       return {
@@ -263,24 +287,28 @@ export const appRouter = router({
       };
     }),
 
-    getReflectionHistory: protectedProcedure
-      .query(async ({ ctx }) => {
-        const reflections = await db.getUserReflections(ctx.user.id);
-        return reflections;
-      }),
+    getReflectionHistory: protectedProcedure.query(async ({ ctx }) => {
+      const reflections = await db.getUserReflections(ctx.user.id);
+      return reflections;
+    }),
 
     completeChallenge: protectedProcedure
-      .input(z.object({ 
-        challengeId: z.number(),
-        responseText: z.string().optional(),
-      }))
+      .input(
+        z.object({
+          challengeId: z.number(),
+          responseText: z.string().optional(),
+        }),
+      )
       .mutation(async ({ ctx, input }) => {
         const challenge = await db.getChallengeById(input.challengeId);
         if (!challenge) {
           throw new Error("Challenge not found");
         }
 
-        const userChallenge = await db.getUserChallengeStatus(ctx.user.id, input.challengeId);
+        const userChallenge = await db.getUserChallengeStatus(
+          ctx.user.id,
+          input.challengeId,
+        );
         if (!userChallenge) {
           throw new Error("User challenge not found");
         }
@@ -290,7 +318,10 @@ export const appRouter = router({
         }
 
         // Validate reflection response
-        if (challenge.type === "REFLECTION" && (!input.responseText || input.responseText.trim().length === 0)) {
+        if (
+          challenge.type === "REFLECTION" &&
+          (!input.responseText || input.responseText.trim().length === 0)
+        ) {
           throw new Error("Reflection response is required");
         }
 
@@ -305,7 +336,7 @@ export const appRouter = router({
           input.challengeId,
           xpEarned,
           denariosEarned,
-          input.responseText
+          input.responseText,
         );
 
         // Update user XP and Denario
@@ -332,12 +363,20 @@ export const appRouter = router({
         // Update ranking scores
         const monthlyPeriod = await db.getActiveRankingPeriod("MONTH");
         if (monthlyPeriod) {
-          await db.updateUserRankingScore(monthlyPeriod.id, ctx.user.id, xpEarned);
+          await db.updateUserRankingScore(
+            monthlyPeriod.id,
+            ctx.user.id,
+            xpEarned,
+          );
         }
 
         const yearlyPeriod = await db.getActiveRankingPeriod("YEAR");
         if (yearlyPeriod) {
-          await db.updateUserRankingScore(yearlyPeriod.id, ctx.user.id, xpEarned);
+          await db.updateUserRankingScore(
+            yearlyPeriod.id,
+            ctx.user.id,
+            xpEarned,
+          );
         }
 
         const newMedals: EarnedMedal[] = [];
@@ -345,12 +384,14 @@ export const appRouter = router({
         if (challenge.type === "READING") {
           const readingResults = await db.recordBibleReadingForDay(
             ctx.user.id,
-            challenge.devotionalDayId
+            challenge.devotionalDayId,
           );
 
           for (const result of readingResults) {
             if (result.progress?.isCompleted) {
-              newMedals.push(...(await checkAndAwardBookMedal(ctx.user.id, result.bookName)));
+              newMedals.push(
+                ...(await checkAndAwardBookMedal(ctx.user.id, result.bookName)),
+              );
             }
           }
         }
@@ -395,30 +436,36 @@ export const appRouter = router({
         throw new Error("User not found");
       }
       const ownedItemIds = new Set(userItems.map((ui) => ui.itemId));
+      const character = user.characterKey ?? DEFAULT_CHARACTER;
 
-      return items.map((item) => {
-        const owned = ownedItemIds.has(item.id);
-        const rule = getRarityRule(item.rarity);
-        const lock = getRarityLock(item.rarity, user.level, medalCount);
-        const isLocked = !item.isAvailable || (!owned && lock.isLocked);
-        const lockReason = !item.isAvailable ? "Indisponivel" : lock.reason;
+      return items
+        .filter((item) => !item.characterKey || item.characterKey === character)
+        .map((item) => {
+          const free = !!item.slug && item.priceDenario === 0;
+          const owned = free || ownedItemIds.has(item.id);
+          const lock = getItemLock(item, user.level, medalCount);
+          const isLocked = !item.isAvailable || (!owned && lock.isLocked);
+          const lockReason = !item.isAvailable ? "Indisponível" : lock.reason;
 
-        return {
-          id: item.id,
-          name: item.name,
-          type: item.type,
-          rarity: item.rarity,
-          imageUrl: item.imageUrl,
-          avatarConfig: item.avatarConfig,
-          priceDenario: item.priceDenario,
-          description: item.description,
-          owned,
-          isLocked,
-          lockReason,
-          minLevel: rule.minLevel,
-          medalsRequired: rule.medalsRequired,
-        };
-      });
+          return {
+            id: item.id,
+            slug: item.slug,
+            name: item.name,
+            type: item.type,
+            rarity: item.rarity,
+            imageUrl: item.imageUrl,
+            avatarConfig: item.avatarConfig,
+            priceDenario: item.priceDenario,
+            description: item.description,
+            characterKey: item.characterKey,
+            assetKey: item.assetKey,
+            owned,
+            isLocked,
+            lockReason,
+            minLevel: lock.minLevel,
+            medalsRequired: lock.medalsRequired,
+          };
+        });
     }),
 
     userItems: protectedProcedure.query(async ({ ctx }) => {
@@ -446,8 +493,14 @@ export const appRouter = router({
         if (!user) {
           throw new Error("User not found");
         }
+        if (item.slug && item.priceDenario === 0) {
+          throw new Error("Este item é grátis: é só equipar");
+        }
+        if (item.characterKey && item.characterKey !== (user.characterKey ?? DEFAULT_CHARACTER)) {
+          throw new Error("Este item é de outro personagem");
+        }
         const medalCount = await db.getUserMedalCount(ctx.user.id);
-        const lock = getRarityLock(item.rarity, user.level, medalCount);
+        const lock = getItemLock(item, user.level, medalCount);
         if (lock.isLocked) {
           throw new Error(lock.reason || "Item locked");
         }
@@ -471,15 +524,15 @@ export const appRouter = router({
     unequipItem: protectedProcedure
       .input(
         z.object({
-        itemType: z.enum([
-          "BACKGROUND",
-          "CLOTHES",
-          "ACCESSORY",
-          "HAIR_STYLE",
-          "HAIR_COLOR",
-          "BASE_FEATURE",
-        ]),
-        })
+          itemType: z.enum([
+            "BACKGROUND",
+            "CLOTHES",
+            "ACCESSORY",
+            "HAIR_STYLE",
+            "HAIR_COLOR",
+            "BASE_FEATURE",
+          ]),
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         await db.unequipItem(ctx.user.id, input.itemType);
@@ -505,7 +558,10 @@ export const appRouter = router({
       }
 
       const rankings = await db.getLeaderboard(period.id);
-      const userPosition = await db.getUserRankingPosition(period.id, ctx.user.id);
+      const userPosition = await db.getUserRankingPosition(
+        period.id,
+        ctx.user.id,
+      );
 
       return {
         rankings: rankings.map((r, index) => ({
@@ -529,7 +585,10 @@ export const appRouter = router({
       }
 
       const rankings = await db.getLeaderboard(period.id);
-      const userPosition = await db.getUserRankingPosition(period.id, ctx.user.id);
+      const userPosition = await db.getUserRankingPosition(
+        period.id,
+        ctx.user.id,
+      );
 
       return {
         rankings: rankings.map((r, index) => ({
@@ -589,9 +648,15 @@ export const appRouter = router({
     approveRequest: protectedProcedure
       .input(z.object({ requestId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const request = await ensureLeaderRequestAccess(ctx.user, input.requestId);
+        const request = await ensureLeaderRequestAccess(
+          ctx.user,
+          input.requestId,
+        );
         if (request.status !== "pending") {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Request already processed" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Request already processed",
+          });
         }
         await db.approveGroupMember(input.requestId, ctx.user.id);
         return { success: true };
@@ -600,9 +665,15 @@ export const appRouter = router({
     rejectRequest: protectedProcedure
       .input(z.object({ requestId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const request = await ensureLeaderRequestAccess(ctx.user, input.requestId);
+        const request = await ensureLeaderRequestAccess(
+          ctx.user,
+          input.requestId,
+        );
         if (request.status !== "pending") {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Request already processed" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Request already processed",
+          });
         }
         await db.rejectGroupMember(input.requestId);
         return { success: true };
@@ -619,7 +690,10 @@ export const appRouter = router({
   leader: router({
     dashboard: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "leader" && ctx.user.role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Leader role required" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Leader role required",
+        });
       }
 
       const group = await db.getGroupByLeaderId(ctx.user.id);
@@ -646,9 +720,15 @@ export const appRouter = router({
     approveRequest: protectedProcedure
       .input(z.object({ requestId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const request = await ensureLeaderRequestAccess(ctx.user, input.requestId);
+        const request = await ensureLeaderRequestAccess(
+          ctx.user,
+          input.requestId,
+        );
         if (request.status !== "pending") {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Request already processed" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Request already processed",
+          });
         }
         await db.approveGroupMember(input.requestId, ctx.user.id);
         return { success: true };
@@ -657,9 +737,15 @@ export const appRouter = router({
     rejectRequest: protectedProcedure
       .input(z.object({ requestId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const request = await ensureLeaderRequestAccess(ctx.user, input.requestId);
+        const request = await ensureLeaderRequestAccess(
+          ctx.user,
+          input.requestId,
+        );
         if (request.status !== "pending") {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Request already processed" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Request already processed",
+          });
         }
         await db.rejectGroupMember(input.requestId);
         return { success: true };
@@ -687,14 +773,14 @@ export const appRouter = router({
           bookName: z.string(),
           chaptersRead: z.number().min(0),
           totalChapters: z.number().min(1),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         const result = await db.updateBibleReadingProgress(
           ctx.user.id,
           input.bookName,
           input.chaptersRead,
-          input.totalChapters
+          input.totalChapters,
         );
 
         // Check if book is completed and award medal

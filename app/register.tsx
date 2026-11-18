@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
+import { GameIcon } from "@/components/game-icon";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import * as Auth from "@/lib/_core/auth";
@@ -30,7 +31,9 @@ export default function RegisterScreen() {
     // Always use the backend API URL (port 3000)
     if (Platform.OS === "web" && typeof window !== "undefined") {
       // Replace port 8081 with 3000 for backend API
-      const origin = window.location.origin.replace(':8081', ':3009').replace('8081-', '3009-');
+      const origin = window.location.origin
+        .replace(":8081", ":3009")
+        .replace("8081-", "3009-");
       return `${origin}/api`;
     }
     return "https://3000-il1293ezarklxcfek50kx-f2f21d31.us2.manus.computer/api";
@@ -57,13 +60,17 @@ export default function RegisterScreen() {
 
     try {
       const apiUrl = getApiUrl();
-      const response = await axios.post(`${apiUrl}/auth/register`, {
-        nickname: nickname.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-      }, {
-        withCredentials: true,
-      });
+      const response = await axios.post(
+        `${apiUrl}/auth/register`,
+        {
+          nickname: nickname.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        },
+        {
+          withCredentials: true,
+        },
+      );
 
       if (response.data.success) {
         const sessionToken: string | undefined = response.data.sessionToken;
@@ -93,8 +100,12 @@ export default function RegisterScreen() {
       }
     } catch (err: any) {
       console.error("Register error:", err);
-      setError(err.response?.data?.error || "Erro ao criar conta. Tente novamente.");
-      notifications.error(err.response?.data?.error || "Erro ao criar conta. Tente novamente.");
+      setError(
+        err.response?.data?.error || "Erro ao criar conta. Tente novamente.",
+      );
+      notifications.error(
+        err.response?.data?.error || "Erro ao criar conta. Tente novamente.",
+      );
     } finally {
       setLoading(false);
     }
@@ -113,7 +124,7 @@ export default function RegisterScreen() {
           <View className="flex-1 justify-center p-6">
             {/* Logo/Header */}
             <View className="items-center mb-8">
-              <Text className="text-6xl mb-4">📖</Text>
+              <GameIcon name="reading" size={72} style={{ marginBottom: 16 }} />
               <Text className="text-foreground text-3xl font-bold text-center">
                 Criar Conta
               </Text>
@@ -190,7 +201,9 @@ export default function RegisterScreen() {
 
               {error ? (
                 <View className="bg-error/10 p-3 rounded-xl">
-                  <Text className="text-error text-sm text-center">{error}</Text>
+                  <Text className="text-error text-sm text-center">
+                    {error}
+                  </Text>
                 </View>
               ) : null}
 

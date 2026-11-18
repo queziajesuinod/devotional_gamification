@@ -16,7 +16,8 @@ const env = {
   appSlug: "{{project_name}}",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310419663030769322/roXnkZxLQIqGzNkF.png",
+  logoUrl:
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310419663030769322/roXnkZxLQIqGzNkF.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -71,7 +72,8 @@ const config: ExpoConfig = {
     [
       "expo-audio",
       {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
+        microphonePermission:
+          "Allow $(PRODUCT_NAME) to access your microphone.",
       },
     ],
     [

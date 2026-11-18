@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,10 +12,18 @@ import {
   View,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { NiceAvatar, genNiceAvatarConfig, type NiceAvatarConfig } from "@/components/nice-avatar";
+import {
+  NiceAvatar,
+  genNiceAvatarConfig,
+  type NiceAvatarConfig,
+} from "@/components/nice-avatar";
 import { trpc } from "@/lib/trpc";
 import { useNotifications } from "@/components/notification-provider";
-import { SHOP_RARITY_RULES, applyRarityDefaultPrice, type ShopRarity } from "@/shared/shop-rules";
+import {
+  SHOP_RARITY_RULES,
+  applyRarityDefaultPrice,
+  type ShopRarity,
+} from "@/shared/shop-rules";
 
 type ToggleProps = {
   label: string;
@@ -97,13 +104,22 @@ const parseMedalRequirement = (value: string) => {
 const buildMedalRequirement = (form: MedalFormState) => {
   switch (form.requirementType) {
     case "streak":
-      return JSON.stringify({ type: "streak", days: toInt(form.requirementDays, 1) });
+      return JSON.stringify({
+        type: "streak",
+        days: toInt(form.requirementDays, 1),
+      });
     case "total_devotionals":
-      return JSON.stringify({ type: "total_devotionals", count: toInt(form.requirementCount, 1) });
+      return JSON.stringify({
+        type: "total_devotionals",
+        count: toInt(form.requirementCount, 1),
+      });
     case "first_devotional":
       return JSON.stringify({ type: "first_devotional" });
     case "total_reflections":
-      return JSON.stringify({ type: "total_reflections", count: toInt(form.requirementCount, 1) });
+      return JSON.stringify({
+        type: "total_reflections",
+        count: toInt(form.requirementCount, 1),
+      });
     case "multiple_books": {
       const books = form.requirementBooks
         .split(",")
@@ -116,9 +132,15 @@ const buildMedalRequirement = (form: MedalFormState) => {
       return JSON.stringify({ type: "book", bookName });
     }
     case "early_bird":
-      return JSON.stringify({ type: "early_bird", hour: toInt(form.requirementHour, 6) });
+      return JSON.stringify({
+        type: "early_bird",
+        hour: toInt(form.requirementHour, 6),
+      });
     case "night_owl":
-      return JSON.stringify({ type: "night_owl", hour: toInt(form.requirementHour, 22) });
+      return JSON.stringify({
+        type: "night_owl",
+        hour: toInt(form.requirementHour, 22),
+      });
     case "challenge_type_count":
       return JSON.stringify({
         type: "challenge_type_count",
@@ -152,12 +174,14 @@ type PaginatedResult<T> = {
 
 const ADMIN_PAGE_LIMIT = 10;
 
-const getPaginatedItems = <T extends unknown>(data?: PaginatedResult<T> | null) => data?.items ?? [];
+const getPaginatedItems = <T extends unknown>(
+  data?: PaginatedResult<T> | null,
+) => data?.items ?? [];
 
 const getPaginationMeta = (
   data?: PaginatedResult<unknown> | null,
   fallbackPage = 1,
-  fallbackLimit = ADMIN_PAGE_LIMIT
+  fallbackLimit = ADMIN_PAGE_LIMIT,
 ) => ({
   page: data?.page ?? fallbackPage,
   limit: data?.limit ?? fallbackLimit,
@@ -194,7 +218,9 @@ const PaginationControls = ({
           disabled={page <= 1 || loading}
           onPress={() => onPageChange(Math.max(1, page - 1))}
         >
-          <Text className={`text-xs ${page <= 1 || loading ? "text-muted" : "text-foreground"}`}>
+          <Text
+            className={`text-xs ${page <= 1 || loading ? "text-muted" : "text-foreground"}`}
+          >
             Anterior
           </Text>
         </TouchableOpacity>
@@ -203,7 +229,9 @@ const PaginationControls = ({
           disabled={page >= totalPages || loading}
           onPress={() => onPageChange(Math.min(totalPages, page + 1))}
         >
-          <Text className={`text-xs ${page >= totalPages || loading ? "text-muted" : "text-foreground"}`}>
+          <Text
+            className={`text-xs ${page >= totalPages || loading ? "text-muted" : "text-foreground"}`}
+          >
             Próximo
           </Text>
         </TouchableOpacity>
@@ -302,7 +330,10 @@ const MEDAL_CATEGORIES: { value: MedalCategory; label: string }[] = [
   { value: "SPECIAL", label: "Special" },
 ];
 
-const MEDAL_REQUIREMENT_OPTIONS: { value: MedalRequirementType; label: string }[] = [
+const MEDAL_REQUIREMENT_OPTIONS: {
+  value: MedalRequirementType;
+  label: string;
+}[] = [
   { value: "streak", label: "Streak (dias)" },
   { value: "total_devotionals", label: "Total devocionais" },
   { value: "first_devotional", label: "Primeiro devocional" },
@@ -315,7 +346,18 @@ const MEDAL_REQUIREMENT_OPTIONS: { value: MedalRequirementType; label: string }[
   { value: "custom", label: "Custom" },
 ];
 
-const MEDAL_EMOJI_OPTIONS = ["🏅", "📖", "🔥", "⭐", "🏆", "🌟", "💎", "✅", "⏰", "🌙"];
+const MEDAL_EMOJI_OPTIONS = [
+  "🏅",
+  "📖",
+  "🔥",
+  "⭐",
+  "🏆",
+  "🌟",
+  "💎",
+  "✅",
+  "⏰",
+  "🌙",
+];
 
 const SHOP_ITEM_TYPE_LABELS: Record<ShopItemType, string> = {
   BACKGROUND: "Fundo",
@@ -353,7 +395,13 @@ const BACKGROUND_COLOR_PALETTE = [
   "#F48150",
   "#74D153",
 ];
-const FACE_COLOR_PALETTE = ["#F9C9B6", "#AC6651", "#FFDAB9", "#FBE8A6", "#8B5E3C"];
+const FACE_COLOR_PALETTE = [
+  "#F9C9B6",
+  "#AC6651",
+  "#FFDAB9",
+  "#FBE8A6",
+  "#8B5E3C",
+];
 const HAIR_COLOR_PALETTE = [
   "#000000",
   "#ffffff",
@@ -790,12 +838,16 @@ export default function AdminPanelScreen() {
     isAvailable: true,
   });
   const [selectedAvatarGroupKey, setSelectedAvatarGroupKey] = useState(
-    AVATAR_OPTION_GROUPS[0]?.key ?? "bgColor"
+    AVATAR_OPTION_GROUPS[0]?.key ?? "bgColor",
   );
-  const [baseAvatarStylesList, setBaseAvatarStylesList] = useState<string[]>([]);
+  const [baseAvatarStylesList, setBaseAvatarStylesList] = useState<string[]>(
+    [],
+  );
   const [baseAvatarLoading, setBaseAvatarLoading] = useState(false);
   const [baseAvatarError, setBaseAvatarError] = useState<string | null>(null);
-  const [selectedBaseAvatarUrl, setSelectedBaseAvatarUrl] = useState<string | null>(null);
+  const [selectedBaseAvatarUrl, setSelectedBaseAvatarUrl] = useState<
+    string | null
+  >(null);
 
   const [groupEditingId, setGroupEditingId] = useState<number | null>(null);
   const [groupForm, setGroupForm] = useState({
@@ -822,9 +874,13 @@ export default function AdminPanelScreen() {
     reflectionQuestion: "",
   });
   const [dayChallenges, setDayChallenges] = useState<DayChallengeDraft[]>([]);
-  const [dayChallengeOriginalIds, setDayChallengeOriginalIds] = useState<number[]>([]);
+  const [dayChallengeOriginalIds, setDayChallengeOriginalIds] = useState<
+    number[]
+  >([]);
 
-  const [challengeEditingId, setChallengeEditingId] = useState<number | null>(null);
+  const [challengeEditingId, setChallengeEditingId] = useState<number | null>(
+    null,
+  );
   const [challengeForm, setChallengeForm] = useState({
     devotionalDayId: "",
     type: "READING",
@@ -960,9 +1016,12 @@ export default function AdminPanelScreen() {
     ]);
   };
 
-  const updateDayChallenge = (index: number, patch: Partial<DayChallengeDraft>) => {
+  const updateDayChallenge = (
+    index: number,
+    patch: Partial<DayChallengeDraft>,
+  ) => {
     setDayChallenges((prev) =>
-      prev.map((item, idx) => (idx === index ? { ...item, ...patch } : item))
+      prev.map((item, idx) => (idx === index ? { ...item, ...patch } : item)),
     );
   };
 
@@ -984,10 +1043,16 @@ export default function AdminPanelScreen() {
   const usersPagination = getPaginationMeta(usersQuery.data, usersPage);
   const shopPagination = getPaginationMeta(shopItemsQuery.data, shopPage);
   const groupsPagination = getPaginationMeta(groupsQuery.data, groupsPage);
-  const groupRequestsPagination = getPaginationMeta(groupRequestsQuery.data, groupRequestsPage);
+  const groupRequestsPagination = getPaginationMeta(
+    groupRequestsQuery.data,
+    groupRequestsPage,
+  );
   const plansPagination = getPaginationMeta(plansQuery.data, plansPage);
   const daysPagination = getPaginationMeta(daysQuery.data, daysPage);
-  const challengesPagination = getPaginationMeta(challengesQuery.data, challengesPage);
+  const challengesPagination = getPaginationMeta(
+    challengesQuery.data,
+    challengesPage,
+  );
   const medalsPagination = getPaginationMeta(medalsQuery.data, medalsPage);
 
   const leaderCandidates = useMemo(() => usersList.slice(0, 12), [usersList]);
@@ -998,7 +1063,9 @@ export default function AdminPanelScreen() {
   }, []);
   const usersWithStatus = useMemo(() => {
     return usersList.map((user) => {
-      const lastSignedIn = user.lastSignedIn ? new Date(user.lastSignedIn) : null;
+      const lastSignedIn = user.lastSignedIn
+        ? new Date(user.lastSignedIn)
+        : null;
       const isActive = !!lastSignedIn && lastSignedIn >= activeCutoff;
       return { ...user, lastSignedIn, isActive };
     });
@@ -1009,7 +1076,7 @@ export default function AdminPanelScreen() {
   }, [usersWithStatus, showActiveOnly]);
   const activeUserCount = useMemo(
     () => usersWithStatus.filter((user) => user.isActive).length,
-    [usersWithStatus]
+    [usersWithStatus],
   );
   const planOptions = useMemo(() => planList, [planList]);
   const dayOptions = useMemo(() => daysList, [daysList]);
@@ -1017,14 +1084,15 @@ export default function AdminPanelScreen() {
 
   const selectedAvatarGroup = useMemo(
     () =>
-      AVATAR_OPTION_GROUPS.find((group) => group.key === selectedAvatarGroupKey) ||
-      AVATAR_OPTION_GROUPS[0],
-    [selectedAvatarGroupKey]
+      AVATAR_OPTION_GROUPS.find(
+        (group) => group.key === selectedAvatarGroupKey,
+      ) || AVATAR_OPTION_GROUPS[0],
+    [selectedAvatarGroupKey],
   );
 
   const shopAvatarConfigResult = useMemo(
     () => parseAvatarConfigInput(shopForm.avatarConfig),
-    [shopForm.avatarConfig]
+    [shopForm.avatarConfig],
   );
   const shopAvatarPatch = useMemo(() => {
     const config = shopAvatarConfigResult.config;
@@ -1048,7 +1116,7 @@ export default function AdminPanelScreen() {
       try {
         const response = await fetch(
           "https://my-avatar-creator.vercel.app/api/avatars?set=basic",
-          { cache: "no-store" }
+          { cache: "no-store" },
         );
         if (!response.ok) {
           throw new Error("Failed to load avatar styles");
@@ -1099,58 +1167,70 @@ export default function AdminPanelScreen() {
   if (!isWebPlatform) {
     return (
       <ScreenContainer className="items-center justify-center">
-        <Text className="text-muted">Admin panel is available on web only.</Text>
+        <Text className="text-muted">
+          Admin panel is available on web only.
+        </Text>
       </ScreenContainer>
     );
   }
 
-const applyAvatarOption = (group: AvatarOptionGroup, value: string) => {
-  setShopForm((prev) => {
-    const existingConfig = parseAvatarConfigInput(prev.avatarConfig).config ?? {};
-    const normalizedValue = group.transform ? group.transform(value) : value;
-    const nextConfig = { ...existingConfig, [group.key]: normalizedValue };
-    return {
-      ...prev,
-      avatarConfig: JSON.stringify(nextConfig),
-      type: group.type ?? prev.type,
-      name: prev.name || `${group.key}:${value}`,
-    };
-  });
-};
-
-const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) => {
-  const normalized = current ?? "#000000";
-  if (Platform.OS === "web" && typeof document !== "undefined") {
-    const input = document.createElement("input");
-    input.type = "color";
-    input.value = normalized;
-    input.style.position = "fixed";
-    input.style.opacity = "0";
-    input.addEventListener("change", (event) => {
-      const target = event.target as HTMLInputElement | null;
-      if (target?.value) {
-        applyAvatarOption(group, target.value);
-      }
+  const applyAvatarOption = (group: AvatarOptionGroup, value: string) => {
+    setShopForm((prev) => {
+      const existingConfig =
+        parseAvatarConfigInput(prev.avatarConfig).config ?? {};
+      const normalizedValue = group.transform ? group.transform(value) : value;
+      const nextConfig = { ...existingConfig, [group.key]: normalizedValue };
+      return {
+        ...prev,
+        avatarConfig: JSON.stringify(nextConfig),
+        type: group.type ?? prev.type,
+        name: prev.name || `${group.key}:${value}`,
+      };
     });
-    document.body.appendChild(input);
-    input.click();
-    const cleanup = () => {
-      if (document.body.contains(input)) {
-        document.body.removeChild(input);
-      }
-    };
-    input.addEventListener("blur", cleanup, { once: true });
-    input.addEventListener("input", cleanup, { once: true });
-    return;
-  }
+  };
 
-  if (typeof prompt === "function") {
-    const promptValue = prompt("Digite um hexadecimal para a cor", normalized);
-    if (promptValue && /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/.test(promptValue)) {
-      applyAvatarOption(group, promptValue);
+  const openColorPicker = (
+    group: AvatarOptionGroup,
+    current: string | undefined,
+  ) => {
+    const normalized = current ?? "#000000";
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = normalized;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      input.addEventListener("change", (event) => {
+        const target = event.target as HTMLInputElement | null;
+        if (target?.value) {
+          applyAvatarOption(group, target.value);
+        }
+      });
+      document.body.appendChild(input);
+      input.click();
+      const cleanup = () => {
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
+      };
+      input.addEventListener("blur", cleanup, { once: true });
+      input.addEventListener("input", cleanup, { once: true });
+      return;
     }
-  }
-};
+
+    if (typeof prompt === "function") {
+      const promptValue = prompt(
+        "Digite um hexadecimal para a cor",
+        normalized,
+      );
+      if (
+        promptValue &&
+        /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/.test(promptValue)
+      ) {
+        applyAvatarOption(group, promptValue);
+      }
+    }
+  };
 
   if (adminMe.isLoading) {
     return (
@@ -1170,11 +1250,15 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
   }
   return (
     <ScreenContainer>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View className="bg-primary p-6">
           <Text className="text-white text-2xl font-bold">Admin Panel</Text>
           <Text className="text-white/80 mt-2">
-            Logged in as {adminMe.data.nickname} ({adminMe.data.email || "no email"})
+            Logged in as {adminMe.data.nickname} (
+            {adminMe.data.email || "no email"})
           </Text>
         </View>
 
@@ -1186,11 +1270,16 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
             <View className="flex-row items-center justify-between mb-3">
               <Text className="text-lg font-bold text-foreground">Users</Text>
               <Text className="text-xs text-muted">
-                {visibleUsers.length} total | {activeUserCount} ativos (ult. {ACTIVE_DAYS} dias)
+                {visibleUsers.length} total | {activeUserCount} ativos (ult.{" "}
+                {ACTIVE_DAYS} dias)
               </Text>
             </View>
             <View className="mb-3">
-              <Toggle label="Ativos apenas" value={showActiveOnly} onToggle={setShowActiveOnly} />
+              <Toggle
+                label="Ativos apenas"
+                value={showActiveOnly}
+                onToggle={setShowActiveOnly}
+              />
             </View>
             <PaginationControls
               page={usersPagination.page}
@@ -1204,13 +1293,18 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
             ) : (
               <View className="gap-2">
                 {visibleUsers.map((user) => (
-                  <View key={user.id} className="border border-border rounded-xl p-3">
+                  <View
+                    key={user.id}
+                    className="border border-border rounded-xl p-3"
+                  >
                     <View className="flex-row items-center justify-between gap-4">
                       <View className="flex-1">
                         <Text className="text-foreground font-semibold">
                           {user.id} - {user.nickname}
                         </Text>
-                        <Text className="text-xs text-muted">{user.email || "no email"}</Text>
+                        <Text className="text-xs text-muted">
+                          {user.email || "no email"}
+                        </Text>
                         <Text className="text-xs text-muted mt-1">
                           XP {user.xpTotal} | Denarios {user.denarioBalance}
                         </Text>
@@ -1224,7 +1318,13 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                             user.isActive ? "bg-success/20" : "bg-border"
                           }`}
                         >
-                          <Text className={user.isActive ? "text-success text-xs" : "text-muted text-xs"}>
+                          <Text
+                            className={
+                              user.isActive
+                                ? "text-success text-xs"
+                                : "text-muted text-xs"
+                            }
+                          >
                             {user.isActive ? "Ativo" : "Inativo"}
                           </Text>
                         </View>
@@ -1235,14 +1335,23 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                               <TouchableOpacity
                                 key={`${user.id}-${role}`}
                                 className={`px-3 py-1 rounded-full border ${
-                                  isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                                  isActive
+                                    ? "bg-primary border-primary"
+                                    : "bg-surface border-border"
                                 }`}
-                                onPress={() => userRoleUpdate.mutateAsync({ userId: user.id, role })}
+                                onPress={() =>
+                                  userRoleUpdate.mutateAsync({
+                                    userId: user.id,
+                                    role,
+                                  })
+                                }
                                 disabled={userRoleUpdate.isPending}
                               >
                                 <Text
                                   className={
-                                    isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"
+                                    isActive
+                                      ? "text-white text-xs font-semibold"
+                                      : "text-foreground text-xs"
                                   }
                                 >
                                   {role}
@@ -1260,7 +1369,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
           </View>
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="mb-4">
-              <Text className="text-lg font-bold text-foreground">Shop Items</Text>
+              <Text className="text-lg font-bold text-foreground">
+                Shop Items
+              </Text>
               <Text className="text-xs text-muted">
                 Create item patches (free or paid) to compose avatars.
               </Text>
@@ -1274,13 +1385,17 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
             />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Item details</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Item details
+                </Text>
                 <View className="gap-3">
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Name"
                     value={shopForm.name}
-                    onChangeText={(value) => setShopForm((prev) => ({ ...prev, name: value }))}
+                    onChangeText={(value) =>
+                      setShopForm((prev) => ({ ...prev, name: value }))
+                    }
                   />
                   <View className="gap-2">
                     <Text className="text-xs text-muted">Type</Text>
@@ -1291,11 +1406,21 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           <TouchableOpacity
                             key={type}
                             className={`px-3 py-2 rounded-lg border ${
-                              isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                              isActive
+                                ? "bg-primary border-primary"
+                                : "bg-surface border-border"
                             }`}
-                            onPress={() => setShopForm((prev) => ({ ...prev, type }))}
+                            onPress={() =>
+                              setShopForm((prev) => ({ ...prev, type }))
+                            }
                           >
-                            <Text className={isActive ? "text-white font-semibold" : "text-foreground"}>
+                            <Text
+                              className={
+                                isActive
+                                  ? "text-white font-semibold"
+                                  : "text-foreground"
+                              }
+                            >
                               {SHOP_ITEM_TYPE_LABELS[type]}
                             </Text>
                           </TouchableOpacity>
@@ -1306,41 +1431,60 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                   <View className="gap-2">
                     <Text className="text-xs text-muted">Raridade</Text>
                     <View className="flex-row flex-wrap gap-2">
-                      {(Object.keys(SHOP_RARITY_RULES) as ShopRarity[]).map((rarity) => {
-                        const isActive = shopForm.rarity === rarity;
-                        const rule = SHOP_RARITY_RULES[rarity];
-                        return (
-                          <TouchableOpacity
-                            key={rarity}
-                            className={`px-3 py-2 rounded-lg border ${
-                              isActive ? "bg-primary border-primary" : "bg-surface border-border"
-                            }`}
-                            onPress={() =>
-                              setShopForm((prev) => ({
-                                ...prev,
-                                rarity,
-                                priceDenario: `${applyRarityDefaultPrice(rarity, toInt(prev.priceDenario, 0))}`,
-                              }))
-                            }
-                          >
-                            <Text className={isActive ? "text-white font-semibold" : "text-foreground"}>
-                              {rule.label}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                      {(Object.keys(SHOP_RARITY_RULES) as ShopRarity[]).map(
+                        (rarity) => {
+                          const isActive = shopForm.rarity === rarity;
+                          const rule = SHOP_RARITY_RULES[rarity];
+                          return (
+                            <TouchableOpacity
+                              key={rarity}
+                              className={`px-3 py-2 rounded-lg border ${
+                                isActive
+                                  ? "bg-primary border-primary"
+                                  : "bg-surface border-border"
+                              }`}
+                              onPress={() =>
+                                setShopForm((prev) => ({
+                                  ...prev,
+                                  rarity,
+                                  priceDenario: `${applyRarityDefaultPrice(rarity, toInt(prev.priceDenario, 0))}`,
+                                }))
+                              }
+                            >
+                              <Text
+                                className={
+                                  isActive
+                                    ? "text-white font-semibold"
+                                    : "text-foreground"
+                                }
+                              >
+                                {rule.label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        },
+                      )}
                     </View>
                     <Text className="text-xs text-muted">
-                      Preco sugerido: {SHOP_RARITY_RULES[shopForm.rarity as ShopRarity]?.defaultPrice ?? 0} denarios
-                      {" | "}Nivel minimo: {SHOP_RARITY_RULES[shopForm.rarity as ShopRarity]?.minLevel ?? 1}
-                      {" | "}Medalhas: {SHOP_RARITY_RULES[shopForm.rarity as ShopRarity]?.medalsRequired ?? 0}
+                      Preco sugerido:{" "}
+                      {SHOP_RARITY_RULES[shopForm.rarity as ShopRarity]
+                        ?.defaultPrice ?? 0}{" "}
+                      denarios
+                      {" | "}Nivel minimo:{" "}
+                      {SHOP_RARITY_RULES[shopForm.rarity as ShopRarity]
+                        ?.minLevel ?? 1}
+                      {" | "}Medalhas:{" "}
+                      {SHOP_RARITY_RULES[shopForm.rarity as ShopRarity]
+                        ?.medalsRequired ?? 0}
                     </Text>
                   </View>
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Price Denario"
                     value={shopForm.priceDenario}
-                    onChangeText={(value) => setShopForm((prev) => ({ ...prev, priceDenario: value }))}
+                    onChangeText={(value) =>
+                      setShopForm((prev) => ({ ...prev, priceDenario: value }))
+                    }
                   />
                   <Text className="text-xs text-muted">
                     Preco 0 aplica o valor sugerido pela raridade.
@@ -1349,10 +1493,14 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Image URL"
                     value={shopForm.imageUrl}
-                    onChangeText={(value) => setShopForm((prev) => ({ ...prev, imageUrl: value }))}
+                    onChangeText={(value) =>
+                      setShopForm((prev) => ({ ...prev, imageUrl: value }))
+                    }
                   />
                   <View className="bg-background border border-border rounded-lg p-3 gap-3">
-                    <Text className="text-sm font-semibold text-foreground">Avatar options</Text>
+                    <Text className="text-sm font-semibold text-foreground">
+                      Avatar options
+                    </Text>
                     <View className="flex-row flex-wrap gap-2">
                       {AVATAR_OPTION_GROUPS.map((group) => {
                         const isActive = selectedAvatarGroup?.key === group.key;
@@ -1360,13 +1508,17 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           <TouchableOpacity
                             key={group.key}
                             className={`px-3 py-2 rounded-full border ${
-                              isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                              isActive
+                                ? "bg-primary border-primary"
+                                : "bg-surface border-border"
                             }`}
                             onPress={() => setSelectedAvatarGroupKey(group.key)}
                           >
                             <Text
                               className={
-                                isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"
+                                isActive
+                                  ? "text-white text-xs font-semibold"
+                                  : "text-foreground text-xs"
                               }
                             >
                               {group.label}
@@ -1376,21 +1528,28 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       })}
                     </View>
                     {selectedAvatarGroup?.note ? (
-                      <Text className="text-xs text-muted">{selectedAvatarGroup.note}</Text>
+                      <Text className="text-xs text-muted">
+                        {selectedAvatarGroup.note}
+                      </Text>
                     ) : null}
-                  <View className="flex-row flex-wrap gap-2">
-                    {(selectedAvatarGroup?.values || []).map((value) => {
-                      const activeGroupKey = selectedAvatarGroup?.key;
-                      const isSelected = activeGroupKey
-                        ? shopAvatarPatch?.[activeGroupKey] === value
-                        : false;
-                      return (
-                        <TouchableOpacity
+                    <View className="flex-row flex-wrap gap-2">
+                      {(selectedAvatarGroup?.values || []).map((value) => {
+                        const activeGroupKey = selectedAvatarGroup?.key;
+                        const isSelected = activeGroupKey
+                          ? shopAvatarPatch?.[activeGroupKey] === value
+                          : false;
+                        return (
+                          <TouchableOpacity
                             key={value}
                             className={`px-3 py-2 rounded-lg border ${
-                              isSelected ? "bg-primary/10 border-primary" : "bg-surface border-border"
+                              isSelected
+                                ? "bg-primary/10 border-primary"
+                                : "bg-surface border-border"
                             }`}
-                            onPress={() => selectedAvatarGroup && applyAvatarOption(selectedAvatarGroup, value)}
+                            onPress={() =>
+                              selectedAvatarGroup &&
+                              applyAvatarOption(selectedAvatarGroup, value)
+                            }
                           >
                             <View className="flex-row items-center gap-2">
                               {selectedAvatarGroup?.kind === "color" ? (
@@ -1405,7 +1564,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                                   }}
                                 />
                               ) : null}
-                              <Text className="text-xs text-foreground">{value}</Text>
+                              <Text className="text-xs text-foreground">
+                                {value}
+                              </Text>
                             </View>
                           </TouchableOpacity>
                         );
@@ -1416,15 +1577,21 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           onPress={() =>
                             openColorPicker(
                               selectedAvatarGroup,
-                              shopAvatarPatch?.[selectedAvatarGroup.key] as string | undefined,
+                              shopAvatarPatch?.[selectedAvatarGroup.key] as
+                                | string
+                                | undefined,
                             )
                           }
                         >
-                          <Text className="text-xs text-foreground">Cor personalizada</Text>
+                          <Text className="text-xs text-foreground">
+                            Cor personalizada
+                          </Text>
                           <View
                             className="w-4 h-4 rounded-full border border-border"
                             style={{
-                              backgroundColor: shopAvatarPatch?.[selectedAvatarGroup.key] || "#FFFFFF",
+                              backgroundColor:
+                                shopAvatarPatch?.[selectedAvatarGroup.key] ||
+                                "#FFFFFF",
                             }}
                           />
                         </TouchableOpacity>
@@ -1432,30 +1599,43 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     </View>
                     {selectedAvatarGroup && !selectedAvatarGroup.type ? (
                       <Text className="text-xs text-muted">
-                        Esse atributo eh do avatar base. Escolha o type manualmente.
+                        Esse atributo eh do avatar base. Escolha o type
+                        manualmente.
                       </Text>
                     ) : null}
                     {selectedAvatarGroup?.type === "BASE_FEATURE" && (
                       <View className="gap-3">
-                        <Text className="text-xs text-muted">Estilos base (API)</Text>
+                        <Text className="text-xs text-muted">
+                          Estilos base (API)
+                        </Text>
                         {baseAvatarLoading ? (
                           <View className="items-center">
                             <ActivityIndicator size="small" />
                           </View>
                         ) : baseAvatarError ? (
-                          <Text className="text-error text-xs">{baseAvatarError}</Text>
+                          <Text className="text-error text-xs">
+                            {baseAvatarError}
+                          </Text>
                         ) : baseAvatarStylesList.length === 0 ? (
-                          <Text className="text-xs text-muted">Nenhum estilo encontrado.</Text>
+                          <Text className="text-xs text-muted">
+                            Nenhum estilo encontrado.
+                          </Text>
                         ) : (
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                          >
                             <View className="flex-row gap-2">
                               {baseAvatarStylesList.map((url) => {
-                                const isSelected = selectedBaseAvatarUrl === url;
+                                const isSelected =
+                                  selectedBaseAvatarUrl === url;
                                 return (
                                   <TouchableOpacity
                                     key={url}
                                     className={`rounded-lg border ${
-                                      isSelected ? "border-primary" : "border-border"
+                                      isSelected
+                                        ? "border-primary"
+                                        : "border-border"
                                     }`}
                                     onPress={() => handleBaseAvatarSelect(url)}
                                   >
@@ -1477,12 +1657,16 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Avatar patch (JSON)"
                     value={shopForm.avatarConfig}
-                    onChangeText={(value) => setShopForm((prev) => ({ ...prev, avatarConfig: value }))}
+                    onChangeText={(value) =>
+                      setShopForm((prev) => ({ ...prev, avatarConfig: value }))
+                    }
                     multiline
                     numberOfLines={3}
                   />
                   <View className="bg-background border border-border rounded-lg p-3 gap-3">
-                    <Text className="text-sm font-semibold text-foreground">Avatar preview</Text>
+                    <Text className="text-sm font-semibold text-foreground">
+                      Avatar preview
+                    </Text>
                     <View className="items-center justify-center">
                       {shopPreviewConfig ? (
                         <NiceAvatar config={shopPreviewConfig} size={96} />
@@ -1498,21 +1682,30 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       )}
                     </View>
                     {shopAvatarConfigResult.error ? (
-                      <Text className="text-error text-xs">{shopAvatarConfigResult.error}</Text>
+                      <Text className="text-error text-xs">
+                        {shopAvatarConfigResult.error}
+                      </Text>
                     ) : null}
                     <View className="flex-row gap-2">
                       <TouchableOpacity
                         className="bg-secondary px-3 py-2 rounded-lg"
                         onPress={() => {
                           const config = genNiceAvatarConfig();
-                          setShopForm((prev) => ({ ...prev, avatarConfig: JSON.stringify(config) }));
+                          setShopForm((prev) => ({
+                            ...prev,
+                            avatarConfig: JSON.stringify(config),
+                          }));
                         }}
                       >
-                        <Text className="text-primary font-semibold">Generate</Text>
+                        <Text className="text-primary font-semibold">
+                          Generate
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         className="bg-border px-3 py-2 rounded-lg"
-                        onPress={() => setShopForm((prev) => ({ ...prev, avatarConfig: "" }))}
+                        onPress={() =>
+                          setShopForm((prev) => ({ ...prev, avatarConfig: "" }))
+                        }
                       >
                         <Text className="text-foreground">Clear</Text>
                       </TouchableOpacity>
@@ -1522,12 +1715,16 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Description"
                     value={shopForm.description}
-                    onChangeText={(value) => setShopForm((prev) => ({ ...prev, description: value }))}
+                    onChangeText={(value) =>
+                      setShopForm((prev) => ({ ...prev, description: value }))
+                    }
                   />
                   <Toggle
                     label="Available"
                     value={shopForm.isAvailable}
-                    onToggle={(value) => setShopForm((prev) => ({ ...prev, isAvailable: value }))}
+                    onToggle={(value) =>
+                      setShopForm((prev) => ({ ...prev, isAvailable: value }))
+                    }
                   />
                   <View className="flex-row gap-2">
                     <TouchableOpacity
@@ -1535,7 +1732,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       onPress={async () => {
                         const payload = {
                           name: shopForm.name,
-                          type: shopForm.type as "BACKGROUND" | "CLOTHES" | "ACCESSORY",
+                          type: shopForm.type as
+                            | "BACKGROUND"
+                            | "CLOTHES"
+                            | "ACCESSORY",
                           rarity: shopForm.rarity as "COMMON" | "RARE" | "EPIC",
                           priceDenario: toInt(shopForm.priceDenario, 0),
                           imageUrl: shopForm.imageUrl.trim() || null,
@@ -1544,7 +1744,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           isAvailable: shopForm.isAvailable,
                         };
                         if (shopEditingId) {
-                          await shopUpdate.mutateAsync({ id: shopEditingId, ...payload });
+                          await shopUpdate.mutateAsync({
+                            id: shopEditingId,
+                            ...payload,
+                          });
                         } else {
                           await shopCreate.mutateAsync(payload);
                         }
@@ -1569,26 +1772,33 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
               </View>
 
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Existing items</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Existing items
+                </Text>
                 {shopItemsQuery.isLoading ? (
                   <ActivityIndicator />
                 ) : (
                   shopItems.map((item) => (
-                    <View key={item.id} className="border border-border rounded-xl p-3 mb-2">
+                    <View
+                      key={item.id}
+                      className="border border-border rounded-xl p-3 mb-2"
+                    >
                       <Text className="text-foreground font-semibold">
                         {item.name}
                       </Text>
                       {parseAvatarConfig(item.avatarConfig) ? (
                         <View className="mt-2">
                           <NiceAvatar
-                            config={parseAvatarConfig(item.avatarConfig) ?? undefined}
+                            config={
+                              parseAvatarConfig(item.avatarConfig) ?? undefined
+                            }
                             size={72}
                           />
                         </View>
                       ) : null}
                       <Text className="text-muted text-xs">
-                        {item.type} | {item.rarity} | {item.priceDenario} denarios | available:{" "}
-                        {item.isAvailable ? "yes" : "no"}
+                        {item.type} | {item.rarity} | {item.priceDenario}{" "}
+                        denarios | available: {item.isAvailable ? "yes" : "no"}
                       </Text>
                       <View className="flex-row gap-2 mt-2">
                         <TouchableOpacity
@@ -1607,18 +1817,24 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                             });
                           }}
                         >
-                          <Text className="text-primary font-semibold">Edit</Text>
+                          <Text className="text-primary font-semibold">
+                            Edit
+                          </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           className="bg-error px-3 py-1 rounded-lg"
                           onPress={async () => {
-                            const ok = await confirmAction(`Delete item ${item.name}?`);
+                            const ok = await confirmAction(
+                              `Delete item ${item.name}?`,
+                            );
                             if (ok) {
                               await shopDelete.mutateAsync({ id: item.id });
                             }
                           }}
                         >
-                          <Text className="text-white font-semibold">Delete</Text>
+                          <Text className="text-white font-semibold">
+                            Delete
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1630,7 +1846,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="mb-4">
               <Text className="text-lg font-bold text-foreground">Groups</Text>
-              <Text className="text-xs text-muted">Manage groups and assign leaders.</Text>
+              <Text className="text-xs text-muted">
+                Manage groups and assign leaders.
+              </Text>
             </View>
             <PaginationControls
               page={groupsPagination.page}
@@ -1641,25 +1859,33 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
             />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Group details</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Group details
+                </Text>
                 <View className="gap-3">
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Group name"
                     value={groupForm.name}
-                    onChangeText={(value) => setGroupForm((prev) => ({ ...prev, name: value }))}
+                    onChangeText={(value) =>
+                      setGroupForm((prev) => ({ ...prev, name: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Description"
                     value={groupForm.description}
-                    onChangeText={(value) => setGroupForm((prev) => ({ ...prev, description: value }))}
+                    onChangeText={(value) =>
+                      setGroupForm((prev) => ({ ...prev, description: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Leader ID (select below)"
                     value={groupForm.leaderId}
-                    onChangeText={(value) => setGroupForm((prev) => ({ ...prev, leaderId: value }))}
+                    onChangeText={(value) =>
+                      setGroupForm((prev) => ({ ...prev, leaderId: value }))
+                    }
                   />
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View className="flex-row gap-2">
@@ -1668,7 +1894,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           key={user.id}
                           className="bg-secondary/30 px-3 py-2 rounded-full"
                           onPress={() =>
-                            setGroupForm((prev) => ({ ...prev, leaderId: `${user.id}` }))
+                            setGroupForm((prev) => ({
+                              ...prev,
+                              leaderId: `${user.id}`,
+                            }))
                           }
                         >
                           <Text className="text-primary text-xs font-semibold">
@@ -1677,7 +1906,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         </TouchableOpacity>
                       ))}
                       {leaderCandidates.length === 0 && (
-                        <Text className="text-xs text-muted">No users loaded.</Text>
+                        <Text className="text-xs text-muted">
+                          No users loaded.
+                        </Text>
                       )}
                     </View>
                   </ScrollView>
@@ -1691,7 +1922,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           leaderId: toInt(groupForm.leaderId, 0),
                         };
                         if (groupEditingId) {
-                          await groupUpdate.mutateAsync({ id: groupEditingId, ...payload });
+                          await groupUpdate.mutateAsync({
+                            id: groupEditingId,
+                            ...payload,
+                          });
                         } else {
                           await groupCreate.mutateAsync(payload);
                         }
@@ -1704,7 +1938,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       </Text>
                     </TouchableOpacity>
                     {groupEditingId && (
-                      <TouchableOpacity className="bg-border px-4 py-2 rounded-lg" onPress={resetGroupForm}>
+                      <TouchableOpacity
+                        className="bg-border px-4 py-2 rounded-lg"
+                        onPress={resetGroupForm}
+                      >
                         <Text className="text-foreground">Cancel</Text>
                       </TouchableOpacity>
                     )}
@@ -1713,14 +1950,20 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
               </View>
 
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Existing groups</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Existing groups
+                </Text>
                 {groupsList.map((group) => (
-                  <View key={group.id} className="border border-border rounded-xl p-3 mb-2">
+                  <View
+                    key={group.id}
+                    className="border border-border rounded-xl p-3 mb-2"
+                  >
                     <Text className="text-foreground font-semibold">
                       {group.name}
                     </Text>
                     <Text className="text-muted text-xs">
-                      Leader: {group.leaderName} | Members: {group.memberCount} | Points: {group.totalPoints}
+                      Leader: {group.leaderName} | Members: {group.memberCount}{" "}
+                      | Points: {group.totalPoints}
                     </Text>
                     <View className="flex-row gap-2 mt-2">
                       <TouchableOpacity
@@ -1739,7 +1982,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       <TouchableOpacity
                         className="bg-error px-3 py-1 rounded-lg"
                         onPress={async () => {
-                          const ok = await confirmAction(`Delete group ${group.name}?`);
+                          const ok = await confirmAction(
+                            `Delete group ${group.name}?`,
+                          );
                           if (ok) {
                             await groupDelete.mutateAsync({ id: group.id });
                           }
@@ -1756,8 +2001,12 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
 
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="mb-3">
-              <Text className="text-lg font-bold text-foreground">Group Requests</Text>
-              <Text className="text-xs text-muted">Approve or reject pending members.</Text>
+              <Text className="text-lg font-bold text-foreground">
+                Group Requests
+              </Text>
+              <Text className="text-xs text-muted">
+                Approve or reject pending members.
+              </Text>
             </View>
             <PaginationControls
               page={groupRequestsPagination.page}
@@ -1767,21 +2016,36 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
               onPageChange={setGroupRequestsPage}
             />
             {groupRequests.map((request) => (
-              <View key={request.requestId} className="border border-border rounded-xl p-3 mb-2">
+              <View
+                key={request.requestId}
+                className="border border-border rounded-xl p-3 mb-2"
+              >
                 <Text className="text-foreground font-semibold">
-                  {request.userNickname || "User"}{" -> "}{request.groupName}
+                  {request.userNickname || "User"}
+                  {" -> "}
+                  {request.groupName}
                 </Text>
-                <Text className="text-muted text-xs">Requested at: {String(request.requestedAt)}</Text>
+                <Text className="text-muted text-xs">
+                  Requested at: {String(request.requestedAt)}
+                </Text>
                 <View className="flex-row gap-2 mt-2">
                   <TouchableOpacity
                     className="bg-success px-3 py-1 rounded-lg"
-                    onPress={() => requestApprove.mutateAsync({ requestId: request.requestId })}
+                    onPress={() =>
+                      requestApprove.mutateAsync({
+                        requestId: request.requestId,
+                      })
+                    }
                   >
                     <Text className="text-white font-semibold">Approve</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className="bg-error px-3 py-1 rounded-lg"
-                    onPress={() => requestReject.mutateAsync({ requestId: request.requestId })}
+                    onPress={() =>
+                      requestReject.mutateAsync({
+                        requestId: request.requestId,
+                      })
+                    }
                   >
                     <Text className="text-white font-semibold">Reject</Text>
                   </TouchableOpacity>
@@ -1796,8 +2060,12 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
           </View>
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="mb-4">
-              <Text className="text-lg font-bold text-foreground">Devotional Plans</Text>
-              <Text className="text-xs text-muted">Create and manage plan cycles.</Text>
+              <Text className="text-lg font-bold text-foreground">
+                Devotional Plans
+              </Text>
+              <Text className="text-xs text-muted">
+                Create and manage plan cycles.
+              </Text>
             </View>
             <PaginationControls
               page={plansPagination.page}
@@ -1808,30 +2076,40 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
             />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Plan details</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Plan details
+                </Text>
                 <View className="gap-3">
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Plan name"
                     value={planForm.name}
-                    onChangeText={(value) => setPlanForm((prev) => ({ ...prev, name: value }))}
+                    onChangeText={(value) =>
+                      setPlanForm((prev) => ({ ...prev, name: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Year"
                     value={planForm.year}
-                    onChangeText={(value) => setPlanForm((prev) => ({ ...prev, year: value }))}
+                    onChangeText={(value) =>
+                      setPlanForm((prev) => ({ ...prev, year: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Description"
                     value={planForm.description}
-                    onChangeText={(value) => setPlanForm((prev) => ({ ...prev, description: value }))}
+                    onChangeText={(value) =>
+                      setPlanForm((prev) => ({ ...prev, description: value }))
+                    }
                   />
                   <Toggle
                     label="Active"
                     value={planForm.isActive}
-                    onToggle={(value) => setPlanForm((prev) => ({ ...prev, isActive: value }))}
+                    onToggle={(value) =>
+                      setPlanForm((prev) => ({ ...prev, isActive: value }))
+                    }
                   />
                   <View className="flex-row gap-2">
                     <TouchableOpacity
@@ -1844,7 +2122,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           isActive: planForm.isActive,
                         };
                         if (planEditingId) {
-                          await planUpdate.mutateAsync({ id: planEditingId, ...payload });
+                          await planUpdate.mutateAsync({
+                            id: planEditingId,
+                            ...payload,
+                          });
                         } else {
                           await planCreate.mutateAsync(payload);
                         }
@@ -1857,7 +2138,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       </Text>
                     </TouchableOpacity>
                     {planEditingId && (
-                      <TouchableOpacity className="bg-border px-4 py-2 rounded-lg" onPress={resetPlanForm}>
+                      <TouchableOpacity
+                        className="bg-border px-4 py-2 rounded-lg"
+                        onPress={resetPlanForm}
+                      >
                         <Text className="text-foreground">Cancel</Text>
                       </TouchableOpacity>
                     )}
@@ -1866,13 +2150,20 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
               </View>
 
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Existing plans</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Existing plans
+                </Text>
                 {planList.map((plan) => (
-                  <View key={plan.id} className="border border-border rounded-xl p-3 mb-2">
+                  <View
+                    key={plan.id}
+                    className="border border-border rounded-xl p-3 mb-2"
+                  >
                     <Text className="text-foreground font-semibold">
                       {plan.name} ({plan.year})
                     </Text>
-                    <Text className="text-muted text-xs">Active: {plan.isActive ? "yes" : "no"}</Text>
+                    <Text className="text-muted text-xs">
+                      Active: {plan.isActive ? "yes" : "no"}
+                    </Text>
                     <View className="flex-row gap-2 mt-2">
                       <TouchableOpacity
                         className="bg-secondary px-3 py-1 rounded-lg"
@@ -1891,7 +2182,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       <TouchableOpacity
                         className="bg-error px-3 py-1 rounded-lg"
                         onPress={async () => {
-                          const ok = await confirmAction(`Delete plan ${plan.name}?`);
+                          const ok = await confirmAction(
+                            `Delete plan ${plan.name}?`,
+                          );
                           if (ok) {
                             await planDelete.mutateAsync({ id: plan.id });
                           }
@@ -1908,8 +2201,12 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
 
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="mb-4">
-              <Text className="text-lg font-bold text-foreground">Devotional Days</Text>
-              <Text className="text-xs text-muted">Create entries tied to a plan and date.</Text>
+              <Text className="text-lg font-bold text-foreground">
+                Devotional Days
+              </Text>
+              <Text className="text-xs text-muted">
+                Create entries tied to a plan and date.
+              </Text>
             </View>
             <PaginationControls
               page={daysPagination.page}
@@ -1920,13 +2217,17 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
             />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Day details</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Day details
+                </Text>
                 <View className="gap-3">
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Plan ID (select below)"
                     value={dayForm.planId}
-                    onChangeText={(value) => setDayForm((prev) => ({ ...prev, planId: value }))}
+                    onChangeText={(value) =>
+                      setDayForm((prev) => ({ ...prev, planId: value }))
+                    }
                   />
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View className="flex-row gap-2">
@@ -1935,7 +2236,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           key={plan.id}
                           className="bg-secondary/30 px-3 py-2 rounded-full"
                           onPress={() =>
-                            setDayForm((prev) => ({ ...prev, planId: `${plan.id}` }))
+                            setDayForm((prev) => ({
+                              ...prev,
+                              planId: `${plan.id}`,
+                            }))
                           }
                         >
                           <Text className="text-primary text-xs font-semibold">
@@ -1944,7 +2248,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         </TouchableOpacity>
                       ))}
                       {planOptions.length === 0 && (
-                        <Text className="text-xs text-muted">No plans yet.</Text>
+                        <Text className="text-xs text-muted">
+                          No plans yet.
+                        </Text>
                       )}
                     </View>
                   </ScrollView>
@@ -1952,33 +2258,47 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Day number"
                     value={dayForm.dayNumber}
-                    onChangeText={(value) => setDayForm((prev) => ({ ...prev, dayNumber: value }))}
+                    onChangeText={(value) =>
+                      setDayForm((prev) => ({ ...prev, dayNumber: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Date (YYYY-MM-DD)"
                     value={dayForm.date}
                     onChangeText={(value) =>
-                      setDayForm((prev) => ({ ...prev, date: formatDateInput(value) }))
+                      setDayForm((prev) => ({
+                        ...prev,
+                        date: formatDateInput(value),
+                      }))
                     }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Bible reference"
                     value={dayForm.bibleReference}
-                    onChangeText={(value) => setDayForm((prev) => ({ ...prev, bibleReference: value }))}
+                    onChangeText={(value) =>
+                      setDayForm((prev) => ({ ...prev, bibleReference: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Devotional text"
                     value={dayForm.devotionalText}
-                    onChangeText={(value) => setDayForm((prev) => ({ ...prev, devotionalText: value }))}
+                    onChangeText={(value) =>
+                      setDayForm((prev) => ({ ...prev, devotionalText: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Reflection question"
                     value={dayForm.reflectionQuestion}
-                    onChangeText={(value) => setDayForm((prev) => ({ ...prev, reflectionQuestion: value }))}
+                    onChangeText={(value) =>
+                      setDayForm((prev) => ({
+                        ...prev,
+                        reflectionQuestion: value,
+                      }))
+                    }
                   />
                   <View className="bg-background/60 border border-border rounded-lg p-3 gap-3">
                     <View className="flex-row items-center justify-between">
@@ -1996,42 +2316,61 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         className="bg-secondary px-3 py-1 rounded-full"
                         onPress={addDayChallenge}
                       >
-                        <Text className="text-primary text-xs font-semibold">Adicionar</Text>
+                        <Text className="text-primary text-xs font-semibold">
+                          Adicionar
+                        </Text>
                       </TouchableOpacity>
                     </View>
                     {dayChallenges.length === 0 ? (
                       <Text className="text-xs text-muted">
-                        Adicione challenges para criar junto com o devotional day.
+                        Adicione challenges para criar junto com o devotional
+                        day.
                       </Text>
                     ) : (
                       <View className="gap-3">
                         {dayChallenges.map((challenge, index) => (
-                          <View key={`day-challenge-${index}`} className="border border-border rounded-lg p-3 gap-2">
+                          <View
+                            key={`day-challenge-${index}`}
+                            className="border border-border rounded-lg p-3 gap-2"
+                          >
                             <View className="flex-row items-center justify-between">
-                              <Text className="text-xs text-muted">Challenge #{index + 1}</Text>
+                              <Text className="text-xs text-muted">
+                                Challenge #{index + 1}
+                              </Text>
                               <TouchableOpacity
                                 className="bg-border px-2 py-1 rounded-full"
                                 onPress={() => removeDayChallenge(index)}
                               >
-                                <Text className="text-xs text-foreground">Remover</Text>
+                                <Text className="text-xs text-foreground">
+                                  Remover
+                                </Text>
                               </TouchableOpacity>
                             </View>
                             <View className="gap-2">
                               <Text className="text-xs text-muted">Tipo</Text>
                               <View className="flex-row flex-wrap gap-2">
                                 {CHALLENGE_TYPES.map((type) => {
-                                  const isActive = challenge.type === type.value;
+                                  const isActive =
+                                    challenge.type === type.value;
                                   return (
                                     <TouchableOpacity
                                       key={`${index}-${type.value}`}
                                       className={`px-3 py-1 rounded-full border ${
-                                        isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                                        isActive
+                                          ? "bg-primary border-primary"
+                                          : "bg-surface border-border"
                                       }`}
-                                      onPress={() => updateDayChallenge(index, { type: type.value })}
+                                      onPress={() =>
+                                        updateDayChallenge(index, {
+                                          type: type.value,
+                                        })
+                                      }
                                     >
                                       <Text
                                         className={
-                                          isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"
+                                          isActive
+                                            ? "text-white text-xs font-semibold"
+                                            : "text-foreground text-xs"
                                         }
                                       >
                                         {type.label}
@@ -2045,26 +2384,38 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                               className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                               placeholder="Titulo"
                               value={challenge.title}
-                              onChangeText={(value) => updateDayChallenge(index, { title: value })}
+                              onChangeText={(value) =>
+                                updateDayChallenge(index, { title: value })
+                              }
                             />
                             <TextInput
                               className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                               placeholder="Descricao"
                               value={challenge.description}
-                              onChangeText={(value) => updateDayChallenge(index, { description: value })}
+                              onChangeText={(value) =>
+                                updateDayChallenge(index, {
+                                  description: value,
+                                })
+                              }
                             />
                             <View className="flex-row gap-2">
                               <TextInput
                                 className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                                 placeholder="XP"
                                 value={challenge.baseXp}
-                                onChangeText={(value) => updateDayChallenge(index, { baseXp: value })}
+                                onChangeText={(value) =>
+                                  updateDayChallenge(index, { baseXp: value })
+                                }
                               />
                               <TextInput
                                 className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                                 placeholder="Denario"
                                 value={challenge.baseDenario}
-                                onChangeText={(value) => updateDayChallenge(index, { baseDenario: value })}
+                                onChangeText={(value) =>
+                                  updateDayChallenge(index, {
+                                    baseDenario: value,
+                                  })
+                                }
                               />
                             </View>
                           </View>
@@ -2082,22 +2433,36 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           date: dayForm.date,
                           bibleReference: dayForm.bibleReference,
                           devotionalText: dayForm.devotionalText.trim() || null,
-                          reflectionQuestion: dayForm.reflectionQuestion.trim() || null,
+                          reflectionQuestion:
+                            dayForm.reflectionQuestion.trim() || null,
                         };
-                        if (!payload.planId || !payload.dayNumber || !payload.date) {
-                          Alert.alert("Devotional Day", "Preencha planId, dayNumber e data.");
+                        if (
+                          !payload.planId ||
+                          !payload.dayNumber ||
+                          !payload.date
+                        ) {
+                          Alert.alert(
+                            "Devotional Day",
+                            "Preencha planId, dayNumber e data.",
+                          );
                           return;
                         }
                         const missingTitles = dayChallenges.filter(
-                          (challenge) => challenge.title.trim().length === 0
+                          (challenge) => challenge.title.trim().length === 0,
                         );
                         if (missingTitles.length > 0) {
-                          Alert.alert("Challenges", "Preencha o titulo de todos os challenges.");
+                          Alert.alert(
+                            "Challenges",
+                            "Preencha o titulo de todos os challenges.",
+                          );
                           return;
                         }
                         let dayId = dayEditingId;
                         if (dayEditingId) {
-                          await dayUpdate.mutateAsync({ id: dayEditingId, ...payload });
+                          await dayUpdate.mutateAsync({
+                            id: dayEditingId,
+                            ...payload,
+                          });
                         } else {
                           const created = await dayCreate.mutateAsync(payload);
                           dayId = created?.id ?? null;
@@ -2107,21 +2472,21 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                               (day) =>
                                 day.planId === payload.planId &&
                                 day.dayNumber === payload.dayNumber &&
-                                String(day.date) === String(payload.date)
+                                String(day.date) === String(payload.date),
                             );
                             dayId = match?.id ?? null;
                           }
                           if (!dayId) {
                             Alert.alert(
                               "Devotional Day",
-                              "Nao foi possivel obter o ID do day para salvar os challenges."
+                              "Nao foi possivel obter o ID do day para salvar os challenges.",
                             );
                             return;
                           }
                         }
 
-                        const entries = dayChallenges.filter((challenge) =>
-                          challenge.title.trim().length > 0
+                        const entries = dayChallenges.filter(
+                          (challenge) => challenge.title.trim().length > 0,
                         );
                         if (dayId) {
                           const usedIds = new Set<number>();
@@ -2141,13 +2506,15 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                               });
                               usedIds.add(challenge.id);
                             } else {
-                              await challengeCreate.mutateAsync(challengePayload);
+                              await challengeCreate.mutateAsync(
+                                challengePayload,
+                              );
                             }
                           }
 
                           if (dayEditingId) {
                             const toDelete = dayChallengeOriginalIds.filter(
-                              (id) => !usedIds.has(id)
+                              (id) => !usedIds.has(id),
                             );
                             for (const id of toDelete) {
                               await challengeDelete.mutateAsync({ id });
@@ -2163,7 +2530,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       </Text>
                     </TouchableOpacity>
                     {dayEditingId && (
-                      <TouchableOpacity className="bg-border px-4 py-2 rounded-lg" onPress={resetDayForm}>
+                      <TouchableOpacity
+                        className="bg-border px-4 py-2 rounded-lg"
+                        onPress={resetDayForm}
+                      >
                         <Text className="text-foreground">Cancel</Text>
                       </TouchableOpacity>
                     )}
@@ -2172,9 +2542,14 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
               </View>
 
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Existing days</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Existing days
+                </Text>
                 {daysList.map((day) => (
-                  <View key={day.id} className="border border-border rounded-xl p-3 mb-2">
+                  <View
+                    key={day.id}
+                    className="border border-border rounded-xl p-3 mb-2"
+                  >
                     <Text className="text-foreground font-semibold">
                       Plan {day.planId} Day {day.dayNumber}
                     </Text>
@@ -2186,7 +2561,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         className="bg-secondary px-3 py-1 rounded-lg"
                         onPress={() => {
                           const dayChallengesForEdit = challengesList
-                            .filter((challenge) => challenge.devotionalDayId === day.id)
+                            .filter(
+                              (challenge) =>
+                                challenge.devotionalDayId === day.id,
+                            )
                             .map((challenge) => ({
                               id: challenge.id,
                               type: challenge.type as ChallengeType,
@@ -2208,7 +2586,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           setDayChallengeOriginalIds(
                             dayChallengesForEdit
                               .map((challenge) => challenge.id)
-                              .filter((id): id is number => typeof id === "number")
+                              .filter(
+                                (id): id is number => typeof id === "number",
+                              ),
                           );
                         }}
                       >
@@ -2217,7 +2597,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       <TouchableOpacity
                         className="bg-error px-3 py-1 rounded-lg"
                         onPress={async () => {
-                          const ok = await confirmAction(`Delete devotional day ${day.id}?`);
+                          const ok = await confirmAction(
+                            `Delete devotional day ${day.id}?`,
+                          );
                           if (ok) {
                             await dayDelete.mutateAsync({ id: day.id });
                           }
@@ -2234,8 +2616,12 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
 
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="mb-4">
-              <Text className="text-lg font-bold text-foreground">Challenges</Text>
-              <Text className="text-xs text-muted">Attach challenges to a devotional day.</Text>
+              <Text className="text-lg font-bold text-foreground">
+                Challenges
+              </Text>
+              <Text className="text-xs text-muted">
+                Attach challenges to a devotional day.
+              </Text>
             </View>
             <PaginationControls
               page={challengesPagination.page}
@@ -2246,13 +2632,20 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
             />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Challenge details</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Challenge details
+                </Text>
                 <View className="gap-3">
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Devotional Day ID (select below)"
                     value={challengeForm.devotionalDayId}
-                    onChangeText={(value) => setChallengeForm((prev) => ({ ...prev, devotionalDayId: value }))}
+                    onChangeText={(value) =>
+                      setChallengeForm((prev) => ({
+                        ...prev,
+                        devotionalDayId: value,
+                      }))
+                    }
                   />
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View className="flex-row gap-2">
@@ -2261,7 +2654,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           key={day.id}
                           className="bg-secondary/30 px-3 py-2 rounded-full"
                           onPress={() =>
-                            setChallengeForm((prev) => ({ ...prev, devotionalDayId: `${day.id}` }))
+                            setChallengeForm((prev) => ({
+                              ...prev,
+                              devotionalDayId: `${day.id}`,
+                            }))
                           }
                         >
                           <Text className="text-primary text-xs font-semibold">
@@ -2270,7 +2666,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         </TouchableOpacity>
                       ))}
                       {dayOptions.length === 0 && (
-                        <Text className="text-xs text-muted">No devotional days yet.</Text>
+                        <Text className="text-xs text-muted">
+                          No devotional days yet.
+                        </Text>
                       )}
                     </View>
                   </ScrollView>
@@ -2283,11 +2681,24 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           <TouchableOpacity
                             key={`challenge-type-${type.value}`}
                             className={`px-3 py-2 rounded-full border ${
-                              isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                              isActive
+                                ? "bg-primary border-primary"
+                                : "bg-surface border-border"
                             }`}
-                            onPress={() => setChallengeForm((prev) => ({ ...prev, type: type.value }))}
+                            onPress={() =>
+                              setChallengeForm((prev) => ({
+                                ...prev,
+                                type: type.value,
+                              }))
+                            }
                           >
-                            <Text className={isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"}>
+                            <Text
+                              className={
+                                isActive
+                                  ? "text-white text-xs font-semibold"
+                                  : "text-foreground text-xs"
+                              }
+                            >
                               {type.label}
                             </Text>
                           </TouchableOpacity>
@@ -2299,53 +2710,82 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Title"
                     value={challengeForm.title}
-                    onChangeText={(value) => setChallengeForm((prev) => ({ ...prev, title: value }))}
+                    onChangeText={(value) =>
+                      setChallengeForm((prev) => ({ ...prev, title: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Description"
                     value={challengeForm.description}
-                    onChangeText={(value) => setChallengeForm((prev) => ({ ...prev, description: value }))}
+                    onChangeText={(value) =>
+                      setChallengeForm((prev) => ({
+                        ...prev,
+                        description: value,
+                      }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Base XP"
                     value={challengeForm.baseXp}
-                    onChangeText={(value) => setChallengeForm((prev) => ({ ...prev, baseXp: value }))}
+                    onChangeText={(value) =>
+                      setChallengeForm((prev) => ({ ...prev, baseXp: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Base Denario"
                     value={challengeForm.baseDenario}
-                    onChangeText={(value) => setChallengeForm((prev) => ({ ...prev, baseDenario: value }))}
+                    onChangeText={(value) =>
+                      setChallengeForm((prev) => ({
+                        ...prev,
+                        baseDenario: value,
+                      }))
+                    }
                   />
                   <View className="flex-row gap-2">
                     <TouchableOpacity
                       className="bg-primary px-4 py-2 rounded-lg"
                       onPress={async () => {
                         const payload = {
-                          devotionalDayId: toInt(challengeForm.devotionalDayId, 0),
-                          type: challengeForm.type as "READING" | "DEVOTIONAL" | "REFLECTION" | "EXTRA",
+                          devotionalDayId: toInt(
+                            challengeForm.devotionalDayId,
+                            0,
+                          ),
+                          type: challengeForm.type as
+                            | "READING"
+                            | "DEVOTIONAL"
+                            | "REFLECTION"
+                            | "EXTRA",
                           title: challengeForm.title,
                           description: challengeForm.description.trim() || null,
                           baseXp: toInt(challengeForm.baseXp, 10),
                           baseDenario: toInt(challengeForm.baseDenario, 5),
                         };
                         if (challengeEditingId) {
-                          await challengeUpdate.mutateAsync({ id: challengeEditingId, ...payload });
+                          await challengeUpdate.mutateAsync({
+                            id: challengeEditingId,
+                            ...payload,
+                          });
                         } else {
                           await challengeCreate.mutateAsync(payload);
                         }
                         resetChallengeForm();
                       }}
-                      disabled={challengeCreate.isPending || challengeUpdate.isPending}
+                      disabled={
+                        challengeCreate.isPending || challengeUpdate.isPending
+                      }
                     >
                       <Text className="text-white font-semibold">
                         {challengeEditingId ? "Save" : "Create"}
                       </Text>
                     </TouchableOpacity>
                     {challengeEditingId && (
-                      <TouchableOpacity className="bg-border px-4 py-2 rounded-lg" onPress={resetChallengeForm}>
+                      <TouchableOpacity
+                        className="bg-border px-4 py-2 rounded-lg"
+                        onPress={resetChallengeForm}
+                      >
                         <Text className="text-foreground">Cancel</Text>
                       </TouchableOpacity>
                     )}
@@ -2354,13 +2794,20 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
               </View>
 
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Existing challenges</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Existing challenges
+                </Text>
                 {challengesList.map((challenge) => (
-                  <View key={challenge.id} className="border border-border rounded-xl p-3 mb-2">
+                  <View
+                    key={challenge.id}
+                    className="border border-border rounded-xl p-3 mb-2"
+                  >
                     <Text className="text-foreground font-semibold">
                       Day {challenge.devotionalDayId} | {challenge.type}
                     </Text>
-                    <Text className="text-muted text-xs">{challenge.title}</Text>
+                    <Text className="text-muted text-xs">
+                      {challenge.title}
+                    </Text>
                     <Text className="text-muted text-xs">
                       XP: {challenge.baseXp} | Denario: {challenge.baseDenario}
                     </Text>
@@ -2384,9 +2831,13 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       <TouchableOpacity
                         className="bg-error px-3 py-1 rounded-lg"
                         onPress={async () => {
-                          const ok = await confirmAction(`Delete challenge ${challenge.title}?`);
+                          const ok = await confirmAction(
+                            `Delete challenge ${challenge.title}?`,
+                          );
                           if (ok) {
-                            await challengeDelete.mutateAsync({ id: challenge.id });
+                            await challengeDelete.mutateAsync({
+                              id: challenge.id,
+                            });
                           }
                         }}
                       >
@@ -2402,8 +2853,12 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
               <View>
-                <Text className="text-lg font-bold text-foreground">Medals</Text>
-                <Text className="text-xs text-muted">Define achievement medals and ordering.</Text>
+                <Text className="text-lg font-bold text-foreground">
+                  Medals
+                </Text>
+                <Text className="text-xs text-muted">
+                  Define achievement medals and ordering.
+                </Text>
               </View>
               <TouchableOpacity
                 className={`px-4 py-2 rounded-full items-center justify-center ${
@@ -2415,7 +2870,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                 {medalRecalculate.isLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text className="text-white text-xs font-semibold">Recalcular medalhas</Text>
+                  <Text className="text-white text-xs font-semibold">
+                    Recalcular medalhas
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -2428,19 +2885,25 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
             />
             <View className={isWide ? "flex-row gap-4" : "gap-4"}>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Medal details</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Medal details
+                </Text>
                 <View className="gap-3">
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Name"
                     value={medalForm.name}
-                    onChangeText={(value) => setMedalForm((prev) => ({ ...prev, name: value }))}
+                    onChangeText={(value) =>
+                      setMedalForm((prev) => ({ ...prev, name: value }))
+                    }
                   />
                   <TextInput
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Description"
                     value={medalForm.description}
-                    onChangeText={(value) => setMedalForm((prev) => ({ ...prev, description: value }))}
+                    onChangeText={(value) =>
+                      setMedalForm((prev) => ({ ...prev, description: value }))
+                    }
                   />
                   <View className="gap-2">
                     <Text className="text-xs text-muted">Categoria</Text>
@@ -2451,13 +2914,22 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           <TouchableOpacity
                             key={`medal-category-${category.value}`}
                             className={`px-3 py-1 rounded-full border ${
-                              isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                              isActive
+                                ? "bg-primary border-primary"
+                                : "bg-surface border-border"
                             }`}
-                            onPress={() => setMedalForm((prev) => ({ ...prev, category: category.value }))}
+                            onPress={() =>
+                              setMedalForm((prev) => ({
+                                ...prev,
+                                category: category.value,
+                              }))
+                            }
                           >
                             <Text
                               className={
-                                isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"
+                                isActive
+                                  ? "text-white text-xs font-semibold"
+                                  : "text-foreground text-xs"
                               }
                             >
                               {category.label}
@@ -2476,13 +2948,22 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           <TouchableOpacity
                             key={`medal-icon-${value}`}
                             className={`px-3 py-1 rounded-full border ${
-                              isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                              isActive
+                                ? "bg-primary border-primary"
+                                : "bg-surface border-border"
                             }`}
-                            onPress={() => setMedalForm((prev) => ({ ...prev, iconType: value }))}
+                            onPress={() =>
+                              setMedalForm((prev) => ({
+                                ...prev,
+                                iconType: value,
+                              }))
+                            }
                           >
                             <Text
                               className={
-                                isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"
+                                isActive
+                                  ? "text-white text-xs font-semibold"
+                                  : "text-foreground text-xs"
                               }
                             >
                               {value === "emoji" ? "Emoji" : "Imagem"}
@@ -2493,7 +2974,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     </View>
                     {medalForm.iconType === "emoji" ? (
                       <View className="gap-2">
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                        >
                           <View className="flex-row gap-2">
                             {MEDAL_EMOJI_OPTIONS.map((emoji) => {
                               const isActive = medalForm.iconEmoji === emoji;
@@ -2501,11 +2985,24 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                                 <TouchableOpacity
                                   key={`medal-emoji-${emoji}`}
                                   className={`w-10 h-10 rounded-full items-center justify-center border ${
-                                    isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                                    isActive
+                                      ? "bg-primary border-primary"
+                                      : "bg-surface border-border"
                                   }`}
-                                  onPress={() => setMedalForm((prev) => ({ ...prev, iconEmoji: emoji }))}
+                                  onPress={() =>
+                                    setMedalForm((prev) => ({
+                                      ...prev,
+                                      iconEmoji: emoji,
+                                    }))
+                                  }
                                 >
-                                  <Text className={isActive ? "text-white text-lg" : "text-foreground text-lg"}>
+                                  <Text
+                                    className={
+                                      isActive
+                                        ? "text-white text-lg"
+                                        : "text-foreground text-lg"
+                                    }
+                                  >
                                     {emoji}
                                   </Text>
                                 </TouchableOpacity>
@@ -2517,7 +3014,12 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                           placeholder="Emoji custom"
                           value={medalForm.iconEmoji}
-                          onChangeText={(value) => setMedalForm((prev) => ({ ...prev, iconEmoji: value }))}
+                          onChangeText={(value) =>
+                            setMedalForm((prev) => ({
+                              ...prev,
+                              iconEmoji: value,
+                            }))
+                          }
                         />
                       </View>
                     ) : (
@@ -2526,13 +3028,23 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                           placeholder="Icon URL (color)"
                           value={medalForm.iconUrl}
-                          onChangeText={(value) => setMedalForm((prev) => ({ ...prev, iconUrl: value }))}
+                          onChangeText={(value) =>
+                            setMedalForm((prev) => ({
+                              ...prev,
+                              iconUrl: value,
+                            }))
+                          }
                         />
                         <TextInput
                           className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                           placeholder="Icon URL (gray)"
                           value={medalForm.iconUrlGray}
-                          onChangeText={(value) => setMedalForm((prev) => ({ ...prev, iconUrlGray: value }))}
+                          onChangeText={(value) =>
+                            setMedalForm((prev) => ({
+                              ...prev,
+                              iconUrlGray: value,
+                            }))
+                          }
                         />
                       </View>
                     )}
@@ -2541,20 +3053,28 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     <Text className="text-xs text-muted">Requisito</Text>
                     <View className="flex-row flex-wrap gap-2">
                       {MEDAL_REQUIREMENT_OPTIONS.map((option) => {
-                        const isActive = medalForm.requirementType === option.value;
+                        const isActive =
+                          medalForm.requirementType === option.value;
                         return (
                           <TouchableOpacity
                             key={`medal-requirement-${option.value}`}
                             className={`px-3 py-1 rounded-full border ${
-                              isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                              isActive
+                                ? "bg-primary border-primary"
+                                : "bg-surface border-border"
                             }`}
                             onPress={() =>
-                              setMedalForm((prev) => ({ ...prev, requirementType: option.value }))
+                              setMedalForm((prev) => ({
+                                ...prev,
+                                requirementType: option.value,
+                              }))
                             }
                           >
                             <Text
                               className={
-                                isActive ? "text-white text-xs font-semibold" : "text-foreground text-xs"
+                                isActive
+                                  ? "text-white text-xs font-semibold"
+                                  : "text-foreground text-xs"
                               }
                             >
                               {option.label}
@@ -2569,7 +3089,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         placeholder="Dias de streak"
                         value={medalForm.requirementDays}
                         onChangeText={(value) =>
-                          setMedalForm((prev) => ({ ...prev, requirementDays: value }))
+                          setMedalForm((prev) => ({
+                            ...prev,
+                            requirementDays: value,
+                          }))
                         }
                       />
                     )}
@@ -2580,21 +3103,29 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         placeholder="Quantidade"
                         value={medalForm.requirementCount}
                         onChangeText={(value) =>
-                          setMedalForm((prev) => ({ ...prev, requirementCount: value }))
+                          setMedalForm((prev) => ({
+                            ...prev,
+                            requirementCount: value,
+                          }))
                         }
                       />
                     )}
                     {medalForm.requirementType === "challenge_type_count" && (
                       <View className="gap-2">
-                        <Text className="text-xs text-muted">Tipo de challenge</Text>
+                        <Text className="text-xs text-muted">
+                          Tipo de challenge
+                        </Text>
                         <View className="flex-row flex-wrap gap-2">
                           {CHALLENGE_TYPES.map((type) => {
-                            const isActive = medalForm.requirementChallengeType === type.value;
+                            const isActive =
+                              medalForm.requirementChallengeType === type.value;
                             return (
                               <TouchableOpacity
                                 key={`medal-challenge-${type.value}`}
                                 className={`px-3 py-1 rounded-full border ${
-                                  isActive ? "bg-primary border-primary" : "bg-surface border-border"
+                                  isActive
+                                    ? "bg-primary border-primary"
+                                    : "bg-surface border-border"
                                 }`}
                                 onPress={() =>
                                   setMedalForm((prev) => ({
@@ -2621,7 +3152,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           placeholder="Quantidade"
                           value={medalForm.requirementCount}
                           onChangeText={(value) =>
-                            setMedalForm((prev) => ({ ...prev, requirementCount: value }))
+                            setMedalForm((prev) => ({
+                              ...prev,
+                              requirementCount: value,
+                            }))
                           }
                         />
                       </View>
@@ -2632,7 +3166,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         placeholder="Livros (separados por virgula)"
                         value={medalForm.requirementBooks}
                         onChangeText={(value) =>
-                          setMedalForm((prev) => ({ ...prev, requirementBooks: value }))
+                          setMedalForm((prev) => ({
+                            ...prev,
+                            requirementBooks: value,
+                          }))
                         }
                       />
                     )}
@@ -2642,7 +3179,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         placeholder="Nome do livro"
                         value={medalForm.requirementBookName}
                         onChangeText={(value) =>
-                          setMedalForm((prev) => ({ ...prev, requirementBookName: value }))
+                          setMedalForm((prev) => ({
+                            ...prev,
+                            requirementBookName: value,
+                          }))
                         }
                       />
                     )}
@@ -2653,7 +3193,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         placeholder="Hora (0-23)"
                         value={medalForm.requirementHour}
                         onChangeText={(value) =>
-                          setMedalForm((prev) => ({ ...prev, requirementHour: value }))
+                          setMedalForm((prev) => ({
+                            ...prev,
+                            requirementHour: value,
+                          }))
                         }
                       />
                     )}
@@ -2663,7 +3206,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                         placeholder="Requirement raw (JSON ou texto)"
                         value={medalForm.requirementRaw}
                         onChangeText={(value) =>
-                          setMedalForm((prev) => ({ ...prev, requirementRaw: value }))
+                          setMedalForm((prev) => ({
+                            ...prev,
+                            requirementRaw: value,
+                          }))
                         }
                         multiline
                       />
@@ -2673,12 +3219,16 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                     className="bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="Order"
                     value={medalForm.order}
-                    onChangeText={(value) => setMedalForm((prev) => ({ ...prev, order: value }))}
+                    onChangeText={(value) =>
+                      setMedalForm((prev) => ({ ...prev, order: value }))
+                    }
                   />
                   <Toggle
                     label="Active"
                     value={medalForm.isActive}
-                    onToggle={(value) => setMedalForm((prev) => ({ ...prev, isActive: value }))}
+                    onToggle={(value) =>
+                      setMedalForm((prev) => ({ ...prev, isActive: value }))
+                    }
                   />
                   <View className="flex-row gap-2">
                     <TouchableOpacity
@@ -2686,15 +3236,24 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       onPress={async () => {
                         const requirement = buildMedalRequirement(medalForm);
                         if (!requirement.trim()) {
-                          Alert.alert("Requirement", "Preencha o requisito da medalha.");
+                          Alert.alert(
+                            "Requirement",
+                            "Preencha o requisito da medalha.",
+                          );
                           return;
                         }
                         const iconEmoji =
-                          medalForm.iconType === "emoji" ? medalForm.iconEmoji.trim() || null : null;
+                          medalForm.iconType === "emoji"
+                            ? medalForm.iconEmoji.trim() || null
+                            : null;
                         const iconUrl =
-                          medalForm.iconType === "image" ? medalForm.iconUrl.trim() || null : null;
+                          medalForm.iconType === "image"
+                            ? medalForm.iconUrl.trim() || null
+                            : null;
                         const iconUrlGray =
-                          medalForm.iconType === "image" ? medalForm.iconUrlGray.trim() || null : null;
+                          medalForm.iconType === "image"
+                            ? medalForm.iconUrlGray.trim() || null
+                            : null;
                         const payload = {
                           name: medalForm.name,
                           description: medalForm.description,
@@ -2707,7 +3266,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           isActive: medalForm.isActive,
                         };
                         if (medalEditingId) {
-                          await medalUpdate.mutateAsync({ id: medalEditingId, ...payload });
+                          await medalUpdate.mutateAsync({
+                            id: medalEditingId,
+                            ...payload,
+                          });
                         } else {
                           await medalCreate.mutateAsync(payload);
                         }
@@ -2720,7 +3282,10 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       </Text>
                     </TouchableOpacity>
                     {medalEditingId && (
-                      <TouchableOpacity className="bg-border px-4 py-2 rounded-lg" onPress={resetMedalForm}>
+                      <TouchableOpacity
+                        className="bg-border px-4 py-2 rounded-lg"
+                        onPress={resetMedalForm}
+                      >
                         <Text className="text-foreground">Cancel</Text>
                       </TouchableOpacity>
                     )}
@@ -2729,33 +3294,45 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
               </View>
 
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground mb-2">Existing medals</Text>
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Existing medals
+                </Text>
                 {medalsList.map((medal) => (
-                  <View key={medal.id} className="border border-border rounded-xl p-3 mb-2">
+                  <View
+                    key={medal.id}
+                    className="border border-border rounded-xl p-3 mb-2"
+                  >
                     <Text className="text-foreground font-semibold">
                       {medal.name}
                     </Text>
                     <Text className="text-muted text-xs">
-                      {medal.category} | order: {medal.order} | active: {medal.isActive ? "yes" : "no"}
+                      {medal.category} | order: {medal.order} | active:{" "}
+                      {medal.isActive ? "yes" : "no"}
                     </Text>
                     <View className="flex-row gap-2 mt-2">
                       <TouchableOpacity
                         className="bg-secondary px-3 py-1 rounded-lg"
                         onPress={() => {
-                          const parsedRequirement = parseMedalRequirement(medal.requirement);
+                          const parsedRequirement = parseMedalRequirement(
+                            medal.requirement,
+                          );
                           const parsedType =
-                            parsedRequirement && typeof parsedRequirement.type === "string"
+                            parsedRequirement &&
+                            typeof parsedRequirement.type === "string"
                               ? (parsedRequirement.type as MedalRequirementType)
                               : "custom";
                           const iconType: MedalIconType =
-                            medal.iconUrl || medal.iconUrlGray ? "image" : "emoji";
+                            medal.iconUrl || medal.iconUrlGray
+                              ? "image"
+                              : "emoji";
                           let requirementType: MedalRequirementType = "custom";
                           let requirementDays = "7";
                           let requirementCount = "1";
                           let requirementHour = "6";
                           let requirementBooks = "";
                           let requirementBookName = "";
-                          let requirementChallengeType: ChallengeType = "READING";
+                          let requirementChallengeType: ChallengeType =
+                            "READING";
 
                           if (parsedType === "streak") {
                             requirementType = "streak";
@@ -2786,7 +3363,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                           } else if (parsedType === "book") {
                             requirementType = "book";
                             const bookName =
-                              (parsedRequirement?.bookName as string | undefined) ||
+                              (parsedRequirement?.bookName as
+                                | string
+                                | undefined) ||
                               (parsedRequirement?.book as string | undefined) ||
                               "";
                             requirementBookName = bookName;
@@ -2804,9 +3383,12 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                                 : requirementHour;
                           } else if (parsedType === "challenge_type_count") {
                             requirementType = "challenge_type_count";
-                            if (typeof parsedRequirement?.challengeType === "string") {
-                              requirementChallengeType = parsedRequirement
-                                .challengeType as ChallengeType;
+                            if (
+                              typeof parsedRequirement?.challengeType ===
+                              "string"
+                            ) {
+                              requirementChallengeType =
+                                parsedRequirement.challengeType as ChallengeType;
                             }
                             requirementCount =
                               typeof parsedRequirement?.count === "number"
@@ -2842,7 +3424,9 @@ const openColorPicker = (group: AvatarOptionGroup, current: string | undefined) 
                       <TouchableOpacity
                         className="bg-error px-3 py-1 rounded-lg"
                         onPress={async () => {
-                          const ok = await confirmAction(`Delete medal ${medal.name}?`);
+                          const ok = await confirmAction(
+                            `Delete medal ${medal.name}?`,
+                          );
                           if (ok) {
                             await medalDelete.mutateAsync({ id: medal.id });
                           }

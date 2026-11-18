@@ -1,0 +1,349 @@
+{
+  "theo/original": {
+    "taskId": "01a1ecdc-ceb1-7697-96b9-640ecb616ec2",
+    "status": "SUCCEEDED",
+    "pilot": true,
+    "credits": 12,
+    "file": "assets/characters/theo/original.png"
+  },
+  "theo/tunica": {
+    "taskId": "01a1ecdd-774c-726c-adfa-186e899e2809",
+    "status": "SUCCEEDED",
+    "pilot": true,
+    "credits": 12,
+    "file": "assets/characters/theo/tunica.png"
+  },
+  "theo/esporte": {
+    "taskId": "01a1ecdd-80bc-73fe-ab5d-310dd694fefa",
+    "status": "SUCCEEDED",
+    "pilot": true,
+    "credits": 12,
+    "file": "assets/characters/theo/esporte.png"
+  },
+  "davi/original": {
+    "taskId": "01a1ece0-b95f-70e0-8393-8bb7fb5e1a21",
+    "parent": null,
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/original.png"
+  },
+  "lia/original": {
+    "taskId": "01a1ece0-cb0a-7119-8b03-2aab54376524",
+    "parent": null,
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/original.png"
+  },
+  "theo/moletom": {
+    "taskId": "01a1ece0-dd6d-715f-9582-3cc69ff8b312",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/moletom.png"
+  },
+  "theo/culto": {
+    "taskId": "01a1ece0-e656-732b-b6d8-4742b78ee828",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/culto.png"
+  },
+  "theo/explorador": {
+    "taskId": "01a1ece0-ef75-74f3-a06f-2fb95dd70e5e",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/explorador.png"
+  },
+  "theo/pastor": {
+    "taskId": "01a1ece0-f821-728f-8a0a-f05f84aa65c3",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/pastor.png"
+  },
+  "theo/realeza": {
+    "taskId": "01a1ece1-0093-73df-860d-419b19f5d8a1",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/realeza.png"
+  },
+  "theo/original-cabelo-castanho": {
+    "taskId": "01a1ece1-09f2-7065-9740-315ecebe1d96",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/original-cabelo-castanho.png"
+  },
+  "theo/original-cabelo-loiro": {
+    "taskId": "01a1ece1-12b7-7042-934d-3452d786d008",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/original-cabelo-loiro.png"
+  },
+  "theo/original-cabelo-azul": {
+    "taskId": "01a1ece1-1b87-7548-9891-8b66c358d1b6",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/original-cabelo-azul.png"
+  },
+  "theo/esporte-cabelo-castanho": {
+    "taskId": "01a1ece1-24b6-761d-9ba3-0e3ef22a899d",
+    "parent": "theo/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/esporte-cabelo-castanho.png"
+  },
+  "theo/esporte-cabelo-loiro": {
+    "taskId": "01a1ece1-2cb9-719e-bdfa-d0c07d8601b2",
+    "parent": "theo/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/esporte-cabelo-loiro.png"
+  },
+  "theo/esporte-cabelo-azul": {
+    "taskId": "01a1ece1-3619-700f-abb4-68d92f9b5b0b",
+    "parent": "theo/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/theo/esporte-cabelo-azul.png"
+  },
+  "acessorios/folha-1": {
+    "taskId": "01a1ece1-3eed-76c6-b304-f7aecd229216",
+    "status": "SUCCEEDED",
+    "resource": "text-to-image",
+    "credits": 9,
+    "file": "assets/characters/acessorios/folha-1.png"
+  },
+  "acessorios/folha-2": {
+    "taskId": "01a1ece1-45b8-70cf-a489-9fdeb559ca07",
+    "status": "SUCCEEDED",
+    "resource": "text-to-image",
+    "credits": 9,
+    "file": "assets/characters/acessorios/folha-2.png"
+  },
+  "davi/esporte": {
+    "taskId": "01a1ece2-7832-7429-8b53-4ff8bec85f91",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/esporte.png"
+  },
+  "davi/moletom": {
+    "taskId": "01a1ece2-8293-7774-b9be-128e472bdc94",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/moletom.png"
+  },
+  "davi/culto": {
+    "taskId": "01a1ece2-8c35-7665-999f-574aede359f1",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/culto.png"
+  },
+  "davi/explorador": {
+    "taskId": "01a1ece2-9600-72e2-bab7-000a706e3c1b",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/explorador.png"
+  },
+  "davi/tunica": {
+    "taskId": "01a1ece2-9f94-71fe-ad17-9e9149e121cf",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/tunica.png"
+  },
+  "davi/pastor": {
+    "taskId": "01a1ece2-a8a2-7758-a663-5562e586b090",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/pastor.png"
+  },
+  "davi/realeza": {
+    "taskId": "01a1ece2-b222-7750-b56c-836cef44089d",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/realeza.png"
+  },
+  "davi/original-cabelo-loiro": {
+    "taskId": "01a1ece2-bc26-73e8-8b34-7ba60651b126",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/original-cabelo-loiro.png"
+  },
+  "davi/original-cabelo-preto": {
+    "taskId": "01a1ece2-c58a-72bd-8840-72cf0b2391ec",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/original-cabelo-preto.png"
+  },
+  "davi/original-cabelo-azul": {
+    "taskId": "01a1ece2-cfc7-77da-9423-e4421a1793f4",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/original-cabelo-azul.png"
+  },
+  "lia/esporte": {
+    "taskId": "01a1ece2-da4b-70bf-ae8d-7bf955813a9c",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/esporte.png"
+  },
+  "lia/moletom": {
+    "taskId": "01a1ece2-e5d5-70dd-a909-005bac7e3e66",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/moletom.png"
+  },
+  "lia/culto": {
+    "taskId": "01a1ece2-f050-72a5-bef0-85c0150009a6",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/culto.png"
+  },
+  "lia/explorador": {
+    "taskId": "01a1ece2-f9f7-76a3-960c-2c9ef51a885c",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/explorador.png"
+  },
+  "lia/tunica": {
+    "taskId": "01a1ece3-0436-777d-9145-9cfe9ae4fc95",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/tunica.png"
+  },
+  "lia/pastor": {
+    "taskId": "01a1ece3-0e57-7296-a738-740010030a1a",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/pastor.png"
+  },
+  "lia/realeza": {
+    "taskId": "01a1ece3-185a-763c-b485-f2afa68c08c5",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/realeza.png"
+  },
+  "lia/original-cabelo-castanho": {
+    "taskId": "01a1ece3-21c9-743f-98f8-b61d0527aba4",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/original-cabelo-castanho.png"
+  },
+  "lia/original-cabelo-loiro": {
+    "taskId": "01a1ece3-2b56-7635-a8c5-a36f17e10ab9",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/original-cabelo-loiro.png"
+  },
+  "lia/original-cabelo-rosa": {
+    "taskId": "01a1ece3-3518-7399-83c7-469dc3de9711",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/original-cabelo-rosa.png"
+  },
+  "davi/esporte-cabelo-loiro": {
+    "taskId": "01a1ece4-d8c7-764d-b866-479b67faff41",
+    "parent": "davi/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/esporte-cabelo-loiro.png"
+  },
+  "davi/esporte-cabelo-preto": {
+    "taskId": "01a1ece4-e2c5-71b0-88af-ac04ea260048",
+    "parent": "davi/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/esporte-cabelo-preto.png"
+  },
+  "davi/esporte-cabelo-azul": {
+    "taskId": "01a1ece4-ebcb-7437-903e-73acb4429b82",
+    "parent": "davi/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/davi/esporte-cabelo-azul.png"
+  },
+  "lia/esporte-cabelo-castanho": {
+    "taskId": "01a1ece4-f44a-702a-b637-3add534a786f",
+    "parent": "lia/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/esporte-cabelo-castanho.png"
+  },
+  "lia/esporte-cabelo-loiro": {
+    "taskId": "01a1ece4-fdce-73df-a5e0-29e71ec75522",
+    "parent": "lia/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/esporte-cabelo-loiro.png"
+  },
+  "lia/esporte-cabelo-rosa": {
+    "taskId": "01a1ece5-0711-734a-b323-95d2cb42e8ae",
+    "parent": "lia/esporte",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/lia/esporte-cabelo-rosa.png"
+  }
+}

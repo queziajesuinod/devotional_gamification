@@ -5,7 +5,7 @@ import { View, ActivityIndicator } from "react-native";
 
 /**
  * AuthGuard - Protects routes and redirects to login if not authenticated
- * 
+ *
  * Wrap protected screens with this component to ensure user is logged in.
  * Automatically redirects to /login if authentication is not present.
  */
@@ -45,7 +45,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (user && segment === "leader" && user.role !== "leader" && user.role !== "admin") {
+    if (
+      user &&
+      segment === "leader" &&
+      user.role !== "leader" &&
+      user.role !== "admin"
+    ) {
       router.replace("/(tabs)");
     }
   }, [user, loading, segments, router]);

@@ -1,5 +1,16 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Appearance, View, useColorScheme as useSystemColorScheme } from "react-native";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  Appearance,
+  View,
+  useColorScheme as useSystemColorScheme,
+} from "react-native";
 import { colorScheme as nativewindColorScheme, vars } from "nativewind";
 
 import { SchemeColors, type ColorScheme } from "@/constants/theme";
@@ -13,7 +24,8 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme() ?? "light";
-  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(systemScheme);
+  const [colorScheme, setColorSchemeState] =
+    useState<ColorScheme>(systemScheme);
 
   const applyScheme = useCallback((scheme: ColorScheme) => {
     nativewindColorScheme.set(scheme);
@@ -29,10 +41,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const setColorScheme = useCallback((scheme: ColorScheme) => {
-    setColorSchemeState(scheme);
-    applyScheme(scheme);
-  }, [applyScheme]);
+  const setColorScheme = useCallback(
+    (scheme: ColorScheme) => {
+      setColorSchemeState(scheme);
+      applyScheme(scheme);
+    },
+    [applyScheme],
+  );
 
   useEffect(() => {
     applyScheme(colorScheme);
@@ -42,6 +57,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     () =>
       vars({
         "color-primary": SchemeColors[colorScheme].primary,
+        "color-primaryDark": SchemeColors[colorScheme].primaryDark,
+        "color-secondary": SchemeColors[colorScheme].secondary,
+        "color-accent": SchemeColors[colorScheme].accent,
         "color-background": SchemeColors[colorScheme].background,
         "color-surface": SchemeColors[colorScheme].surface,
         "color-foreground": SchemeColors[colorScheme].foreground,
@@ -50,6 +68,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         "color-success": SchemeColors[colorScheme].success,
         "color-warning": SchemeColors[colorScheme].warning,
         "color-error": SchemeColors[colorScheme].error,
+        "color-gold": SchemeColors[colorScheme].gold,
+        "color-star": SchemeColors[colorScheme].star,
+        "color-royal": SchemeColors[colorScheme].royal,
+        "color-parchment": SchemeColors[colorScheme].parchment,
+        "color-wood": SchemeColors[colorScheme].wood,
       }),
     [colorScheme],
   );
@@ -61,7 +84,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }),
     [colorScheme, setColorScheme],
   );
-  console.log(value, themeVariables)
+  console.log(value, themeVariables);
 
   return (
     <ThemeContext.Provider value={value}>

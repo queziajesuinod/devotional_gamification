@@ -1,6 +1,11 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { getUserByEmail, createUser, getUserById, grantFreeItemsToUser } from "./db";
+import {
+  getUserByEmail,
+  createUser,
+  getUserById,
+  grantFreeItemsToUser,
+} from "./db";
 import { sdk } from "./_core/sdk";
 import { getSessionCookieOptions } from "./_core/cookies";
 import multer from "multer";
@@ -34,12 +39,16 @@ export function createAuthRouter(): Router {
 
       // Validation
       if (!email || !password || !nickname) {
-        res.status(400).json({ error: "Email, password e nickname são obrigatórios" });
+        res
+          .status(400)
+          .json({ error: "Email, password e nickname são obrigatórios" });
         return;
       }
 
       if (password.length < 6) {
-        res.status(400).json({ error: "Senha deve ter no mínimo 6 caracteres" });
+        res
+          .status(400)
+          .json({ error: "Senha deve ter no mínimo 6 caracteres" });
         return;
       }
 
@@ -75,14 +84,17 @@ export function createAuthRouter(): Router {
       // Cache session in Redis
       await cacheSession(sessionToken, {
         userId: user.id,
-        email: user.email || '',
-        nickname: user.nickname || '',
+        email: user.email || "",
+        nickname: user.nickname || "",
         createdAt: Date.now(),
       });
 
       // Set cookie
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       res.json({
         success: true,
@@ -124,7 +136,9 @@ export function createAuthRouter(): Router {
 
       // Check if user has password (not OAuth user)
       if (!user.passwordHash) {
-        res.status(401).json({ error: "Usuário registrado via OAuth. Use o login social." });
+        res
+          .status(401)
+          .json({ error: "Usuário registrado via OAuth. Use o login social." });
         return;
       }
 
@@ -145,14 +159,17 @@ export function createAuthRouter(): Router {
       // Cache session in Redis
       await cacheSession(sessionToken, {
         userId: user.id,
-        email: user.email || '',
-        nickname: user.nickname || '',
+        email: user.email || "",
+        nickname: user.nickname || "",
         createdAt: Date.now(),
       });
 
       // Set cookie
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       res.json({
         success: true,
@@ -186,8 +203,10 @@ export function createAuthRouter(): Router {
 
       const { nickname, email, gender, birthDate, whatsapp, name } = req.body;
 
-      const cleanedNickname = typeof nickname === "string" ? nickname.trim() : undefined;
-      const cleanedEmail = typeof email === "string" ? email.trim().toLowerCase() : undefined;
+      const cleanedNickname =
+        typeof nickname === "string" ? nickname.trim() : undefined;
+      const cleanedEmail =
+        typeof email === "string" ? email.trim().toLowerCase() : undefined;
       const cleanedName = typeof name === "string" ? name.trim() : undefined;
       const hasUpdate =
         Boolean(cleanedNickname) ||
@@ -212,7 +231,7 @@ export function createAuthRouter(): Router {
       }
 
       // Update user in database
-      const db = await import("./db").then(m => m.getDb());
+      const db = await import("./db").then((m) => m.getDb());
       if (!db) {
         res.status(500).json({ error: "Database not available" });
         return;
@@ -226,7 +245,9 @@ export function createAuthRouter(): Router {
         if (cleanedName && !isFullNameValid(cleanedName)) {
           res
             .status(400)
-            .json({ error: "Informe um nome completo com pelo menos duas palavras" });
+            .json({
+              error: "Informe um nome completo com pelo menos duas palavras",
+            });
           return;
         }
         updateData.name = cleanedName || null;
@@ -240,7 +261,8 @@ export function createAuthRouter(): Router {
         updateData.birthDate = birthDate || null;
       }
       if (whatsapp !== undefined) {
-        const normalizedWhatsapp = typeof whatsapp === "string" ? whatsapp.trim() : whatsapp;
+        const normalizedWhatsapp =
+          typeof whatsapp === "string" ? whatsapp.trim() : whatsapp;
         updateData.whatsapp = normalizedWhatsapp || null;
       }
 
@@ -283,24 +305,33 @@ export function createAuthRouter(): Router {
       const { currentPassword, newPassword } = req.body;
 
       if (!currentPassword || !newPassword) {
-        res.status(400).json({ error: "Senha atual e nova senha são obrigatórias" });
+        res
+          .status(400)
+          .json({ error: "Senha atual e nova senha são obrigatórias" });
         return;
       }
 
       if (newPassword.length < 6) {
-        res.status(400).json({ error: "Nova senha deve ter no mínimo 6 caracteres" });
+        res
+          .status(400)
+          .json({ error: "Nova senha deve ter no mínimo 6 caracteres" });
         return;
       }
 
       // Get user with password hash
       const fullUser = await getUserById(user.id);
       if (!fullUser || !fullUser.passwordHash) {
-        res.status(400).json({ error: "Usuário não possui senha (login via OAuth)" });
+        res
+          .status(400)
+          .json({ error: "Usuário não possui senha (login via OAuth)" });
         return;
       }
 
       // Verify current password
-      const isValidPassword = await bcrypt.compare(currentPassword, fullUser.passwordHash);
+      const isValidPassword = await bcrypt.compare(
+        currentPassword,
+        fullUser.passwordHash,
+      );
       if (!isValidPassword) {
         res.status(401).json({ error: "Senha atual incorreta" });
         return;
@@ -310,7 +341,7 @@ export function createAuthRouter(): Router {
       const newPasswordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
       // Update password in database
-      const db = await import("./db").then(m => m.getDb());
+      const db = await import("./db").then((m) => m.getDb());
       if (!db) {
         res.status(500).json({ error: "Database not available" });
         return;
@@ -319,7 +350,10 @@ export function createAuthRouter(): Router {
       const { users } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
 
-      await db.update(users).set({ passwordHash: newPasswordHash }).where(eq(users.id, user.id));
+      await db
+        .update(users)
+        .set({ passwordHash: newPasswordHash })
+        .where(eq(users.id, user.id));
 
       res.json({ success: true, message: "Senha alterada com sucesso" });
     } catch (error) {
@@ -329,48 +363,55 @@ export function createAuthRouter(): Router {
   });
 
   // Upload avatar
-  router.post("/avatar", upload.single("avatar"), async (req: Request, res: Response) => {
-    try {
-      // Authenticate user
-      const user = await sdk.authenticateRequest(req);
-      if (!user) {
-        res.status(401).json({ error: "Não autenticado" });
-        return;
+  router.post(
+    "/avatar",
+    upload.single("avatar"),
+    async (req: Request, res: Response) => {
+      try {
+        // Authenticate user
+        const user = await sdk.authenticateRequest(req);
+        if (!user) {
+          res.status(401).json({ error: "Não autenticado" });
+          return;
+        }
+
+        if (!req.file) {
+          res.status(400).json({ error: "Nenhum arquivo enviado" });
+          return;
+        }
+
+        // Upload to S3
+        const fileExtension = req.file.mimetype.split("/")[1];
+        const { url: fileUrl } = await storagePut(
+          `avatars/avatar-${user.id}-${Date.now()}.${fileExtension}`,
+          req.file.buffer,
+          req.file.mimetype,
+        );
+
+        // Update user avatar URL
+        const db = await import("./db").then((m) => m.getDb());
+        if (!db) {
+          res.status(500).json({ error: "Database not available" });
+          return;
+        }
+
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+
+        await db
+          .update(users)
+          .set({ avatarUrl: fileUrl })
+          .where(eq(users.id, user.id));
+
+        const updatedUser = await getUserById(user.id);
+
+        res.json({ success: true, avatarUrl: fileUrl, user: updatedUser });
+      } catch (error) {
+        console.error("[Auth] Avatar upload error:", error);
+        res.status(500).json({ error: "Erro ao fazer upload da imagem" });
       }
-
-      if (!req.file) {
-        res.status(400).json({ error: "Nenhum arquivo enviado" });
-        return;
-      }
-
-      // Upload to S3
-      const fileExtension = req.file.mimetype.split("/")[1];
-      const { url: fileUrl } = await storagePut(
-        `avatars/avatar-${user.id}-${Date.now()}.${fileExtension}`,
-        req.file.buffer,
-        req.file.mimetype
-      );
-
-      // Update user avatar URL
-      const db = await import("./db").then(m => m.getDb());
-      if (!db) {
-        res.status(500).json({ error: "Database not available" });
-        return;
-      }
-
-      const { users } = await import("../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
-
-      await db.update(users).set({ avatarUrl: fileUrl }).where(eq(users.id, user.id));
-
-      const updatedUser = await getUserById(user.id);
-
-      res.json({ success: true, avatarUrl: fileUrl, user: updatedUser });
-    } catch (error) {
-      console.error("[Auth] Avatar upload error:", error);
-      res.status(500).json({ error: "Erro ao fazer upload da imagem" });
-    }
-  });
+    },
+  );
 
   return router;
 }

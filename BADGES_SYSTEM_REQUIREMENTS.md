@@ -27,35 +27,36 @@ Este documento cobre a arquitetura de dados para armazenamento de badges e progr
 
 Armazena a definição de todos os badges disponíveis no sistema.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | INT (PK) | Identificador único do badge |
-| `slug` | VARCHAR(50) | Identificador textual único (ex: `warrior_7_days`) |
-| `name` | VARCHAR(100) | Nome exibido do badge (ex: "Guerreiro da Fé") |
-| `description` | TEXT | Descrição da conquista |
-| `icon` | VARCHAR(255) | URL ou nome do ícone/imagem |
-| `category` | ENUM | Categoria: `streak`, `reflection`, `level`, `group`, `special` |
-| `tier` | ENUM | Nível de raridade: `bronze`, `silver`, `gold`, `platinum`, `diamond` |
-| `xpReward` | INT | XP bônus concedido ao desbloquear |
-| `denarioReward` | INT | Denários bônus concedidos ao desbloquear |
-| `unlockCondition` | JSON | Condições para desbloqueio (detalhado na seção 3) |
-| `isActive` | BOOLEAN | Se o badge está ativo no sistema |
-| `createdAt` | DATETIME | Data de criação do badge |
+| Campo             | Tipo         | Descrição                                                            |
+| ----------------- | ------------ | -------------------------------------------------------------------- |
+| `id`              | INT (PK)     | Identificador único do badge                                         |
+| `slug`            | VARCHAR(50)  | Identificador textual único (ex: `warrior_7_days`)                   |
+| `name`            | VARCHAR(100) | Nome exibido do badge (ex: "Guerreiro da Fé")                        |
+| `description`     | TEXT         | Descrição da conquista                                               |
+| `icon`            | VARCHAR(255) | URL ou nome do ícone/imagem                                          |
+| `category`        | ENUM         | Categoria: `streak`, `reflection`, `level`, `group`, `special`       |
+| `tier`            | ENUM         | Nível de raridade: `bronze`, `silver`, `gold`, `platinum`, `diamond` |
+| `xpReward`        | INT          | XP bônus concedido ao desbloquear                                    |
+| `denarioReward`   | INT          | Denários bônus concedidos ao desbloquear                             |
+| `unlockCondition` | JSON         | Condições para desbloqueio (detalhado na seção 3)                    |
+| `isActive`        | BOOLEAN      | Se o badge está ativo no sistema                                     |
+| `createdAt`       | DATETIME     | Data de criação do badge                                             |
 
 ### 2.2 Tabela: `user_badges`
 
 Registra os badges desbloqueados por cada usuário.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | INT (PK) | Identificador único do registro |
-| `userId` | INT (FK) | Referência ao usuário |
-| `badgeId` | INT (FK) | Referência ao badge |
-| `unlockedAt` | DATETIME | Data e hora do desbloqueio |
-| `progress` | JSON | Progresso atual para badges progressivos (opcional) |
-| `notified` | BOOLEAN | Se o usuário foi notificado sobre o desbloqueio |
+| Campo        | Tipo     | Descrição                                           |
+| ------------ | -------- | --------------------------------------------------- |
+| `id`         | INT (PK) | Identificador único do registro                     |
+| `userId`     | INT (FK) | Referência ao usuário                               |
+| `badgeId`    | INT (FK) | Referência ao badge                                 |
+| `unlockedAt` | DATETIME | Data e hora do desbloqueio                          |
+| `progress`   | JSON     | Progresso atual para badges progressivos (opcional) |
+| `notified`   | BOOLEAN  | Se o usuário foi notificado sobre o desbloqueio     |
 
 **Índices:**
+
 - `idx_user_badges_user` em `userId` para consultas rápidas de badges por usuário
 - `idx_user_badges_badge` em `badgeId` para estatísticas de badges
 - `idx_user_badges_unlocked` em `unlockedAt` para rankings temporais
@@ -64,14 +65,14 @@ Registra os badges desbloqueados por cada usuário.
 
 Rastreia o progresso do usuário em direção a badges ainda não desbloqueados.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | INT (PK) | Identificador único |
-| `userId` | INT (FK) | Referência ao usuário |
-| `badgeId` | INT (FK) | Referência ao badge |
-| `currentValue` | INT | Valor atual do progresso (ex: 5 dias de streak) |
-| `targetValue` | INT | Valor necessário para desbloquear (ex: 7 dias) |
-| `lastUpdated` | DATETIME | Última atualização do progresso |
+| Campo          | Tipo     | Descrição                                       |
+| -------------- | -------- | ----------------------------------------------- |
+| `id`           | INT (PK) | Identificador único                             |
+| `userId`       | INT (FK) | Referência ao usuário                           |
+| `badgeId`      | INT (FK) | Referência ao badge                             |
+| `currentValue` | INT      | Valor atual do progresso (ex: 5 dias de streak) |
+| `targetValue`  | INT      | Valor necessário para desbloquear (ex: 7 dias)  |
+| `lastUpdated`  | DATETIME | Última atualização do progresso                 |
 
 ---
 
@@ -81,16 +82,17 @@ Rastreia o progresso do usuário em direção a badges ainda não desbloqueados.
 
 Recompensam usuários por manter sequências consecutivas de atividade diária.
 
-| Badge | Slug | Tier | Condição | Recompensas |
-|-------|------|------|----------|-------------|
-| **Primeiro Passo** | `first_day` | Bronze | Completar desafios no primeiro dia | 10 XP, 5 Denários |
-| **Dedicado** | `streak_3_days` | Bronze | 3 dias consecutivos | 25 XP, 10 Denários |
-| **Guerreiro da Fé** | `streak_7_days` | Silver | 7 dias consecutivos | 75 XP, 25 Denários |
-| **Perseverante** | `streak_30_days` | Gold | 30 dias consecutivos | 300 XP, 100 Denários |
-| **Inabalável** | `streak_100_days` | Platinum | 100 dias consecutivos | 1000 XP, 500 Denários |
-| **Lenda Viva** | `streak_365_days` | Diamond | 365 dias consecutivos | 5000 XP, 2000 Denários |
+| Badge               | Slug              | Tier     | Condição                           | Recompensas            |
+| ------------------- | ----------------- | -------- | ---------------------------------- | ---------------------- |
+| **Primeiro Passo**  | `first_day`       | Bronze   | Completar desafios no primeiro dia | 10 XP, 5 Denários      |
+| **Dedicado**        | `streak_3_days`   | Bronze   | 3 dias consecutivos                | 25 XP, 10 Denários     |
+| **Guerreiro da Fé** | `streak_7_days`   | Silver   | 7 dias consecutivos                | 75 XP, 25 Denários     |
+| **Perseverante**    | `streak_30_days`  | Gold     | 30 dias consecutivos               | 300 XP, 100 Denários   |
+| **Inabalável**      | `streak_100_days` | Platinum | 100 dias consecutivos              | 1000 XP, 500 Denários  |
+| **Lenda Viva**      | `streak_365_days` | Diamond  | 365 dias consecutivos              | 5000 XP, 2000 Denários |
 
 **Regra de Desbloqueio:**
+
 ```json
 {
   "type": "streak",
@@ -104,15 +106,16 @@ Recompensam usuários por manter sequências consecutivas de atividade diária.
 
 Reconhecem usuários que se dedicam a escrever reflexões significativas.
 
-| Badge | Slug | Tier | Condição | Recompensas |
-|-------|------|------|----------|-------------|
-| **Pensador** | `reflection_first` | Bronze | Primeira reflexão escrita | 15 XP, 5 Denários |
-| **Meditador** | `reflection_10` | Silver | 10 reflexões escritas | 50 XP, 20 Denários |
-| **Estudioso** | `reflection_50` | Gold | 50 reflexões escritas | 200 XP, 75 Denários |
-| **Sábio** | `reflection_100` | Platinum | 100 reflexões escritas | 500 XP, 200 Denários |
-| **Reflexões Profundas** | `reflection_long` | Gold | 10 reflexões com mais de 200 caracteres | 150 XP, 50 Denários |
+| Badge                   | Slug               | Tier     | Condição                                | Recompensas          |
+| ----------------------- | ------------------ | -------- | --------------------------------------- | -------------------- |
+| **Pensador**            | `reflection_first` | Bronze   | Primeira reflexão escrita               | 15 XP, 5 Denários    |
+| **Meditador**           | `reflection_10`    | Silver   | 10 reflexões escritas                   | 50 XP, 20 Denários   |
+| **Estudioso**           | `reflection_50`    | Gold     | 50 reflexões escritas                   | 200 XP, 75 Denários  |
+| **Sábio**               | `reflection_100`   | Platinum | 100 reflexões escritas                  | 500 XP, 200 Denários |
+| **Reflexões Profundas** | `reflection_long`  | Gold     | 10 reflexões com mais de 200 caracteres | 150 XP, 50 Denários  |
 
 **Regra de Desbloqueio:**
+
 ```json
 {
   "type": "reflection",
@@ -126,15 +129,16 @@ Reconhecem usuários que se dedicam a escrever reflexões significativas.
 
 Celebram marcos de crescimento no sistema de XP.
 
-| Badge | Slug | Tier | Condição | Recompensas |
-|-------|------|------|----------|-------------|
-| **Iniciante** | `level_5` | Bronze | Alcançar nível 5 | 50 XP, 20 Denários |
-| **Aprendiz** | `level_10` | Silver | Alcançar nível 10 | 100 XP, 50 Denários |
-| **Experiente** | `level_25` | Gold | Alcançar nível 25 | 300 XP, 150 Denários |
-| **Mestre** | `level_50` | Platinum | Alcançar nível 50 | 750 XP, 400 Denários |
-| **Lendário** | `level_100` | Diamond | Alcançar nível 100 | 2000 XP, 1000 Denários |
+| Badge          | Slug        | Tier     | Condição           | Recompensas            |
+| -------------- | ----------- | -------- | ------------------ | ---------------------- |
+| **Iniciante**  | `level_5`   | Bronze   | Alcançar nível 5   | 50 XP, 20 Denários     |
+| **Aprendiz**   | `level_10`  | Silver   | Alcançar nível 10  | 100 XP, 50 Denários    |
+| **Experiente** | `level_25`  | Gold     | Alcançar nível 25  | 300 XP, 150 Denários   |
+| **Mestre**     | `level_50`  | Platinum | Alcançar nível 50  | 750 XP, 400 Denários   |
+| **Lendário**   | `level_100` | Diamond  | Alcançar nível 100 | 2000 XP, 1000 Denários |
 
 **Regra de Desbloqueio:**
+
 ```json
 {
   "type": "level",
@@ -148,15 +152,16 @@ Celebram marcos de crescimento no sistema de XP.
 
 Incentivam participação ativa em células/grupos.
 
-| Badge | Slug | Tier | Condição | Recompensas |
-|-------|------|------|----------|-------------|
-| **Membro Ativo** | `group_joined` | Bronze | Entrar em um grupo | 20 XP, 10 Denários |
-| **Colaborador** | `group_100_points` | Silver | Contribuir 100 pontos ao grupo | 75 XP, 30 Denários |
-| **Pilar da Comunidade** | `group_500_points` | Gold | Contribuir 500 pontos ao grupo | 250 XP, 100 Denários |
-| **Líder Servidor** | `group_leader` | Gold | Ser líder de um grupo por 30 dias | 300 XP, 150 Denários |
-| **Top 3 do Grupo** | `group_top3` | Silver | Estar entre os 3 primeiros do grupo | 100 XP, 40 Denários |
+| Badge                   | Slug               | Tier   | Condição                            | Recompensas          |
+| ----------------------- | ------------------ | ------ | ----------------------------------- | -------------------- |
+| **Membro Ativo**        | `group_joined`     | Bronze | Entrar em um grupo                  | 20 XP, 10 Denários   |
+| **Colaborador**         | `group_100_points` | Silver | Contribuir 100 pontos ao grupo      | 75 XP, 30 Denários   |
+| **Pilar da Comunidade** | `group_500_points` | Gold   | Contribuir 500 pontos ao grupo      | 250 XP, 100 Denários |
+| **Líder Servidor**      | `group_leader`     | Gold   | Ser líder de um grupo por 30 dias   | 300 XP, 150 Denários |
+| **Top 3 do Grupo**      | `group_top3`       | Silver | Estar entre os 3 primeiros do grupo | 100 XP, 40 Denários  |
 
 **Regra de Desbloqueio:**
+
 ```json
 {
   "type": "group",
@@ -170,16 +175,17 @@ Incentivam participação ativa em células/grupos.
 
 Conquistas únicas que combinam múltiplos critérios ou eventos especiais.
 
-| Badge | Slug | Tier | Condição | Recompensas |
-|-------|------|------|----------|-------------|
-| **Madrugador** | `early_bird` | Silver | Completar desafios antes das 7h da manhã (10 vezes) | 100 XP, 50 Denários |
-| **Noturno** | `night_owl` | Silver | Completar desafios após 22h (10 vezes) | 100 XP, 50 Denários |
-| **Perfeccionista** | `perfect_week` | Gold | Completar todos os desafios por 7 dias seguidos | 200 XP, 100 Denários |
-| **Colecionador** | `shop_10_items` | Silver | Comprar 10 itens na loja | 75 XP, 0 Denários |
-| **Generoso** | `spent_1000` | Gold | Gastar 1000 Denários na loja | 150 XP, 0 Denários |
-| **Evangelista** | `referral_5` | Platinum | Convidar 5 amigos que completam 7 dias | 500 XP, 250 Denários |
+| Badge              | Slug            | Tier     | Condição                                            | Recompensas          |
+| ------------------ | --------------- | -------- | --------------------------------------------------- | -------------------- |
+| **Madrugador**     | `early_bird`    | Silver   | Completar desafios antes das 7h da manhã (10 vezes) | 100 XP, 50 Denários  |
+| **Noturno**        | `night_owl`     | Silver   | Completar desafios após 22h (10 vezes)              | 100 XP, 50 Denários  |
+| **Perfeccionista** | `perfect_week`  | Gold     | Completar todos os desafios por 7 dias seguidos     | 200 XP, 100 Denários |
+| **Colecionador**   | `shop_10_items` | Silver   | Comprar 10 itens na loja                            | 75 XP, 0 Denários    |
+| **Generoso**       | `spent_1000`    | Gold     | Gastar 1000 Denários na loja                        | 150 XP, 0 Denários   |
+| **Evangelista**    | `referral_5`    | Platinum | Convidar 5 amigos que completam 7 dias              | 500 XP, 250 Denários |
 
 **Regra de Desbloqueio (Perfeccionista):**
+
 ```json
 {
   "type": "composite",
@@ -271,39 +277,39 @@ Após compra de item, verificar badges de colecionador e gasto total.
 
 ```typescript
 // Criar badge
-export async function createBadge(badge: BadgeData): Promise<Badge>
+export async function createBadge(badge: BadgeData): Promise<Badge>;
 
 // Buscar todos badges
-export async function getAllBadges(): Promise<Badge[]>
+export async function getAllBadges(): Promise<Badge[]>;
 
 // Buscar badges do usuário
-export async function getUserBadges(userId: number): Promise<UserBadge[]>
+export async function getUserBadges(userId: number): Promise<UserBadge[]>;
 
 // Desbloquear badge
 export async function unlockBadge(
-  userId: number, 
-  badgeId: number
-): Promise<UserBadge>
+  userId: number,
+  badgeId: number,
+): Promise<UserBadge>;
 
 // Verificar se badge está desbloqueado
 export async function hasBadge(
-  userId: number, 
-  badgeId: number
-): Promise<boolean>
+  userId: number,
+  badgeId: number,
+): Promise<boolean>;
 
 // Atualizar progresso
 export async function updateBadgeProgress(
   userId: number,
   badgeId: number,
-  currentValue: number
-): Promise<void>
+  currentValue: number,
+): Promise<void>;
 
 // Verificar condições de desbloqueio
 export async function checkBadgeUnlock(
   userId: number,
   eventType: string,
-  eventData: any
-): Promise<Badge[]>
+  eventData: any,
+): Promise<Badge[]>;
 ```
 
 #### Rotas da API (`server/routers.ts`)
@@ -320,7 +326,7 @@ export async function checkBadgeUnlock(
 ```typescript
 export async function checkAndUnlockBadges(
   userId: number,
-  eventType: 'challenge' | 'reflection' | 'level' | 'group' | 'shop'
+  eventType: "challenge" | "reflection" | "level" | "group" | "shop",
 ): Promise<Badge[]> {
   // 1. Buscar badges relacionados ao evento
   // 2. Para cada badge, verificar condições
@@ -424,6 +430,7 @@ O sucesso do sistema será medido através de aumento na taxa de retenção de u
 ## Apêndice A: Estrutura JSON de Condições
 
 ### Condição Simples
+
 ```json
 {
   "type": "streak",
@@ -434,6 +441,7 @@ O sucesso do sistema será medido através de aumento na taxa de retenção de u
 ```
 
 ### Condição Composta (AND)
+
 ```json
 {
   "type": "composite",
@@ -446,6 +454,7 @@ O sucesso do sistema será medido através de aumento na taxa de retenção de u
 ```
 
 ### Condição Temporal
+
 ```json
 {
   "type": "temporal",

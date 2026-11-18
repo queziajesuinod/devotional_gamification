@@ -13,16 +13,17 @@ const deriveWebApiOrigin = () => {
     : PUBLIC_API_BASE_URL
       ? PUBLIC_API_BASE_URL.replace(/\/$/, "")
       : (() => {
-        const { origin } = window.location;
-        if (origin.includes(":8081")) {
-          return origin.replace(":8081", ":3009");
-        }
-        return origin.replace(/^8081-/, "3009-");
-      })();
+          const { origin } = window.location;
+          if (origin.includes(":8081")) {
+            return origin.replace(":8081", ":3009");
+          }
+          return origin.replace(/^8081-/, "3009-");
+        })();
 };
 
 export const getApiBaseUrl = () => {
-  const fallbackUrl = PUBLIC_API_URL || PUBLIC_API_BASE_URL || DEFAULT_LOCAL_API_URL;
+  const fallbackUrl =
+    PUBLIC_API_URL || PUBLIC_API_BASE_URL || DEFAULT_LOCAL_API_URL;
   if (Platform.OS === "web") {
     return deriveWebApiOrigin();
   }

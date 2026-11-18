@@ -1,9 +1,18 @@
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
 import { useState } from "react";
 import { ScreenContainer } from "@/components/screen-container";
+import { KINGDOM_BG } from "@/lib/kingdom-bg";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { LeagueBoard } from "@/components/league-board";
+import { GameIcon } from "@/components/game-icon";
 
 type Period = "league" | "monthly" | "yearly" | "groups";
 
@@ -13,20 +22,36 @@ export default function LeaderboardScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("league");
   const utils = trpc.useUtils();
 
-  const { data: monthlyData, isLoading: monthlyLoading, refetch: refetchMonthly } = trpc.leaderboard.monthly.useQuery(undefined, {
+  const {
+    data: monthlyData,
+    isLoading: monthlyLoading,
+    refetch: refetchMonthly,
+  } = trpc.leaderboard.monthly.useQuery(undefined, {
     enabled: isAuthenticated && selectedPeriod === "monthly",
   });
 
-  const { data: yearlyData, isLoading: yearlyLoading, refetch: refetchYearly } = trpc.leaderboard.yearly.useQuery(undefined, {
+  const {
+    data: yearlyData,
+    isLoading: yearlyLoading,
+    refetch: refetchYearly,
+  } = trpc.leaderboard.yearly.useQuery(undefined, {
     enabled: isAuthenticated && selectedPeriod === "yearly",
   });
 
-  const { data: groupsData, isLoading: groupsLoading, refetch: refetchGroups } = trpc.groups.ranking.useQuery(undefined, {
+  const {
+    data: groupsData,
+    isLoading: groupsLoading,
+    refetch: refetchGroups,
+  } = trpc.groups.ranking.useQuery(undefined, {
     enabled: isAuthenticated && selectedPeriod === "groups",
   });
 
   const currentData =
-    selectedPeriod === "monthly" ? monthlyData : selectedPeriod === "yearly" ? yearlyData : null;
+    selectedPeriod === "monthly"
+      ? monthlyData
+      : selectedPeriod === "yearly"
+        ? yearlyData
+        : null;
   const isLoading =
     selectedPeriod === "league"
       ? false
@@ -62,28 +87,37 @@ export default function LeaderboardScreen() {
   if (!isAuthenticated) {
     return (
       <ScreenContainer className="items-center justify-center p-6">
-        <Text className="text-muted text-center">Faça login para ver o ranking</Text>
+        <Text className="text-muted text-center">
+          Faça login para ver o ranking
+        </Text>
       </ScreenContainer>
     );
   }
 
   const getMedalEmoji = (position: number) => {
-    if (position === 1) return "🥇";
-    if (position === 2) return "🥈";
-    if (position === 3) return "🥉";
+    if (position === 1) return <GameIcon name="medal-gold" size="lg" label="1º lugar" />;
+    if (position === 2) return <GameIcon name="medal-silver" size="lg" label="2º lugar" />;
+    if (position === 3) return <GameIcon name="medal-bronze" size="lg" label="3º lugar" />;
     return `${position}º`;
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer background={KINGDOM_BG.ranking}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 20 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         {/* Header */}
-        <View className="bg-primary p-6">
-          <Text className="text-white text-2xl font-bold">Ranking</Text>
-          <Text className="text-white/80 text-sm mt-1">Veja os melhores jogadores</Text>
+        <View className="bg-primary p-6 rounded-b-3xl">
+          <View className="flex-row items-center">
+            <GameIcon name="trophy" size="lg" style={{ marginRight: 10 }} />
+            <Text className="text-white text-2xl font-extrabold">Ranking</Text>
+          </View>
+          <Text className="text-white/80 text-sm mt-1">
+            Veja os melhores jogadores
+          </Text>
         </View>
 
         {/* Period Tabs */}
@@ -93,7 +127,9 @@ export default function LeaderboardScreen() {
               className={`flex-1 py-3 rounded-full ${selectedPeriod === "league" ? "bg-primary" : "bg-surface border border-border"}`}
               onPress={() => setSelectedPeriod("league")}
             >
-              <Text className={`text-center font-bold ${selectedPeriod === "league" ? "text-white" : "text-foreground"}`}>
+              <Text
+                className={`text-center font-bold ${selectedPeriod === "league" ? "text-white" : "text-foreground"}`}
+              >
                 Liga
               </Text>
             </TouchableOpacity>
@@ -101,7 +137,9 @@ export default function LeaderboardScreen() {
               className={`flex-1 py-3 rounded-full ${selectedPeriod === "monthly" ? "bg-primary" : "bg-surface border border-border"}`}
               onPress={() => setSelectedPeriod("monthly")}
             >
-              <Text className={`text-center font-bold ${selectedPeriod === "monthly" ? "text-white" : "text-foreground"}`}>
+              <Text
+                className={`text-center font-bold ${selectedPeriod === "monthly" ? "text-white" : "text-foreground"}`}
+              >
                 Mensal
               </Text>
             </TouchableOpacity>
@@ -109,7 +147,9 @@ export default function LeaderboardScreen() {
               className={`flex-1 py-3 rounded-full ${selectedPeriod === "yearly" ? "bg-primary" : "bg-surface border border-border"}`}
               onPress={() => setSelectedPeriod("yearly")}
             >
-              <Text className={`text-center font-bold ${selectedPeriod === "yearly" ? "text-white" : "text-foreground"}`}>
+              <Text
+                className={`text-center font-bold ${selectedPeriod === "yearly" ? "text-white" : "text-foreground"}`}
+              >
                 Anual
               </Text>
             </TouchableOpacity>
@@ -117,7 +157,9 @@ export default function LeaderboardScreen() {
               className={`flex-1 py-3 rounded-full ${selectedPeriod === "groups" ? "bg-primary" : "bg-surface border border-border"}`}
               onPress={() => setSelectedPeriod("groups")}
             >
-              <Text className={`text-center font-bold ${selectedPeriod === "groups" ? "text-white" : "text-foreground"}`}>
+              <Text
+                className={`text-center font-bold ${selectedPeriod === "groups" ? "text-white" : "text-foreground"}`}
+              >
                 Grupos
               </Text>
             </TouchableOpacity>
@@ -131,13 +173,19 @@ export default function LeaderboardScreen() {
               <Text className="text-accent font-bold mb-2">Sua Posição</Text>
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
-                  <Text className="text-2xl">{getMedalEmoji(currentData.userPosition.position)}</Text>
+                  <Text className="text-2xl">
+                    {getMedalEmoji(currentData.userPosition.position)}
+                  </Text>
                   <View>
                     <Text className="text-foreground font-bold">Você</Text>
-                    <Text className="text-muted text-xs">Posição {currentData.userPosition.position}</Text>
+                    <Text className="text-muted text-xs">
+                      Posição {currentData.userPosition.position}
+                    </Text>
                   </View>
                 </View>
-                <Text className="text-accent text-lg font-bold">{currentData.userPosition.xpTotal} XP</Text>
+                <Text className="text-accent text-lg font-bold">
+                  {currentData.userPosition.xpTotal} XP
+                </Text>
               </View>
             </View>
           </View>
@@ -161,20 +209,31 @@ export default function LeaderboardScreen() {
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center gap-3 flex-1">
-                        <Text className="text-2xl w-12">{getMedalEmoji(index + 1)}</Text>
+                        <Text className="text-2xl w-12">
+                          {getMedalEmoji(index + 1)}
+                        </Text>
                         <View className="flex-1">
-                          <Text className="text-foreground font-bold">{group.name}</Text>
-                          <Text className="text-muted text-xs">👥 {group.memberCount} membros · Líder: {group.leaderName}</Text>
+                          <Text className="text-foreground font-bold">
+                            {group.name}
+                          </Text>
+                          <Text className="text-muted text-xs">
+                            {group.memberCount} membros · Líder:{" "}
+                            {group.leaderName}
+                          </Text>
                         </View>
                       </View>
-                      <Text className="text-accent text-lg font-bold">{group.totalPoints} pts</Text>
+                      <Text className="text-accent text-lg font-bold">
+                        {group.totalPoints} pts
+                      </Text>
                     </View>
                   </View>
                 ))}
               </View>
             ) : (
               <View className="bg-surface rounded-2xl p-6 items-center border border-border">
-                <Text className="text-muted text-center">Nenhum grupo disponível ainda.</Text>
+                <Text className="text-muted text-center">
+                  Nenhum grupo disponível ainda.
+                </Text>
               </View>
             )
           ) : currentData?.rankings && currentData.rankings.length > 0 ? (
@@ -186,20 +245,30 @@ export default function LeaderboardScreen() {
                 >
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-3 flex-1">
-                      <Text className="text-2xl w-12">{getMedalEmoji(ranking.position)}</Text>
+                      <Text className="text-2xl w-12">
+                        {getMedalEmoji(ranking.position)}
+                      </Text>
                       <View className="flex-1">
-                        <Text className="text-foreground font-bold">{ranking.nickname}</Text>
-                        <Text className="text-muted text-xs">Nível {ranking.level}</Text>
+                        <Text className="text-foreground font-bold">
+                          {ranking.nickname}
+                        </Text>
+                        <Text className="text-muted text-xs">
+                          Nível {ranking.level}
+                        </Text>
                       </View>
                     </View>
-                    <Text className="text-accent text-lg font-bold">{ranking.xpTotal} XP</Text>
+                    <Text className="text-accent text-lg font-bold">
+                      {ranking.xpTotal} XP
+                    </Text>
                   </View>
                 </View>
               ))}
             </View>
           ) : (
             <View className="bg-surface rounded-2xl p-6 items-center border border-border">
-              <Text className="text-muted text-center">Nenhum ranking disponível ainda.</Text>
+              <Text className="text-muted text-center">
+                Nenhum ranking disponível ainda.
+              </Text>
               <Text className="text-muted text-center text-sm mt-2">
                 Complete desafios para aparecer no ranking!
               </Text>

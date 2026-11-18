@@ -22,13 +22,21 @@ async function main() {
     })
     .from(userChallenges)
     .innerJoin(challenges, eq(userChallenges.challengeId, challenges.id))
-    .where(and(eq(challenges.type, "READING"), sql`${userChallenges.completedAt} IS NOT NULL`));
+    .where(
+      and(
+        eq(challenges.type, "READING"),
+        sql`${userChallenges.completedAt} IS NOT NULL`,
+      ),
+    );
 
   const pairs = new Map<string, Pair>();
   for (const row of rows) {
     const key = `${row.userId}:${row.devotionalDayId}`;
     if (!pairs.has(key)) {
-      pairs.set(key, { userId: row.userId, devotionalDayId: row.devotionalDayId });
+      pairs.set(key, {
+        userId: row.userId,
+        devotionalDayId: row.devotionalDayId,
+      });
     }
   }
 
@@ -37,7 +45,10 @@ async function main() {
   let updatedBooks = 0;
 
   for (const pair of pairs.values()) {
-    const results = await recordBibleReadingForDay(pair.userId, pair.devotionalDayId);
+    const results = await recordBibleReadingForDay(
+      pair.userId,
+      pair.devotionalDayId,
+    );
     processed += 1;
     if (results.length === 0) {
       missingDays += 1;
@@ -47,7 +58,7 @@ async function main() {
   }
 
   console.log(
-    `[Backfill] Done. Pairs: ${processed}, missingDays: ${missingDays}, updatedBooks: ${updatedBooks}`
+    `[Backfill] Done. Pairs: ${processed}, missingDays: ${missingDays}, updatedBooks: ${updatedBooks}`,
   );
 }
 

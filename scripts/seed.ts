@@ -9,7 +9,8 @@ async function seed() {
     await db.seedDevotionalPlan({
       name: "Plano Devocional 2026",
       year: 2026,
-      description: "Plano anual de leitura bíblica e devocional para adolescentes",
+      description:
+        "Plano anual de leitura bíblica e devocional para adolescentes",
       isActive: true,
     });
 
@@ -23,7 +24,8 @@ async function seed() {
         bibleReference: "Gênesis 1",
         devotionalText:
           "No princípio, Deus criou os céus e a terra. Assim como Deus trouxe ordem ao caos, Ele pode trazer ordem à sua vida. Confie nEle para guiá-lo em cada novo começo.",
-        reflectionQuestion: "Como você pode permitir que Deus traga ordem às áreas caóticas da sua vida?",
+        reflectionQuestion:
+          "Como você pode permitir que Deus traga ordem às áreas caóticas da sua vida?",
       },
       {
         planId: 1,
@@ -32,7 +34,8 @@ async function seed() {
         bibleReference: "Gênesis 2",
         devotionalText:
           "Deus descansou no sétimo dia. O descanso não é preguiça, mas uma confiança de que Deus está no controle. Reserve tempo para descansar e renovar suas forças.",
-        reflectionQuestion: "Você tem reservado tempo para descansar e se conectar com Deus?",
+        reflectionQuestion:
+          "Você tem reservado tempo para descansar e se conectar com Deus?",
       },
       {
         planId: 1,
@@ -41,7 +44,8 @@ async function seed() {
         bibleReference: "Salmos 1",
         devotionalText:
           "Bem-aventurado o homem que não anda segundo o conselho dos ímpios. Escolha suas amizades com sabedoria e busque conselho na Palavra de Deus.",
-        reflectionQuestion: "Quem são as pessoas que influenciam suas decisões? Elas te aproximam de Deus?",
+        reflectionQuestion:
+          "Quem são as pessoas que influenciam suas decisões? Elas te aproximam de Deus?",
       },
       {
         planId: 1,
@@ -50,7 +54,8 @@ async function seed() {
         bibleReference: "Provérbios 3:5-6",
         devotionalText:
           "Confie no Senhor de todo o seu coração. Quando você confia em Deus, Ele dirige seus caminhos. Não dependa apenas da sua própria compreensão.",
-        reflectionQuestion: "Em que área da sua vida você precisa confiar mais em Deus?",
+        reflectionQuestion:
+          "Em que área da sua vida você precisa confiar mais em Deus?",
       },
       {
         planId: 1,
@@ -59,7 +64,8 @@ async function seed() {
         bibleReference: "Mateus 5:1-12",
         devotionalText:
           "As bem-aventuranças mostram que os valores do Reino de Deus são diferentes dos valores do mundo. Ser humilde, misericordioso e pacificador é o caminho de Jesus.",
-        reflectionQuestion: "Qual bem-aventurança você mais precisa praticar hoje?",
+        reflectionQuestion:
+          "Qual bem-aventurança você mais precisa praticar hoje?",
       },
       {
         planId: 1,
@@ -68,7 +74,8 @@ async function seed() {
         bibleReference: "Mateus 6:25-34",
         devotionalText:
           "Não se preocupe com o amanhã. Deus cuida dos pássaros e das flores, e Ele cuidará muito mais de você. Busque primeiro o Reino de Deus.",
-        reflectionQuestion: "O que você está preocupado hoje? Como você pode entregar isso a Deus?",
+        reflectionQuestion:
+          "O que você está preocupado hoje? Como você pode entregar isso a Deus?",
       },
       {
         planId: 1,
@@ -77,7 +84,8 @@ async function seed() {
         bibleReference: "João 3:16",
         devotionalText:
           "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito. O amor de Deus por você é tão grande que Ele deu o melhor que tinha: Jesus.",
-        reflectionQuestion: "Como você pode compartilhar o amor de Deus com alguém hoje?",
+        reflectionQuestion:
+          "Como você pode compartilhar o amor de Deus com alguém hoje?",
       },
     ];
 
@@ -223,7 +231,7 @@ async function seed() {
 
     // Create ranking periods
     console.log("Creating ranking periods...");
-    
+
     // Monthly period for January 2026
     await db.seedRankingPeriod({
       periodType: "MONTH",
@@ -252,7 +260,8 @@ async function seed() {
 
     await db.createGroup({
       name: "Guerreiros de Cristo",
-      description: "Grupo de adolescentes comprometidos com a oração e evangelismo",
+      description:
+        "Grupo de adolescentes comprometidos com a oração e evangelismo",
       leaderId: 1,
       memberCount: 0,
       totalPoints: 0,
@@ -260,7 +269,8 @@ async function seed() {
 
     await db.createGroup({
       name: "Luz do Mundo",
-      description: "Célula dedicada a servir a comunidade e espalhar o amor de Cristo",
+      description:
+        "Célula dedicada a servir a comunidade e espalhar o amor de Cristo",
       leaderId: 1,
       memberCount: 0,
       totalPoints: 0,

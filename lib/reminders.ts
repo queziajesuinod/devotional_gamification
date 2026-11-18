@@ -17,7 +17,11 @@ const ANDROID_CHANNEL = "daily-reminders";
 
 export type ReminderPrefs = { enabled: boolean; hour: number; minute: number };
 
-export const DEFAULT_REMINDER_PREFS: ReminderPrefs = { enabled: false, hour: 19, minute: 0 };
+export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
+  enabled: false,
+  hour: 19,
+  minute: 0,
+};
 
 const isSupported = Platform.OS === "ios" || Platform.OS === "android";
 
@@ -39,7 +43,10 @@ export async function getReminderPrefs(): Promise<ReminderPrefs> {
   try {
     const raw = await AsyncStorage.getItem(PREFS_KEY);
     if (!raw) return DEFAULT_REMINDER_PREFS;
-    return { ...DEFAULT_REMINDER_PREFS, ...(JSON.parse(raw) as Partial<ReminderPrefs>) };
+    return {
+      ...DEFAULT_REMINDER_PREFS,
+      ...(JSON.parse(raw) as Partial<ReminderPrefs>),
+    };
   } catch {
     return DEFAULT_REMINDER_PREFS;
   }
@@ -70,7 +77,7 @@ async function cancelOurReminders() {
   await Promise.all(
     scheduled
       .filter((n) => n.identifier.startsWith(ID_PREFIX))
-      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier))
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
   );
 }
 
@@ -85,7 +92,11 @@ async function schedule(id: string, date: Date, title: string, body: string) {
   if (date.getTime() <= Date.now()) return;
   await Notifications.scheduleNotificationAsync({
     identifier: id,
-    content: { title, body, ...(Platform.OS === "android" ? { channelId: ANDROID_CHANNEL } : {}) },
+    content: {
+      title,
+      body,
+      ...(Platform.OS === "android" ? { channelId: ANDROID_CHANNEL } : {}),
+    },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
   });
 }
@@ -95,7 +106,13 @@ async function schedule(id: string, date: Date, title: string, body: string) {
  * - doneToday: skip today's reminders
  * - streak: when > 0, also schedules a "sequência em risco" nudge at 21h
  */
-export async function syncDailyReminders({ doneToday, streak }: { doneToday: boolean; streak: number }) {
+export async function syncDailyReminders({
+  doneToday,
+  streak,
+}: {
+  doneToday: boolean;
+  streak: number;
+}) {
   if (!isSupported) return;
   ensureHandler();
 
@@ -118,7 +135,7 @@ export async function syncDailyReminders({ doneToday, streak }: { doneToday: boo
       `${ID_PREFIX}daily-${offset}`,
       reminderAt,
       "Devocional Quest",
-      DAILY_MESSAGES[(day.getDate() + offset) % DAILY_MESSAGES.length]
+      DAILY_MESSAGES[(day.getDate() + offset) % DAILY_MESSAGES.length],
     );
 
     const riskAt = new Date(day);
@@ -131,7 +148,7 @@ export async function syncDailyReminders({ doneToday, streak }: { doneToday: boo
         "Sua sequência está em risco 🔥",
         offset === 0
           ? `Você está com ${streak} ${streak === 1 ? "dia" : "dias"} seguidos. Complete um desafio antes da meia-noite!`
-          : "Complete um desafio hoje para manter sua sequência!"
+          : "Complete um desafio hoje para manter sua sequência!",
       );
     }
   }

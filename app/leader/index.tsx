@@ -50,8 +50,16 @@ export default function LeaderDashboardScreen() {
         ? confirm("Tem certeza que deseja sair?")
         : await new Promise<boolean>((resolve) => {
             Alert.alert("Sair", "Deseja sair do sistema?", [
-              { text: "Cancelar", style: "cancel", onPress: () => resolve(false) },
-              { text: "Sair", style: "destructive", onPress: () => resolve(true) },
+              {
+                text: "Cancelar",
+                style: "cancel",
+                onPress: () => resolve(false),
+              },
+              {
+                text: "Sair",
+                style: "destructive",
+                onPress: () => resolve(true),
+              },
             ]);
           });
     if (!confirmed) return;
@@ -82,8 +90,16 @@ export default function LeaderDashboardScreen() {
         ? confirm(`Reject request from ${userName}?`)
         : await new Promise((resolve) => {
             Alert.alert("Confirm", `Reject request from ${userName}?`, [
-              { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-              { text: "Reject", style: "destructive", onPress: () => resolve(true) },
+              {
+                text: "Cancel",
+                style: "cancel",
+                onPress: () => resolve(false),
+              },
+              {
+                text: "Reject",
+                style: "destructive",
+                onPress: () => resolve(true),
+              },
             ]);
           });
     if (!confirmed) return;
@@ -113,11 +129,15 @@ export default function LeaderDashboardScreen() {
   return (
     <ScreenContainer>
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         contentContainerStyle={{ paddingBottom: 32 }}
       >
         <View className="bg-primary p-6">
-          <Text className="text-white text-2xl font-bold">Dashboard da Célula</Text>
+          <Text className="text-white text-2xl font-bold">
+            Dashboard da Célula
+          </Text>
           <Text className="text-white/80 mt-2">
             {group ? group.name : "No group assigned"}
           </Text>
@@ -132,16 +152,27 @@ export default function LeaderDashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="p-6 gap-6" style={{ width: "100%", maxWidth: 1100, alignSelf: "center" }}>
+        <View
+          className="p-6 gap-6"
+          style={{ width: "100%", maxWidth: 1100, alignSelf: "center" }}
+        >
           {group ? (
             <View className="bg-surface rounded-2xl p-4 border border-border">
-              <Text className="text-lg font-bold text-foreground">Informação da Célula</Text>
+              <Text className="text-lg font-bold text-foreground">
+                Informação da Célula
+              </Text>
               {group.description ? (
-                <Text className="text-sm text-muted mt-2">{group.description}</Text>
+                <Text className="text-sm text-muted mt-2">
+                  {group.description}
+                </Text>
               ) : null}
               <View className="flex-row gap-6 mt-3">
-                <Text className="text-foreground">Memebros: {group.memberCount}</Text>
-                <Text className="text-foreground">Pontos: {group.totalPoints}</Text>
+                <Text className="text-foreground">
+                  Memebros: {group.memberCount}
+                </Text>
+                <Text className="text-foreground">
+                  Pontos: {group.totalPoints}
+                </Text>
               </View>
             </View>
           ) : (
@@ -154,8 +185,12 @@ export default function LeaderDashboardScreen() {
 
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-lg font-bold text-foreground">Ranking do Time</Text>
-              <Text className="text-xs text-muted">{members.length} Membros</Text>
+              <Text className="text-lg font-bold text-foreground">
+                Ranking do Time
+              </Text>
+              <Text className="text-xs text-muted">
+                {members.length} Membros
+              </Text>
             </View>
             {members.length === 0 ? (
               <Text className="text-muted">Não Tem Membros na sua célula.</Text>
@@ -175,13 +210,16 @@ export default function LeaderDashboardScreen() {
                           Level {member.userLevel} | XP {member.userXp}
                         </Text>
                         <Text className="text-xs text-muted mt-1">
-                          Desafios {member.currentStreak} | Best {member.longestStreak} | última atividade{" "}
+                          Desafios {member.currentStreak} | Best{" "}
+                          {member.longestStreak} | última atividade{" "}
                           {formatDate(member.lastActivityDate)}
                         </Text>
                       </View>
                       {group?.leaderId === member.userId && (
                         <View className="bg-accent/20 px-3 py-1 rounded-full">
-                          <Text className="text-accent text-xs font-semibold">Líder</Text>
+                          <Text className="text-accent text-xs font-semibold">
+                            Líder
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -193,37 +231,55 @@ export default function LeaderDashboardScreen() {
 
           <View className="bg-surface rounded-2xl p-4 border border-border">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-lg font-bold text-foreground">Requisições pendentes</Text>
-              <Text className="text-xs text-muted">{pendingRequests.length} Pendências</Text>
+              <Text className="text-lg font-bold text-foreground">
+                Requisições pendentes
+              </Text>
+              <Text className="text-xs text-muted">
+                {pendingRequests.length} Pendências
+              </Text>
             </View>
             {pendingRequests.length === 0 ? (
               <Text className="text-muted">Sem requisições.</Text>
             ) : (
               <View className="gap-2">
                 {pendingRequests.map((request) => (
-                  <View key={request.id} className="border border-border rounded-xl p-3">
+                  <View
+                    key={request.id}
+                    className="border border-border rounded-xl p-3"
+                  >
                     <Text className="text-foreground font-semibold">
                       {request.userNickname || request.userName}
                     </Text>
                     <Text className="text-xs text-muted mt-1">
-                      Level {request.userLevel} | Requested {formatDate(request.requestedAt)}
+                      Level {request.userLevel} | Requested{" "}
+                      {formatDate(request.requestedAt)}
                     </Text>
                     <View className="flex-row gap-2 mt-3">
                       <Pressable
                         className="flex-1 bg-success py-2 rounded-lg"
                         onPress={() =>
-                          handleApprove(request.id, request.userNickname || request.userName || "User")
+                          handleApprove(
+                            request.id,
+                            request.userNickname || request.userName || "User",
+                          )
                         }
                       >
-                        <Text className="text-green text-center font-semibold">Aprovado</Text>
+                        <Text className="text-green text-center font-semibold">
+                          Aprovado
+                        </Text>
                       </Pressable>
                       <Pressable
                         className="flex-1 bg-error py-2 rounded-lg"
                         onPress={() =>
-                          handleReject(request.id, request.userNickname || request.userName || "User")
+                          handleReject(
+                            request.id,
+                            request.userNickname || request.userName || "User",
+                          )
                         }
                       >
-                        <Text className="text-red text-center font-semibold">Rejeitado</Text>
+                        <Text className="text-red text-center font-semibold">
+                          Rejeitado
+                        </Text>
                       </Pressable>
                     </View>
                   </View>

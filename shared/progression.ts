@@ -6,12 +6,15 @@
  * With ~50 XP/day this puts an engaged user around level 10 after a month
  * and level ~35 after a full year, so levels keep meaning something.
  */
+import type { GameIconName } from "../components/game-icon";
+
 
 const BASE_COST = 50;
 const STEP_COST = 25;
 
 /** XP needed to go from `level` to `level + 1`. */
-export const xpCostOfLevel = (level: number) => BASE_COST + STEP_COST * (Math.max(1, level) - 1);
+export const xpCostOfLevel = (level: number) =>
+  BASE_COST + STEP_COST * (Math.max(1, level) - 1);
 
 /** Total XP required to reach `level` (level 1 = 0 XP). */
 export const totalXpForLevel = (level: number) => {
@@ -26,18 +29,18 @@ export const levelFromXp = (xpTotal: number) => {
   return level;
 };
 
-export type LevelTitle = { minLevel: number; title: string; emoji: string };
+export type LevelTitle = { minLevel: number; title: string; emoji: string; icon: GameIconName };
 
 export const LEVEL_TITLES: LevelTitle[] = [
-  { minLevel: 1, title: "Semente", emoji: "🌱" },
-  { minLevel: 5, title: "Broto", emoji: "🌿" },
-  { minLevel: 10, title: "Semeador", emoji: "🌾" },
-  { minLevel: 15, title: "Discípulo", emoji: "📖" },
-  { minLevel: 20, title: "Peregrino", emoji: "🥾" },
-  { minLevel: 25, title: "Servo Fiel", emoji: "🤝" },
-  { minLevel: 30, title: "Atalaia", emoji: "🗼" },
-  { minLevel: 35, title: "Embaixador", emoji: "🕊️" },
-  { minLevel: 40, title: "Coluna", emoji: "🏛️" },
+  { minLevel: 1, title: "Semente", emoji: "🌱", icon: "sprout" },
+  { minLevel: 5, title: "Broto", emoji: "🌿", icon: "xp" },
+  { minLevel: 10, title: "Semeador", emoji: "🌾", icon: "level-shield" },
+  { minLevel: 15, title: "Discípulo", emoji: "📖", icon: "reading-purple" },
+  { minLevel: 20, title: "Peregrino", emoji: "🥾", icon: "map" },
+  { minLevel: 25, title: "Servo Fiel", emoji: "🤝", icon: "heart" },
+  { minLevel: 30, title: "Atalaia", emoji: "🗼", icon: "bell" },
+  { minLevel: 35, title: "Embaixador", emoji: "🕊️", icon: "grace" },
+  { minLevel: 40, title: "Coluna", emoji: "🏛️", icon: "crown" },
 ];
 
 export const getLevelTitle = (level: number): LevelTitle => {
@@ -49,10 +52,12 @@ export const getLevelTitle = (level: number): LevelTitle => {
 };
 
 /** True when reaching `level` unlocks a new title. */
-export const isTitleLevel = (level: number) => LEVEL_TITLES.some((t) => t.minLevel === level && level > 1);
+export const isTitleLevel = (level: number) =>
+  LEVEL_TITLES.some((t) => t.minLevel === level && level > 1);
 
 /** Denários granted for reaching `level` (bigger on title levels). */
-export const levelUpDenarioReward = (level: number) => (isTitleLevel(level) ? 100 : 10 + 2 * level);
+export const levelUpDenarioReward = (level: number) =>
+  isTitleLevel(level) ? 100 : 10 + 2 * level;
 
 export type LevelProgress = {
   level: number;
@@ -65,7 +70,10 @@ export type LevelProgress = {
 
 export const getLevelProgress = (xpTotal: number): LevelProgress => {
   const level = levelFromXp(xpTotal);
-  const xpIntoLevel = Math.max(0, Math.floor(xpTotal || 0) - totalXpForLevel(level));
+  const xpIntoLevel = Math.max(
+    0,
+    Math.floor(xpTotal || 0) - totalXpForLevel(level),
+  );
   const xpForNextLevel = xpCostOfLevel(level);
   const nextTitle = LEVEL_TITLES.find((t) => t.minLevel > level) ?? null;
   return {
@@ -112,7 +120,12 @@ export const weekKey = (dateString: string) => {
   return date.toISOString().slice(0, 10);
 };
 
-export type StreakStatus = "none" | "done_today" | "at_risk" | "protected" | "broken";
+export type StreakStatus =
+  | "none"
+  | "done_today"
+  | "at_risk"
+  | "protected"
+  | "broken";
 
 /**
  * Display state of a streak without mutating it.

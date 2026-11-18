@@ -1,0 +1,73 @@
+{
+  "davi": {
+    "hairTop": 0.026041666666666668,
+    "brow": 0.15299479166666666,
+    "eyes": 0.205078125,
+    "chin": 0.2864583333333333,
+    "faceCx": 0.48828125,
+    "faceWidth": 0.322265625
+  },
+  "lia": {
+    "hairTop": 0.006510416666666667,
+    "brow": 0.13020833333333334,
+    "eyes": 0.17447916666666666,
+    "chin": 0.23567708333333334,
+    "faceCx": 0.50048828125,
+    "faceWidth": 0.2294921875
+  },
+  "theo": {
+    "hairTop": 0.01953125,
+    "brow": 0.13020833333333334,
+    "eyes": 0.15950520833333334,
+    "chin": 0.21809895833333334,
+    "faceCx": 0.50048828125,
+    "faceWidth": 0.2294921875
+  },
+  "_accessoryFit": {
+    "bone": {
+      "ref": "brow",
+      "dy": 0.55,
+      "align": "bottom",
+      "width": 1.45
+    },
+    "chapeu-palha": {
+      "ref": "brow",
+      "dy": 0.45,
+      "align": "bottom",
+      "width": 2.1
+    },
+    "coroa-flores": {
+      "ref": "hairTop",
+      "dy": 0.35,
+      "align": "center",
+      "width": 1.3
+    },
+    "faixa-cabelo": {
+      "ref": "brow",
+      "dy": 0.2,
+      "align": "bottom",
+      "width": 1.15
+    },
+    "fone": {
+      "ref": "eyes",
+      "dy": -0.12,
+      "align": "center",
+      "width": 1.6
+    },
+    "oculos-sol": {
+      "ref": "eyes",
+      "dy": 0.0,
+      "align": "center",
+      "width": 1.0,
+      "hide": [
+        "davi"
+      ]
+    },
+    "lenco": {
+      "ref": "chin",
+      "dy": 0.25,
+      "align": "top",
+      "width": 0.85
+    }
+  }
+}

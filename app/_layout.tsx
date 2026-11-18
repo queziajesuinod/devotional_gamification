@@ -18,7 +18,10 @@ import {
 import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
-import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
+import {
+  initManusRuntime,
+  subscribeSafeAreaInsets,
+} from "@/lib/_core/manus-runtime";
 import { AuthGuard } from "@/components/auth-guard";
 import { NotificationProvider } from "@/components/notification-provider";
 import { JuiceProvider } from "@/components/juice-provider";
@@ -71,7 +74,10 @@ export default function RootLayout() {
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
-    const metrics = initialWindowMetrics ?? { insets: initialInsets, frame: initialFrame };
+    const metrics = initialWindowMetrics ?? {
+      insets: initialInsets,
+      frame: initialFrame,
+    };
     return {
       ...metrics,
       insets: {
@@ -123,7 +129,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <SafeAreaProvider initialMetrics={providerInitialMetrics}>{content}</SafeAreaProvider>
+      <SafeAreaProvider initialMetrics={providerInitialMetrics}>
+        {content}
+      </SafeAreaProvider>
     </ThemeProvider>
   );
 }

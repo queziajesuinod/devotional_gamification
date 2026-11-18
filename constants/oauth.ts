@@ -23,7 +23,7 @@ async function syncUser(userInfo: {
   const lastSignedIn = new Date();
   await upsertUser({
     openId: userInfo.openId,
-    nickname: userInfo.name || userInfo.email?.split('@')[0] || 'Usuário',
+    nickname: userInfo.name || userInfo.email?.split("@")[0] || "Usuário",
     name: userInfo.name || null,
     email: userInfo.email ?? null,
     loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
@@ -76,18 +76,21 @@ export function registerOAuthRoutes(app: Express) {
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       await syncUser(userInfo);
-        const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
-          name: userInfo.name ?? undefined,
-          fallbackName:
-            userInfo.email?.split("@")[0] ||
-            userInfo.nickname ||
-            userInfo.openId ||
-            undefined,
-          expiresInMs: ONE_YEAR_MS,
-        });
+      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
+        name: userInfo.name ?? undefined,
+        fallbackName:
+          userInfo.email?.split("@")[0] ||
+          userInfo.nickname ||
+          userInfo.openId ||
+          undefined,
+        expiresInMs: ONE_YEAR_MS,
+      });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       // Redirect to the frontend URL (Expo web on port 8081)
       // Cookie is set with parent domain so it works across both 3000 and 8081 subdomains
@@ -116,18 +119,21 @@ export function registerOAuthRoutes(app: Express) {
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
       const user = await syncUser(userInfo);
 
-        const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
-          name: userInfo.name ?? undefined,
-          fallbackName:
-            userInfo.email?.split("@")[0] ||
-            userInfo.nickname ||
-            userInfo.openId ||
-            undefined,
-          expiresInMs: ONE_YEAR_MS,
-        });
+      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
+        name: userInfo.name ?? undefined,
+        fallbackName:
+          userInfo.email?.split("@")[0] ||
+          userInfo.nickname ||
+          userInfo.openId ||
+          undefined,
+        expiresInMs: ONE_YEAR_MS,
+      });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       res.json({
         app_session_id: sessionToken,
@@ -177,12 +183,18 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       const token = authHeader.slice("Bearer ".length).trim();
-      console.log("[Auth] Token received (first 20 chars):", token.substring(0, 20) + "...");
+      console.log(
+        "[Auth] Token received (first 20 chars):",
+        token.substring(0, 20) + "...",
+      );
 
       // Authenticate using Bearer token
       console.log("[Auth] Authenticating token...");
       const user = await sdk.authenticateRequest(req);
-      console.log("[Auth] User authenticated:", { id: user.id, email: user.email });
+      console.log("[Auth] User authenticated:", {
+        id: user.id,
+        email: user.email,
+      });
 
       // Set cookie for this domain
       const cookieOptions = getSessionCookieOptions(req);

@@ -66,3 +66,15 @@ Thumbs.db
 
 .env.local
 .env
+
+# Meshy raw outputs (sidecars carry signed URLs); the served model lives in public/models
+assets/models/
+
+# Meshy character masters (large PNG); the app uses the WebP copies in public/characters
+assets/characters/davi/
+assets/characters/lia/
+assets/characters/theo/
+assets/characters/acessorios/folha-*.png
+
+# Database backups (contain user ids)
+backups/

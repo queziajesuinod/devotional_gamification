@@ -1,467 +1,392 @@
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Platform,
-  useWindowDimensions,
-} from "react-native";
-import { useMemo, useState } from "react";
+/**
+ * Guarda-roupa: pick a character, try on looks / hair / accessories on the big figurine,
+ * then equip or buy. Catalog: shared/character-catalog.ts (synced with `pnpm catalog:sync`).
+ */
+import { useMemo, useState, type ReactNode } from "react";
+import { ActivityIndicator, Image, RefreshControl, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
+import { KINGDOM_BG } from "@/lib/kingdom-bg";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
-import * as Haptics from "expo-haptics";
-import { NiceAvatar } from "@/components/nice-avatar";
 import { useNotifications } from "@/components/notification-provider";
+import { useJuice } from "@/components/juice-provider";
+import { CountUp, PopIn, PressableScale, Pulse } from "@/components/juice";
+import { GameIcon } from "@/components/game-icon";
+import { Figurine } from "@/components/figurine";
+import {
+  CHARACTERS,
+  CHARACTER_KEYS,
+  DEFAULT_CHARACTER,
+  accessoryPath,
+  type CharacterKey,
+  type Figurine as FigurineData,
+} from "@shared/character-catalog";
+import { getApiBaseUrl } from "@/constants/api";
 
-type ItemType =
-  | "BACKGROUND"
-  | "CLOTHES"
-  | "ACCESSORY"
-  | "HAIR_STYLE"
-  | "HAIR_COLOR"
-  | "BASE_FEATURE";
-type Rarity = "COMMON" | "RARE" | "EPIC";
-type TabType = "buy" | "myItems";
-
-const RARITY_COLORS = {
-  COMMON: { bg: "bg-muted/20", text: "text-muted", label: "Comum" },
-  RARE: { bg: "bg-accent/20", text: "text-accent", label: "Raro" },
-  EPIC: { bg: "bg-warning/20", text: "text-warning", label: "Epico" },
+type Tab = "personagem" | "looks" | "cabelo" | "acessorios";
+type ShopItem = {
+  id: number;
+  slug: string | null;
+  name: string;
+  type: string;
+  rarity: "COMMON" | "RARE" | "EPIC";
+  priceDenario: number;
+  description: string | null;
+  characterKey: string | null;
+  assetKey: string | null;
+  owned: boolean;
+  isLocked: boolean;
+  lockReason: string;
 };
 
-const TYPE_LABELS: Record<ItemType, string> = {
-  BACKGROUND: "Fundo",
-  HAIR_STYLE: "Cabelo estilo",
-  HAIR_COLOR: "Cabelo cor",
-  CLOTHES: "Roupas",
-  ACCESSORY: "Acessorios",
-  BASE_FEATURE: "Base do avatar",
-};
+const TABS: { key: Tab; label: string }[] = [
+  { key: "personagem", label: "Personagem" },
+  { key: "looks", label: "Looks" },
+  { key: "cabelo", label: "Cabelo" },
+  { key: "acessorios", label: "Acessórios" },
+];
 
-const TYPE_ICONS: Record<ItemType, string> = {
-  BACKGROUND: "BG",
-  HAIR_STYLE: "HS",
-  HAIR_COLOR: "HC",
-  CLOTHES: "CL",
-  ACCESSORY: "AC",
-  BASE_FEATURE: "BA",
-};
+const RARITY = {
+  COMMON: { label: "Comum", color: "#9CA3AF" },
+  RARE: { label: "Raro", color: "#3D6FD6" }, // Azul real
+  EPIC: { label: "Épico", color: "#7B3FA0" }, // Roxo realeza
+} as const;
+
+const TYPE_FOR_TAB: Partial<Record<Tab, string>> = { looks: "CLOTHES", cabelo: "HAIR_COLOR", acessorios: "ACCESSORY" };
 
 export default function ShopScreen() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<TabType>("buy");
-  const [selectedType, setSelectedType] = useState<ItemType | "ALL">("ALL");
-  const [priceFilter, setPriceFilter] = useState<"ALL" | "FREE" | "PAID">("ALL");
+  const { isAuthenticated } = useAuth();
   const notifications = useNotifications();
-  const { width: windowWidth } = useWindowDimensions();
-  const columnWidth = windowWidth >= 768 ? "23%" : "48%";
+  const juice = useJuice();
+  const utils = trpc.useUtils();
+  const { width } = useWindowDimensions();
+  const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState<Tab>("looks");
+  const [selected, setSelected] = useState<ShopItem | null>(null);
 
-  const { data: userData, refetch: refetchUser } = trpc.user.me.useQuery(undefined, {
+  const { data: me, refetch: refetchMe } = trpc.user.me.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: items, isLoading, refetch: refetchItems } = trpc.shop.items.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
-  const { data: shopItems, isLoading: itemsLoading, refetch: refetchItems } = trpc.shop.items.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
-
-  const { data: userItems, isLoading: userItemsLoading, refetch: refetchUserItems } = trpc.shop.userItems.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
-
-  const buyItemMutation = trpc.shop.buy.useMutation({
-    onSuccess: () => {
-      refetchUser();
-      refetchItems();
-      refetchUserItems();
-    },
-  });
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([refetchUser(), refetchItems(), refetchUserItems()]);
-    setRefreshing(false);
+  const refresh = async () => {
+    await Promise.all([refetchMe(), refetchItems()]);
   };
 
-  const handleBuyItem = async (itemId: number, itemName: string, price: number) => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
+  const onError = (error: { message: string }) => notifications.error(error.message);
+  const buy = trpc.shop.buy.useMutation({ onError });
+  const equip = trpc.shop.equipItem.useMutation({ onError });
+  const unequip = trpc.shop.unequipItem.useMutation({ onError });
+  const setCharacter = trpc.user.setCharacter.useMutation({ onError });
 
-    if ((userData?.denarioBalance || 0) < price) {
-      notifications.error("Denários insuficientes!");
-      return;
-    }
-
-    try {
-      await buyItemMutation.mutateAsync({ itemId });
-      if (price === 0) {
-        notifications.success(`${itemName} adicionado ao inventário!`);
-      } else {
-        notifications.success(`${itemName} comprado com sucesso!`);
-      }
-    } catch (error: any) {
-      console.error("Error buying item:", error);
-      notifications.error(error.message || "Erro ao comprar item");
-    }
+  const current: FigurineData = me?.figurine ?? {
+    character: DEFAULT_CHARACTER,
+    chosen: false,
+    look: "original",
+    hair: null,
+    accessory: null,
   };
 
+  const catalog = useMemo(
+    () => ((items ?? []) as ShopItem[]).filter((i) => i.slug && i.assetKey),
+    [items]
+  );
 
-  const baseAvatarConfig = useMemo(() => {
-    const config = userData?.avatarConfig;
-    if (config && typeof config === "object" && !Array.isArray(config)) {
-      return config as Record<string, unknown>;
+  /** What the big figurine shows: current outfit + the item being tried on. */
+  const preview: FigurineData = useMemo(() => {
+    if (!selected?.assetKey) return current;
+    if (selected.type === "CLOTHES") return { ...current, look: selected.assetKey };
+    if (selected.type === "HAIR_COLOR") {
+      return { ...current, hair: selected.assetKey, look: ["original", "esporte"].includes(current.look) ? current.look : "original" };
     }
-    return {};
-  }, [userData?.avatarConfig]);
+    if (selected.type === "ACCESSORY") {
+      return CHARACTERS[current.character].cannotWear.includes(selected.assetKey) ? current : { ...current, accessory: selected.assetKey };
+    }
+    return current;
+  }, [selected, current]);
 
-  const parsePatch = (value?: string | null) => {
-    if (!value) return null;
-    try {
-      const parsed = JSON.parse(value) as Record<string, unknown>;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+  const isEquipped = (item: ShopItem) =>
+    (item.type === "CLOTHES" && item.assetKey === current.look) ||
+    (item.type === "HAIR_COLOR" && item.assetKey === current.hair) ||
+    (item.type === "ACCESSORY" && item.assetKey === current.accessory);
+
+  const afterChange = async () => {
+    setSelected(null);
+    await refresh();
+    utils.user.me.invalidate();
   };
 
-  const getPreviewConfig = (patchValue?: string | null) => {
-    const patch = parsePatch(patchValue);
-    if (!patch) return null;
-    return { ...baseAvatarConfig, ...patch };
+  const doEquip = async (item: ShopItem) => {
+    await equip.mutateAsync({ itemId: item.id });
+    juice.burst({ title: "Visual novo!", subtitle: item.name.split(" · ")[0], confetti: false });
+    await afterChange();
   };
 
-  const renderOwnedItemCard = (ui: any) => {
-    const previewConfig = getPreviewConfig(ui.item.avatarConfig);
+  const doBuy = async (item: ShopItem) => {
+    await buy.mutateAsync({ itemId: item.id });
+    await equip.mutateAsync({ itemId: item.id });
+    juice.burst({ title: "Comprado!", subtitle: `${item.name.split(" · ")[0]} já está com você` });
+    juice.confetti(item.rarity === "EPIC" ? 140 : 60);
+    await afterChange();
+  };
 
-    return (
-      <View
-        key={ui.id}
-        className="bg-surface rounded-2xl p-4 border border-border"
-        style={{ width: columnWidth }}
-      >
-        <View className="bg-background rounded-xl h-24 items-center justify-center mb-3">
-          {previewConfig ? (
-            <NiceAvatar config={previewConfig} size={64} />
-          ) : (
-            <Text className="text-3xl">{TYPE_ICONS[ui.item.type as ItemType]}</Text>
-          )}
+  const doUnequip = async (type: "HAIR_COLOR" | "ACCESSORY") => {
+    await unequip.mutateAsync({ itemType: type });
+    await afterChange();
+  };
+
+  const pickCharacter = async (key: CharacterKey) => {
+    if (key === current.character && current.chosen) return;
+    await setCharacter.mutateAsync({ characterKey: key });
+    juice.burst({ title: `Oi, eu sou ${CHARACTERS[key].name}!`, subtitle: CHARACTERS[key].tagline });
+    setTab("looks");
+    await afterChange();
+  };
+
+  const busy = buy.isPending || equip.isPending || unequip.isPending || setCharacter.isPending;
+  const balance = me?.denarioBalance ?? 0;
+  const tabItems = catalog.filter((i) => i.type === TYPE_FOR_TAB[tab]);
+  const columns = width >= 768 ? 5 : 3;
+  const cardWidth = (Math.min(width, 900) - 32 - (columns - 1) * 10) / columns;
+
+  // ---------------- action under the preview ----------------
+  let action: ReactNode = null;
+  if (selected) {
+    const equipped = isEquipped(selected);
+    const cannotWear =
+      selected.type === "ACCESSORY" && CHARACTERS[current.character].cannotWear.includes(selected.assetKey ?? "");
+    if (cannotWear) {
+      action = <Text className="text-muted text-sm font-bold">{CHARACTERS[current.character].name} já usa óculos!</Text>;
+    } else if (equipped) {
+      action = <Text className="text-primary text-sm font-extrabold">Você já está usando</Text>;
+    } else if (selected.owned) {
+      action = (
+        <PressableScale className="bg-primary px-6 py-3 rounded-full" onPress={() => doEquip(selected)} disabled={busy}>
+          <Text className="text-white font-extrabold">Equipar</Text>
+        </PressableScale>
+      );
+    } else if (selected.isLocked) {
+      action = (
+        <View className="flex-row items-center bg-surface px-4 py-3 rounded-full border border-border">
+          <GameIcon name="lock" size="sm" style={{ marginRight: 6 }} />
+          <Text className="text-foreground font-bold">{selected.lockReason}</Text>
         </View>
-        <Text className="text-foreground text-sm font-bold mb-1">{ui.item.name}</Text>
-        <Text className="text-muted text-xs mb-3">{TYPE_LABELS[ui.item.type as ItemType]}</Text>
-        <View className="bg-secondary/20 py-2 rounded-lg">
-          <Text className="text-primary text-center text-xs font-bold">Gerenciar no Perfil</Text>
-        </View>
-      </View>
-    );
-  };
-
-  if (authLoading) {
-
-    return (
-      <ScreenContainer className="items-center justify-center">
-        <ActivityIndicator size="large" />
-        <Text className="mt-4 text-muted">Carregando...</Text>
-      </ScreenContainer>
-    );
+      );
+    } else {
+      const canAfford = balance >= selected.priceDenario;
+      action = (
+        <Pulse active={canAfford}>
+          <PressableScale
+            className={`px-6 py-3 rounded-full flex-row items-center ${canAfford ? "bg-warning border-2 border-primary" : "bg-surface border border-border"}`}
+            onPress={() => (canAfford ? doBuy(selected) : notifications.error("Faltam denários! Complete desafios para ganhar mais."))}
+            disabled={busy}
+          >
+            <Text className="text-foreground font-extrabold mr-2">Comprar por {selected.priceDenario}</Text>
+            <GameIcon name="coin" size="sm" />
+          </PressableScale>
+        </Pulse>
+      );
+    }
   }
-
-  if (!isAuthenticated) {
-    return (
-      <ScreenContainer className="items-center justify-center p-6">
-        <Text className="text-muted text-center">Faça login para acessar a loja</Text>
-      </ScreenContainer>
-    );
-  }
-
-  const filteredShopItems =
-    shopItems
-      ?.filter((item) => selectedType === "ALL" || item.type === selectedType)
-      .filter((item) => {
-        if (priceFilter === "FREE") return item.priceDenario === 0;
-        if (priceFilter === "PAID") return item.priceDenario > 0;
-        return true;
-      }) || [];
-  const filteredUserItems = userItems?.filter((ui) => selectedType === "ALL" || ui.item.type === selectedType) || [];
-
-  // Group user items by type
-  const groupedUserItems = {
-    BACKGROUND: filteredUserItems.filter((ui) => ui.item.type === "BACKGROUND"),
-    HAIR_STYLE: filteredUserItems.filter((ui) => ui.item.type === "HAIR_STYLE"),
-    HAIR_COLOR: filteredUserItems.filter((ui) => ui.item.type === "HAIR_COLOR"),
-    CLOTHES: filteredUserItems.filter((ui) => ui.item.type === "CLOTHES"),
-  ACCESSORY: filteredUserItems.filter((ui) => ui.item.type === "ACCESSORY"),
-  BASE_FEATURE: filteredUserItems.filter((ui) => ui.item.type === "BASE_FEATURE"),
-};
-
-const groupedSections = [
-  { key: "BACKGROUND", label: "Fundos" },
-  { key: "HAIR_STYLE", label: "Cabelo estilo" },
-  { key: "HAIR_COLOR", label: "Cabelo cor" },
-  { key: "CLOTHES", label: "Roupas" },
-  { key: "ACCESSORY", label: "Acessorios" },
-  { key: "BASE_FEATURE", label: "Base do avatar" },
-] as const;
-
 
   return (
-    <ScreenContainer>
+    <ScreenContainer background={KINGDOM_BG.shop}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 20 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await refresh();
+              setRefreshing(false);
+            }}
+          />
+        }
       >
         {/* Header */}
-        <View className="bg-primary p-6">
-          <Text className="text-white text-2xl font-bold">Loja</Text>
-          <View className="bg-secondary px-4 py-2 rounded-full mt-3 self-start">
-            <Text className="text-primary text-lg font-bold">{userData?.denarioBalance || 0} Denários</Text>
+        <View className="bg-primary px-5 pt-5 pb-3 flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <GameIcon name="tab-shop" size="lg" style={{ marginRight: 8 }} />
+            <Text className="text-white text-2xl font-extrabold">Guarda-roupa</Text>
+          </View>
+          <View className="bg-warning px-3 py-1 rounded-full flex-row items-center">
+            <GameIcon name="coin" size="sm" style={{ marginRight: 4 }} />
+            <CountUp value={balance} className="text-foreground font-extrabold" />
+          </View>
+        </View>
+
+        {/* Big preview */}
+        <View className="bg-primary items-center pb-5 rounded-b-3xl">
+          <PopIn trigger={`${preview.character}-${preview.look}-${preview.hair}-${preview.accessory}`}>
+            <Figurine figurine={preview} height={300} />
+          </PopIn>
+          <View className="items-center mt-2 min-h-[56px] justify-center px-4">
+            {selected ? (
+              <>
+                <Text className="text-white text-lg font-extrabold text-center">{selected.name.split(" · ")[0]}</Text>
+                <View className="mt-2">{action}</View>
+              </>
+            ) : (
+              <Text className="text-white/90 text-sm font-semibold text-center">
+                {current.chosen
+                  ? "Toque em um item para experimentar"
+                  : "Escolha seu personagem para começar!"}
+              </Text>
+            )}
           </View>
         </View>
 
         {/* Tabs */}
-        <View className="flex-row p-4 gap-2">
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-full ${selectedTab === "buy" ? "bg-primary" : "bg-surface border border-border"}`}
-            onPress={() => setSelectedTab("buy")}
-          >
-            <Text className={`text-center font-bold ${selectedTab === "buy" ? "text-white" : "text-foreground"}`}>
-              Comprar
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-full ${selectedTab === "myItems" ? "bg-primary" : "bg-surface border border-border"}`}
-            onPress={() => setSelectedTab("myItems")}
-          >
-            <Text className={`text-center font-bold ${selectedTab === "myItems" ? "text-white" : "text-foreground"}`}>
-              Meus Itens
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Filters */}
-        <View className="px-4 flex-row flex-wrap items-start justify-between gap-3">
-          <View className="flex-1 min-w-[220px]">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                <TouchableOpacity
-                  className={`px-4 py-2 rounded-full ${selectedType === "ALL" ? "bg-primary" : "bg-surface border border-border"}`}
-                  onPress={() => setSelectedType("ALL")}
-                >
-                  <Text className={`font-semibold ${selectedType === "ALL" ? "text-white" : "text-foreground"}`}>
-                    Todos
-                  </Text>
-                </TouchableOpacity>
-              <TouchableOpacity
-                className={`px-4 py-2 rounded-full ${selectedType === "BACKGROUND" ? "bg-primary" : "bg-surface border border-border"}`}
-                onPress={() => setSelectedType("BACKGROUND")}
-              >
-                <Text className={`font-semibold ${selectedType === "BACKGROUND" ? "text-white" : "text-foreground"}`}>
-                  Fundos
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className={`px-4 py-2 rounded-full ${selectedType === "HAIR_STYLE" ? "bg-primary" : "bg-surface border border-border"}`}
-                onPress={() => setSelectedType("HAIR_STYLE")}
-              >
-                <Text className={`font-semibold ${selectedType === "HAIR_STYLE" ? "text-white" : "text-foreground"}`}>
-                  Cabelo estilo
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className={`px-4 py-2 rounded-full ${selectedType === "HAIR_COLOR" ? "bg-primary" : "bg-surface border border-border"}`}
-                onPress={() => setSelectedType("HAIR_COLOR")}
-              >
-                <Text className={`font-semibold ${selectedType === "HAIR_COLOR" ? "text-white" : "text-foreground"}`}>
-                  Cabelo cor
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className={`px-4 py-2 rounded-full ${selectedType === "CLOTHES" ? "bg-primary" : "bg-surface border border-border"}`}
-                onPress={() => setSelectedType("CLOTHES")}
-              >
-                <Text className={`font-semibold ${selectedType === "CLOTHES" ? "text-white" : "text-foreground"}`}>
-                  Roupas
-                </Text>
-              </TouchableOpacity>
-            <TouchableOpacity
-              className={`px-4 py-2 rounded-full ${selectedType === "ACCESSORY" ? "bg-primary" : "bg-surface border border-border"}`}
-              onPress={() => setSelectedType("ACCESSORY")}
+        <View className="flex-row gap-2 px-4 mt-4">
+          {TABS.map((t) => (
+            <PressableScale
+              key={t.key}
+              className={`flex-1 py-2 rounded-full items-center ${tab === t.key ? "bg-primary" : "bg-surface border border-border"}`}
+              onPress={() => {
+                setTab(t.key);
+                setSelected(null);
+              }}
             >
-              <Text className={`font-semibold ${selectedType === "ACCESSORY" ? "text-white" : "text-foreground"}`}>
-                Acessorios
-              </Text>
-            </TouchableOpacity>
-              <TouchableOpacity
-                className={`px-4 py-2 rounded-full ${selectedType === "BASE_FEATURE" ? "bg-primary" : "bg-surface border border-border"}`}
-                onPress={() => setSelectedType("BASE_FEATURE")}
-              >
-                <Text className={`font-semibold ${selectedType === "BASE_FEATURE" ? "text-white" : "text-foreground"}`}>
-                  Base
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+              <Text className={`text-xs font-extrabold ${tab === t.key ? "text-white" : "text-foreground"}`}>{t.label}</Text>
+            </PressableScale>
+          ))}
         </View>
 
-          {/* Price Filter */}
-          <View className="flex-1 min-w-[180px]">
-            <View className="flex-row flex-wrap gap-2 justify-end">
-            {[
-              { label: "Todos", value: "ALL" },
-              { label: "Grátis", value: "FREE" },
-              { label: "Pagos", value: "PAID" },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                className={`px-4 py-2 rounded-full ${priceFilter === option.value ? "bg-primary" : "bg-surface border border-border"}`}
-                onPress={() => setPriceFilter(option.value as "ALL" | "FREE" | "PAID")}
-              >
-                <Text className={`font-semibold ${priceFilter === option.value ? "text-white" : "text-foreground"}`}>
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            </View>
-          </View>
-
-        </View>
-
-        {/* Content */}
         <View className="px-4 mt-4">
-          {selectedTab === "buy" ? (
-            // Buy Tab - Show shop items
-            itemsLoading ? (
-              <View className="items-center py-10">
-                <ActivityIndicator size="large" />
-              </View>
-            ) : (
-              <View className="flex-row flex-wrap gap-3">
-                {filteredShopItems.map((item) => {
-                  const rarityStyle = RARITY_COLORS[item.rarity as Rarity];
-                  const canAfford = (userData?.denarioBalance || 0) >= item.priceDenario;
-                  const isFree = item.priceDenario === 0;
-                  const isLocked = item.isLocked;
-                  const lockReason = item.lockReason as string | undefined;
-                  const previewConfig = getPreviewConfig(item.avatarConfig);
-                  const descriptionText = item.description?.trim() ? item.description : TYPE_LABELS[item.type as ItemType];
-
+          {tab === "personagem" ? (
+            <View className="gap-3">
+              {CHARACTER_KEYS.map((key) => {
+                const active = current.chosen && current.character === key;
+                return (
+                  <PressableScale
+                    key={key}
+                    className={`flex-row items-center rounded-2xl p-3 border-2 ${active ? "bg-primary/10 border-primary" : "bg-surface border-border"}`}
+                    onPress={() => pickCharacter(key)}
+                    disabled={busy}
+                  >
+                    <Figurine figurine={{ character: key, chosen: true, look: "original", hair: null, accessory: null }} height={72} mode="head" />
+                    <View className="flex-1 ml-3">
+                      <Text className="text-foreground text-lg font-extrabold">{CHARACTERS[key].name}</Text>
+                      <Text className="text-muted text-sm">{CHARACTERS[key].tagline}</Text>
+                    </View>
+                    {active ? (
+                      <GameIcon name="level-shield" size="md" label="Seu personagem" />
+                    ) : (
+                      <Text className="text-primary font-extrabold">Escolher</Text>
+                    )}
+                  </PressableScale>
+                );
+              })}
+              <Text className="text-muted text-xs text-center mt-1">
+                Trocar de personagem é grátis. Looks e cabelos são de cada personagem.
+              </Text>
+            </View>
+          ) : isLoading ? (
+            <ActivityIndicator size="large" />
+          ) : (
+            <>
+              {tab === "cabelo" && (
+                <Text className="text-muted text-xs mb-3 text-center">A cor do cabelo aparece nos looks Original e Esporte.</Text>
+              )}
+              <View className="flex-row flex-wrap gap-[10px]">
+                {(tab === "cabelo" || tab === "acessorios") && (
+                  <PressableScale
+                    className="rounded-2xl p-2 items-center justify-center border-2 border-border bg-surface"
+                    style={{ width: cardWidth, height: cardWidth + 44 }}
+                    onPress={() => doUnequip(tab === "cabelo" ? "HAIR_COLOR" : "ACCESSORY")}
+                    disabled={busy}
+                  >
+                    <GameIcon name="sprout" size="lg" />
+                    <Text className="text-foreground text-xs font-bold mt-2 text-center">
+                      {tab === "cabelo" ? "Cor natural" : "Sem acessório"}
+                    </Text>
+                  </PressableScale>
+                )}
+                {tabItems.map((item, index) => {
+                  const equipped = isEquipped(item);
+                  const isSelected = selected?.id === item.id;
+                  const rarity = RARITY[item.rarity] ?? RARITY.COMMON;
                   return (
-                    <View
-                      key={item.id}
-                      className="bg-surface rounded-2xl p-4 border border-border"
-                      style={{ width: columnWidth }}
-                    >
-                      {/* Item Icon */}
-                      <View className="bg-background rounded-xl h-24 items-center justify-center mb-3">
-                        {previewConfig ? (
-                          <NiceAvatar config={previewConfig} size={64} />
-                        ) : (
-                          <Text className="text-4xl">{TYPE_ICONS[item.type as ItemType]}</Text>
-                        )}
-                      </View>
-
-                      {/* Rarity Badge */}
-                      <View className={`${rarityStyle.bg} px-2 py-1 rounded self-start mb-2`}>
-                        <Text className={`${rarityStyle.text} text-xs font-semibold`}>{rarityStyle.label}</Text>
-                      </View>
-
-                      {/* Item Name */}
-                      <Text className="text-foreground text-sm font-bold mb-1">{item.name}</Text>
-                      <Text className="text-muted text-xs mb-3">{descriptionText}</Text>
-
-                      {/* Price and Buy Button */}
-                      {item.owned ? (
-                        <View className="bg-success/20 py-2 rounded-lg">
-                          <Text className="text-success text-center text-xs font-bold">Possui</Text>
-                        </View>
-                      ) : (
-                        <>
-                          {!isFree && (
-                            <View className="bg-secondary/20 px-2 py-1 rounded mb-2">
-                              <Text className="text-primary text-center text-sm font-bold">
-                                {item.priceDenario} Denários
-                              </Text>
-                            </View>
+                    <PopIn key={item.id} delay={Math.min(index, 12) * 35}>
+                      <PressableScale
+                        className={`rounded-2xl p-2 items-center ${isSelected ? "bg-warning/30" : "bg-surface"}`}
+                        style={{
+                          width: cardWidth,
+                          borderWidth: 3,
+                          borderColor: isSelected ? "#F2B50C" : rarity.color,
+                          opacity: item.isLocked && !item.owned ? 0.75 : 1,
+                        }}
+                        onPress={() => setSelected(item)}
+                      >
+                        <View style={{ height: cardWidth - 16, alignItems: "center", justifyContent: "center" }}>
+                          {item.type === "ACCESSORY" ? (
+                            <Image
+                              source={{ uri: `${getApiBaseUrl()}${accessoryPath(item.assetKey!)}` }}
+                              style={{ width: cardWidth * 0.75, height: cardWidth * 0.75 }}
+                              resizeMode="contain"
+                            />
+                          ) : (
+                            <Figurine
+                              figurine={{
+                                ...current,
+                                look: item.type === "CLOTHES" ? item.assetKey! : "original",
+                                hair: item.type === "HAIR_COLOR" ? item.assetKey : null,
+                                accessory: null,
+                              }}
+                              height={cardWidth - 16}
+                              mode={item.type === "HAIR_COLOR" ? "head" : "full"}
+                            />
                           )}
-                          {isLocked ? (
-                            <View className="bg-muted/30 px-2 py-1 rounded mb-2">
-                              <Text className="text-muted text-center text-xs font-semibold">
-                                {lockReason || "Bloqueado"}
+                          {item.rarity !== "COMMON" ? (
+                            <View
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                backgroundColor: rarity.color,
+                                borderRadius: 8,
+                                paddingHorizontal: 6,
+                                paddingVertical: 2,
+                              }}
+                            >
+                              <Text className="text-white text-[9px] font-extrabold">
+                                {rarity.label}
                               </Text>
                             </View>
                           ) : null}
-                          <TouchableOpacity
-                            className={`py-2 rounded-lg ${
-                              isLocked ? "bg-muted/30" : isFree ? "bg-success" : canAfford ? "bg-primary" : "bg-muted/30"
-                            }`}
-                            onPress={() => handleBuyItem(item.id, item.name, item.priceDenario)}
-                            disabled={isLocked || (!canAfford && !isFree) || buyItemMutation.isPending}
-                          >
-                            <Text
-                              className={`text-center text-xs font-bold ${
-                                isLocked ? "text-muted" : isFree || canAfford ? "text-white" : "text-muted"
-                              }`}
-                            >
-                              {isLocked ? "Bloqueado" : isFree ? "Grátis" : canAfford ? "Comprar" : "Sem Denários"}
-                            </Text>
-                          </TouchableOpacity>
-                        </>
-                      )}
-                    </View>
+                          {item.isLocked && !item.owned ? (
+                            <View style={{ position: "absolute", top: 0, right: 0 }}>
+                              <GameIcon name="lock" size="md" label={item.lockReason} />
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text className="text-foreground text-[11px] font-bold text-center mt-1" numberOfLines={1}>
+                          {item.name.split(" · ")[0]}
+                        </Text>
+                        <View className="mt-1 flex-row items-center">
+                          {equipped ? (
+                            <Text className="text-primary text-[11px] font-extrabold">Usando</Text>
+                          ) : item.owned ? (
+                            <Text className="text-success text-[11px] font-extrabold">{item.priceDenario === 0 ? "Grátis" : "É seu"}</Text>
+                          ) : (
+                            <>
+                              <GameIcon name="coin" size="xs" style={{ marginRight: 2 }} />
+                              <Text className="text-foreground text-[11px] font-extrabold">{item.priceDenario}</Text>
+                            </>
+                          )}
+                        </View>
+                      </PressableScale>
+                    </PopIn>
                   );
                 })}
               </View>
-            )
-          ) : (
-            // My Items Tab - Show owned items
-            userItemsLoading ? (
-              <View className="items-center py-10">
-                <ActivityIndicator size="large" />
-              </View>
-            ) : filteredUserItems.length === 0 ? (
-              <View className="bg-surface rounded-2xl p-6 items-center border border-border">
-                <Text className="text-muted text-center">Você ainda não possui itens nesta categoria.</Text>
-                <TouchableOpacity
-                  className="bg-primary px-6 py-2 rounded-full mt-4"
-                  onPress={() => setSelectedTab("buy")}
-                >
-                  <Text className="text-white font-bold">Ir para Loja</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View className="gap-4">
-                {selectedType === "ALL" ? (
-                  <View className="gap-6">
-                    {groupedSections.map((section) => {
-                      const items = groupedUserItems[section.key];
-                      if (!items.length) return null;
-
-                      return (
-                        <View key={section.key}>
-                          <Text className="text-foreground text-lg font-bold mb-3">
-                            {section.label} ({items.length})
-                          </Text>
-                          <View className="flex-row flex-wrap gap-3">
-                            {items.map(renderOwnedItemCard)}
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                ) : (
-                  // Show filtered items
-                  <View className="flex-row flex-wrap gap-3">
-                    {filteredUserItems.map(renderOwnedItemCard)}
-                  </View>
-                )}
-              </View>
-            )
+              {tabItems.length === 0 && (
+                <Text className="text-muted text-center mt-6">
+                  Nenhum item ainda. Peça para a liderança sincronizar o catálogo.
+                </Text>
+              )}
+            </>
           )}
         </View>
       </ScrollView>

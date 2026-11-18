@@ -65,21 +65,37 @@ describe("streak helpers", () => {
 
   it("derives streak status", () => {
     const base = { currentStreak: 5, freezes: 1, today: "2027-02-10" };
-    expect(getStreakStatus({ ...base, lastActivityDate: "2027-02-10" })).toBe("done_today");
-    expect(getStreakStatus({ ...base, lastActivityDate: "2027-02-09" })).toBe("at_risk");
-    expect(getStreakStatus({ ...base, lastActivityDate: "2027-02-08" })).toBe("protected");
-    expect(getStreakStatus({ ...base, lastActivityDate: "2027-02-07" })).toBe("broken");
-    expect(getStreakStatus({ ...base, currentStreak: 0, lastActivityDate: null })).toBe("none");
+    expect(getStreakStatus({ ...base, lastActivityDate: "2027-02-10" })).toBe(
+      "done_today",
+    );
+    expect(getStreakStatus({ ...base, lastActivityDate: "2027-02-09" })).toBe(
+      "at_risk",
+    );
+    expect(getStreakStatus({ ...base, lastActivityDate: "2027-02-08" })).toBe(
+      "protected",
+    );
+    expect(getStreakStatus({ ...base, lastActivityDate: "2027-02-07" })).toBe(
+      "broken",
+    );
+    expect(
+      getStreakStatus({ ...base, currentStreak: 0, lastActivityDate: null }),
+    ).toBe("none");
   });
 });
 
 describe("medal reward defaults", () => {
   it("scales tier with difficulty", () => {
-    expect(defaultMedalRewards(JSON.stringify({ type: "streak", days: 7 })).tier).toBe("BRONZE");
-    expect(defaultMedalRewards(JSON.stringify({ type: "streak", days: 365 })).tier).toBe("DIAMOND");
-    expect(defaultMedalRewards(JSON.stringify({ type: "book", bookName: "Salmos", chapters: 150 })).tier).toBe(
-      "DIAMOND"
-    );
+    expect(
+      defaultMedalRewards(JSON.stringify({ type: "streak", days: 7 })).tier,
+    ).toBe("BRONZE");
+    expect(
+      defaultMedalRewards(JSON.stringify({ type: "streak", days: 365 })).tier,
+    ).toBe("DIAMOND");
+    expect(
+      defaultMedalRewards(
+        JSON.stringify({ type: "book", bookName: "Salmos", chapters: 150 }),
+      ).tier,
+    ).toBe("DIAMOND");
     expect(defaultMedalRewards("not json").tier).toBe("BRONZE");
   });
 });

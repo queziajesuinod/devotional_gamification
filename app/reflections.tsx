@@ -1,6 +1,13 @@
-import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import { useEffect } from "react";
 import { ScreenContainer } from "@/components/screen-container";
+import { GameIcon } from "@/components/game-icon";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "expo-router";
@@ -16,9 +23,10 @@ export default function ReflectionsScreen() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  const { data: reflections, isLoading } = trpc.devotional.getReflectionHistory.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
+  const { data: reflections, isLoading } =
+    trpc.devotional.getReflectionHistory.useQuery(undefined, {
+      enabled: isAuthenticated,
+    });
 
   if (authLoading || isLoading) {
     return (
@@ -37,7 +45,9 @@ export default function ReflectionsScreen() {
           <TouchableOpacity onPress={() => router.back()} className="mb-3">
             <Text className="text-white text-2xl">←</Text>
           </TouchableOpacity>
-          <Text className="text-white text-2xl font-bold">Minhas Reflexões</Text>
+          <Text className="text-white text-2xl font-bold">
+            Minhas Reflexões
+          </Text>
           <Text className="text-white/80 text-sm mt-1">
             Acompanhe seu crescimento espiritual
           </Text>
@@ -54,11 +64,14 @@ export default function ReflectionsScreen() {
                 {/* Date and Bible Reference */}
                 <View className="flex-row items-center justify-between mb-3">
                   <Text className="text-muted text-xs">
-                    {new Date(reflection.devotionalDate).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    {new Date(reflection.devotionalDate).toLocaleDateString(
+                      "pt-BR",
+                      {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      },
+                    )}
                   </Text>
                   <View className="bg-primary/10 px-3 py-1 rounded-full">
                     <Text className="text-primary text-xs font-semibold">
@@ -84,22 +97,26 @@ export default function ReflectionsScreen() {
                 <Text className="text-muted text-xs mt-3 text-right">
                   Respondido em{" "}
                   {reflection.completedAt
-                    ? new Date(reflection.completedAt).toLocaleDateString("pt-BR", {
-                        day: "2-digit",
-                        month: "short",
-                      })
+                    ? new Date(reflection.completedAt).toLocaleDateString(
+                        "pt-BR",
+                        {
+                          day: "2-digit",
+                          month: "short",
+                        },
+                      )
                     : "N/A"}
                 </Text>
               </View>
             ))
           ) : (
             <View className="bg-surface rounded-2xl p-8 items-center">
-              <Text className="text-6xl mb-4">📖</Text>
+              <GameIcon name="reading" size={72} style={{ marginBottom: 16 }} />
               <Text className="text-foreground font-semibold text-lg mb-2">
                 Nenhuma reflexão ainda
               </Text>
               <Text className="text-muted text-center">
-                Complete desafios de reflexão no devocional diário para ver suas respostas aqui.
+                Complete desafios de reflexão no devocional diário para ver suas
+                respostas aqui.
               </Text>
             </View>
           )}

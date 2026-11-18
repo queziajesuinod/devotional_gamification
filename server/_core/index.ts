@@ -29,7 +29,10 @@ async function startServer() {
     const origin = req.headers.origin;
     if (origin) res.header("Access-Control-Allow-Origin", origin);
 
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS",
+    );
     res.header(
       "Access-Control-Allow-Headers",
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
@@ -70,6 +73,23 @@ async function startServer() {
       createContext,
     }),
   );
+
+  // -------------------------
+  // 3D MODELS (mascote etc.) - /models
+  // -------------------------
+  // Served from <cwd>/public/models (repo root in dev, /app in the container).
+  // Public, immutable assets: long cache + CORS so the Expo dev web (port 8081) can load them.
+  const publicAssets = (dir: string) =>
+    express.static(path.resolve(process.cwd(), "public", dir), {
+      maxAge: "30d",
+      immutable: true,
+      setHeaders: (res) => {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      },
+    });
+  app.use("/models", publicAssets("models"));
+  // Character figurines for the shop/avatar (shared/character-catalog.ts)
+  app.use("/characters", publicAssets("characters"));
 
   // -------------------------
   // WEB (Expo export) - /web-dist

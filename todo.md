@@ -1,6 +1,7 @@
 # Project TODO
 
 ## Backend Setup
+
 - [x] Create Prisma schema with all entities
 - [x] Set up database migrations
 - [x] Create seed data for devotional plan, challenges, shop items, and ranking periods
@@ -12,17 +13,20 @@
 - [x] Implement leaderboard endpoints (monthly, annual)
 
 ## Frontend Setup
+
 - [x] Update theme colors to match brand
 - [x] Create authentication context and hooks
 - [x] Set up navigation structure with tabs
 - [x] Create reusable UI components (buttons, cards, badges)
 
 ## Authentication Screens
+
 - [x] Landing screen with app intro (using Manus OAuth)
 - [x] Login screen (using Manus OAuth)
 - [x] Register screen (using Manus OAuth)
 
 ## Dashboard Screen
+
 - [x] Header with user info, level, XP, Denário
 - [x] Daily devotional card with Bible reference and text
 - [x] Daily challenges list
@@ -30,12 +34,14 @@
 - [x] XP and Denário reward animations
 
 ## Shop Screen
+
 - [x] Shop items grid with categories
 - [x] Item purchase functionality
 - [x] Balance update on purchase
 - [x] Owned items indicator
 
 ## Profile/Avatar Screen
+
 - [x] User info display
 - [x] Avatar preview with customization
 - [x] Owned items inventory
@@ -43,17 +49,20 @@
 - [x] Save avatar changes
 
 ## Leaderboard Screen
+
 - [x] Monthly ranking tab
 - [x] Annual ranking tab
 - [x] User's own rank highlight
 - [x] Scrollable ranking list
 
 ## Branding
+
 - [x] Generate custom app logo
 - [x] Update app name and configuration
 - [ ] Set app icon and splash screen
 
 ## Testing and Delivery
+
 - [ ] Test authentication flow
 - [ ] Test daily challenges completion
 - [ ] Test shop purchase flow
@@ -62,6 +71,7 @@
 - [ ] Create first checkpoint
 
 ## Web Version Optimization
+
 - [x] Verify web version functionality and responsiveness
 - [x] Optimize layout for desktop screens (wider viewports)
 - [x] Ensure all features work properly on web browsers
@@ -69,22 +79,26 @@
 - [x] Improve web-specific UI/UX (hover states, cursor styles)
 
 ## Bug Fixes
+
 - [x] Fix Metro bundler CSS parsing error in global.css
 - [x] Test app loads correctly on mobile
 - [x] Test app loads correctly on web
 
 ## Loading Issue Fix
+
 - [x] Diagnose why app is stuck on loading screen
 - [x] Fix authentication flow to handle unauthenticated state
 - [x] Add proper error handling and fallback UI
 - [x] Test app displays content after login
 
 ## OAuth Login Fix
+
 - [x] Fix login button to use correct Manus OAuth endpoint
 - [x] Test login flow works correctly
 - [x] Verify user can access app after authentication
 
 ## Custom Authentication System
+
 - [x] Create register API endpoint (email/password with bcrypt)
 - [x] Create login API endpoint (email/password validation)
 - [x] Build registration screen with form
@@ -94,11 +108,13 @@
 - [x] Test registration and login end-to-end
 
 ## Registration Bug Fix
+
 - [x] Debug registration endpoint error
 - [x] Fix account creation issue (API URL was pointing to wrong port)
 - [x] Test registration flow works correctly
 
 ## User Profile Page
+
 - [x] Create API endpoint to update user profile (nickname, email)
 - [x] Create API endpoint to change password
 - [x] Build profile page UI with user stats
@@ -108,6 +124,7 @@
 - [x] Test profile updates end-to-end
 
 ## Profile Picture Upload
+
 - [x] Add avatarUrl field to users schema
 - [x] Run database migration
 - [x] Create API endpoint for avatar upload to S3
@@ -117,6 +134,7 @@
 - [x] Test image upload end-to-end
 
 ## Interactive Reflection Challenge
+
 - [x] Add responseText field to user_challenges table
 - [x] Run database migration for new field
 - [x] Update challenge completion API to accept and save response text
@@ -126,6 +144,7 @@
 - [ ] Test reflection challenge flow end-to-end
 
 ## Reflection History Screen
+
 - [x] Create API endpoint to fetch user's reflection responses with devotional context
 - [x] Build reflection history screen UI with date-organized list
 - [x] Add navigation from profile or menu to history screen
@@ -134,6 +153,7 @@
 - [x] Test reflection history flow end-to-end
 
 ## Streak Counter System
+
 - [x] Add currentStreak and longestStreak fields to users table
 - [x] Add lastActivityDate field to track consecutive days
 - [x] Run database migration for new fields
@@ -146,6 +166,7 @@
 - [x] Test milestone rewards delivery
 
 ## Group/Cell System
+
 - [x] Create groups table (id, name, description, leaderId, createdAt)
 - [x] Create group_members table (groupId, userId, status: pending/approved, joinedAt)
 - [x] Create group_stats table to track collective points (using totalPoints in groups table)
@@ -168,6 +189,7 @@
 - [x] Test leader approval/rejection flow
 
 ## Docker Deployment Setup
+
 - [x] Create .env.example with all required environment variables
 - [x] Create Dockerfile for production build
 - [x] Create docker-compose.yml with PostgreSQL and app services
@@ -177,6 +199,7 @@
 - [x] Test Docker build locally (ready for deployment)
 
 ## Redis Session Cache
+
 - [x] Add Redis service to docker-compose.yml
 - [x] Install redis and ioredis npm packages
 - [x] Create Redis client configuration
@@ -187,6 +210,7 @@
 - [x] Test session caching performance (ready for production)
 
 ## Route Protection and Authentication
+
 - [x] Create authentication guard component
 - [x] Protect all tab screens (Dashboard, Shop, Profile, Leaderboard, Groups)
 - [x] Force redirect to login when not authenticated
@@ -195,6 +219,7 @@
 - [x] Test route protection flow
 
 ## Medal/Badge System
+
 - [x] Design medal categories (Bible books, streaks, milestones, special)
 - [x] Create medals table in database schema
 - [x] Create user_medals table for tracking earned medals
@@ -217,6 +242,7 @@
 - [x] Test medals screen display (UI implemented and functional)
 
 ## Avatar Customization System
+
 - [x] Add free starter items to shop_items table (7 free + 7 premium items)
 - [x] Grant free items to all users automatically on registration
 - [x] Update shop screen with 2 tabs: "Comprar" and "Meus Itens"

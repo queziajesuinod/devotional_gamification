@@ -34,7 +34,7 @@ export const applyRarityDefaultPrice = (rarity: ShopRarity, price: number) => {
 export const getRarityLock = (
   rarity: ShopRarity,
   userLevel: number,
-  medalCount: number
+  medalCount: number,
 ) => {
   const rule = getRarityRule(rarity);
   if (userLevel < rule.minLevel) {
@@ -50,4 +50,22 @@ export const getRarityLock = (
     };
   }
   return { isLocked: false, reason: "" };
+};
+
+/** Lock for a specific item: catalog items may override the rarity's level/medal rule. */
+export const getItemLock = (
+  item: { rarity: ShopRarity; minLevel?: number | null; medalsRequired?: number | null },
+  userLevel: number,
+  medalCount: number,
+) => {
+  const rule = getRarityRule(item.rarity);
+  const minLevel = item.minLevel ?? rule.minLevel;
+  const medalsRequired = item.medalsRequired ?? rule.medalsRequired;
+  if (userLevel < minLevel) {
+    return { isLocked: true, reason: `Requer nível ${minLevel}`, minLevel, medalsRequired };
+  }
+  if (medalsRequired > 0 && medalCount < medalsRequired) {
+    return { isLocked: true, reason: `Requer ${medalsRequired} medalha(s)`, minLevel, medalsRequired };
+  }
+  return { isLocked: false, reason: "", minLevel, medalsRequired };
 };

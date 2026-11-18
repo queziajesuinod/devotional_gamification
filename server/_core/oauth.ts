@@ -23,7 +23,7 @@ async function syncUser(userInfo: {
   const lastSignedIn = new Date();
   await upsertUser({
     openId: userInfo.openId,
-    nickname: userInfo.name || userInfo.email?.split('@')[0] || 'Usuário',
+    nickname: userInfo.name || userInfo.email?.split("@")[0] || "Usuário",
     name: userInfo.name || null,
     email: userInfo.email ?? null,
     loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
@@ -83,7 +83,10 @@ export function registerOAuthRoutes(app: Express) {
       });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       // Redirect to the frontend URL (Expo web on port 8081)
       // Cookie is set with parent domain so it works across both 3000 and 8081 subdomains
@@ -118,7 +121,10 @@ export function registerOAuthRoutes(app: Express) {
       });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       res.json({
         app_session_id: sessionToken,

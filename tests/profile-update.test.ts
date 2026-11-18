@@ -18,7 +18,7 @@ describe("Profile Updates", () => {
     const response = await axios.post(`${API_URL}/auth/register`, testUser, {
       withCredentials: true,
     });
-    
+
     const cookies = response.headers["set-cookie"];
     if (cookies && cookies.length > 0) {
       sessionCookie = cookies[0];
@@ -27,7 +27,7 @@ describe("Profile Updates", () => {
 
   it("should update user nickname", async () => {
     const newNickname = "UpdatedNickname" + Date.now();
-    
+
     const response = await axios.put(
       `${API_URL}/auth/profile`,
       { nickname: newNickname },
@@ -36,7 +36,7 @@ describe("Profile Updates", () => {
           Cookie: sessionCookie,
         },
         withCredentials: true,
-      }
+      },
     );
 
     expect(response.status).toBe(200);
@@ -46,7 +46,7 @@ describe("Profile Updates", () => {
 
   it("should update user email", async () => {
     const newEmail = `updated${Date.now()}@example.com`;
-    
+
     const response = await axios.put(
       `${API_URL}/auth/profile`,
       { email: newEmail },
@@ -55,13 +55,13 @@ describe("Profile Updates", () => {
           Cookie: sessionCookie,
         },
         withCredentials: true,
-      }
+      },
     );
 
     expect(response.status).toBe(200);
     expect(response.data.success).toBe(true);
     expect(response.data.user.email).toBe(newEmail);
-    
+
     // Update current email for subsequent tests
     currentEmail = newEmail;
   });
@@ -85,7 +85,7 @@ describe("Profile Updates", () => {
             Cookie: sessionCookie,
           },
           withCredentials: true,
-        }
+        },
       );
       // Should not reach here
       expect(true).toBe(false);
@@ -97,7 +97,7 @@ describe("Profile Updates", () => {
 
   it("should change password", async () => {
     const newPassword = "newpassword123";
-    
+
     const response = await axios.put(
       `${API_URL}/auth/password`,
       {
@@ -109,7 +109,7 @@ describe("Profile Updates", () => {
           Cookie: sessionCookie,
         },
         withCredentials: true,
-      }
+      },
     );
 
     expect(response.status).toBe(200);
@@ -124,7 +124,7 @@ describe("Profile Updates", () => {
       },
       {
         withCredentials: true,
-      }
+      },
     );
 
     expect(loginResponse.status).toBe(200);
@@ -144,7 +144,7 @@ describe("Profile Updates", () => {
             Cookie: sessionCookie,
           },
           withCredentials: true,
-        }
+        },
       );
       // Should not reach here
       expect(true).toBe(false);
@@ -167,7 +167,7 @@ describe("Profile Updates", () => {
             Cookie: sessionCookie,
           },
           withCredentials: true,
-        }
+        },
       );
       // Should not reach here
       expect(true).toBe(false);

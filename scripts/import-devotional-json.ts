@@ -69,7 +69,7 @@ const getDayOfYear = (year: number, monthIndex: number, dayNumber: number) => {
 const getCampoGrandeDateInfo = (
   year: number,
   monthIndex: number,
-  dayNumber: number
+  dayNumber: number,
 ) => {
   if (monthIndex < 0 || monthIndex > 11) {
     throw new Error("Invalid month");
@@ -158,10 +158,12 @@ async function main() {
   const parsed = JSON.parse(raw) as InputPayload | InputMonth[];
   const months = Array.isArray(parsed)
     ? parsed
-    : parsed.meses ?? parsed.months ?? [];
+    : (parsed.meses ?? parsed.months ?? []);
 
   if (!Array.isArray(months) || months.length === 0) {
-    throw new Error("No months found. Expected { meses: [...] } or an array of months.");
+    throw new Error(
+      "No months found. Expected { meses: [...] } or an array of months.",
+    );
   }
 
   const entriesByDate = new Map<string, ParsedEntry>();
@@ -185,7 +187,9 @@ async function main() {
       const dayNumber = day.dia ?? day.day;
       const bibleReference = day.leitura ?? day.reading ?? day.reference;
       if (!dayNumber || !bibleReference) {
-        console.warn(`[Import] Missing day or reading in month "${label}" - skipping`);
+        console.warn(
+          `[Import] Missing day or reading in month "${label}" - skipping`,
+        );
         continue;
       }
 
@@ -193,7 +197,9 @@ async function main() {
       try {
         dateInfo = getCampoGrandeDateInfo(year, monthIndex, dayNumber);
       } catch {
-        console.warn(`[Import] Invalid date for ${label} ${dayNumber} - skipping`);
+        console.warn(
+          `[Import] Invalid date for ${label} ${dayNumber} - skipping`,
+        );
         continue;
       }
 
@@ -208,7 +214,7 @@ async function main() {
   }
 
   const entries = Array.from(entriesByDate.values()).sort((a, b) =>
-    a.dateStr.localeCompare(b.dateStr)
+    a.dateStr.localeCompare(b.dateStr),
   );
 
   let createdDays = 0;
@@ -221,7 +227,10 @@ async function main() {
       .select({ id: devotionalDays.id })
       .from(devotionalDays)
       .where(
-        and(eq(devotionalDays.planId, planId), eq(devotionalDays.dayNumber, entry.dayNumber))
+        and(
+          eq(devotionalDays.planId, planId),
+          eq(devotionalDays.dayNumber, entry.dayNumber),
+        ),
       )
       .limit(1);
 
@@ -231,7 +240,12 @@ async function main() {
         : await db
             .select({ id: devotionalDays.id })
             .from(devotionalDays)
-            .where(and(eq(devotionalDays.planId, planId), eq(devotionalDays.date, entry.dateStr as any)))
+            .where(
+              and(
+                eq(devotionalDays.planId, planId),
+                eq(devotionalDays.date, entry.dateStr as any),
+              ),
+            )
             .limit(1);
 
     let dayId: number;
@@ -271,7 +285,12 @@ async function main() {
     const readingChallenge = await db
       .select({ id: challenges.id })
       .from(challenges)
-      .where(and(eq(challenges.devotionalDayId, dayId), eq(challenges.type, "READING")))
+      .where(
+        and(
+          eq(challenges.devotionalDayId, dayId),
+          eq(challenges.type, "READING"),
+        ),
+      )
       .limit(1);
 
     if (readingChallenge.length === 0) {
@@ -288,7 +307,7 @@ async function main() {
   }
 
   console.log(
-    `[Import] Done. Plan ${planId}, year ${year}, days: ${entries.length}, created: ${createdDays}, updated: ${updatedDays}, existing: ${existingDays}, reading challenges: ${createdChallenges}`
+    `[Import] Done. Plan ${planId}, year ${year}, days: ${entries.length}, created: ${createdDays}, updated: ${updatedDays}, existing: ${existingDays}, reading challenges: ${createdChallenges}`,
   );
 }
 

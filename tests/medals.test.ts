@@ -54,10 +54,10 @@ describe("Medal System", () => {
 
     expect(response.status).toBe(200);
     const medals = response.data.result.data.json;
-    
+
     expect(Array.isArray(medals)).toBe(true);
     expect(medals.length).toBeGreaterThan(0);
-    
+
     // Check medal structure
     const medal = medals[0];
     expect(medal).toHaveProperty("id");
@@ -77,7 +77,7 @@ describe("Medal System", () => {
 
     expect(response.status).toBe(200);
     const earnedMedals = response.data.result.data.json;
-    
+
     expect(Array.isArray(earnedMedals)).toBe(true);
     expect(earnedMedals.length).toBe(0); // New user should have no medals
   });
@@ -99,14 +99,15 @@ describe("Medal System", () => {
       `${API_URL}/trpc/devotional.completeChallenge`,
       {
         challengeId: firstChallenge.id,
-        responseText: firstChallenge.type === "REFLECTION" ? "Test reflection" : undefined,
+        responseText:
+          firstChallenge.type === "REFLECTION" ? "Test reflection" : undefined,
       },
       {
         headers: {
           Cookie: authCookie,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     expect(completeResponse.status).toBe(200);
@@ -121,7 +122,7 @@ describe("Medal System", () => {
 
     const earnedMedals = medalsResponse.data.result.data.json;
     const welcomeMedal = earnedMedals.find((m: any) => m.name === "Bem-vindo!");
-    
+
     expect(welcomeMedal).toBeDefined();
     expect(welcomeMedal.category).toBe("SPECIAL");
   });
@@ -139,22 +140,25 @@ describe("Medal System", () => {
           Cookie: authCookie,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     expect(response.status).toBe(200);
     expect(response.data.result.data.json.success).toBe(true);
 
     // Check progress
-    const progressResponse = await axios.get(`${API_URL}/trpc/medals.bibleProgress`, {
-      headers: {
-        Cookie: authCookie,
+    const progressResponse = await axios.get(
+      `${API_URL}/trpc/medals.bibleProgress`,
+      {
+        headers: {
+          Cookie: authCookie,
+        },
       },
-    });
+    );
 
     const progress = progressResponse.data.result.data.json;
     expect(Array.isArray(progress)).toBe(true);
-    
+
     const mateusProgress = progress.find((p: any) => p.bookName === "Mateus");
     expect(mateusProgress).toBeDefined();
     expect(mateusProgress.chaptersRead).toBe(5);
@@ -176,7 +180,7 @@ describe("Medal System", () => {
           Cookie: authCookie,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     expect(response.status).toBe(200);
@@ -190,8 +194,10 @@ describe("Medal System", () => {
     });
 
     const earnedMedals = medalsResponse.data.result.data.json;
-    const mateusMedal = earnedMedals.find((m: any) => m.name === "Mateus Completo");
-    
+    const mateusMedal = earnedMedals.find(
+      (m: any) => m.name === "Mateus Completo",
+    );
+
     expect(mateusMedal).toBeDefined();
     expect(mateusMedal.category).toBe("BIBLE_BOOK");
   });
@@ -205,7 +211,7 @@ describe("Medal System", () => {
           Cookie: authCookie,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     expect(response.status).toBe(200);
@@ -221,7 +227,7 @@ describe("Medal System", () => {
 
     const medals = response.data.result.data.json;
     const categories = new Set(medals.map((m: any) => m.category));
-    
+
     expect(categories.has("BIBLE_BOOK")).toBe(true);
     expect(categories.has("STREAK")).toBe(true);
     expect(categories.has("MILESTONE")).toBe(true);

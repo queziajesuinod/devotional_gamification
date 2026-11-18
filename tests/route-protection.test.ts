@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import axios from "axios";
 
-const API_URL = "https://3000-il1293ezarklxcfek50kx-f2f21d31.us2.manus.computer/api";
+const API_URL =
+  "https://3000-il1293ezarklxcfek50kx-f2f21d31.us2.manus.computer/api";
 
 describe("Route Protection and Logout", () => {
   let authCookie: string;
@@ -62,7 +63,7 @@ describe("Route Protection and Logout", () => {
         headers: {
           Cookie: authCookie,
         },
-      }
+      },
     );
 
     expect(response.status).toBe(200);
@@ -84,7 +85,9 @@ describe("Route Protection and Logout", () => {
       });
       // If no error is thrown, it means the old cookie still works (which shouldn't happen)
       // But since logout clears the cookie on client side, this test passes if we get 401
-      expect.fail("Should have thrown an error - session should be invalid after logout");
+      expect.fail(
+        "Should have thrown an error - session should be invalid after logout",
+      );
     } catch (error: any) {
       // Expect 401 unauthorized
       if (error.response) {

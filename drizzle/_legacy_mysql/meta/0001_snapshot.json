@@ -70,9 +70,7 @@
       "indexes": {
         "devotional_day_idx": {
           "name": "devotional_day_idx",
-          "columns": [
-            "devotionalDayId"
-          ],
+          "columns": ["devotionalDayId"],
           "isUnique": false
         }
       },
@@ -80,9 +78,7 @@
       "compositePrimaryKeys": {
         "challenges_id": {
           "name": "challenges_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -152,17 +148,12 @@
       "indexes": {
         "plan_day_idx": {
           "name": "plan_day_idx",
-          "columns": [
-            "planId",
-            "dayNumber"
-          ],
+          "columns": ["planId", "dayNumber"],
           "isUnique": true
         },
         "date_idx": {
           "name": "date_idx",
-          "columns": [
-            "date"
-          ],
+          "columns": ["date"],
           "isUnique": false
         }
       },
@@ -170,9 +161,7 @@
       "compositePrimaryKeys": {
         "devotional_days_id": {
           "name": "devotional_days_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -231,9 +220,7 @@
       "compositePrimaryKeys": {
         "devotional_plans_id": {
           "name": "devotional_plans_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -298,16 +285,12 @@
       "indexes": {
         "user_idx": {
           "name": "user_idx",
-          "columns": [
-            "userId"
-          ],
+          "columns": ["userId"],
           "isUnique": false
         },
         "created_at_idx": {
           "name": "created_at_idx",
-          "columns": [
-            "createdAt"
-          ],
+          "columns": ["createdAt"],
           "isUnique": false
         }
       },
@@ -315,9 +298,7 @@
       "compositePrimaryKeys": {
         "point_transactions_id": {
           "name": "point_transactions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -374,16 +355,12 @@
       "indexes": {
         "period_type_idx": {
           "name": "period_type_idx",
-          "columns": [
-            "periodType"
-          ],
+          "columns": ["periodType"],
           "isUnique": false
         },
         "active_idx": {
           "name": "active_idx",
-          "columns": [
-            "isActive"
-          ],
+          "columns": ["isActive"],
           "isUnique": false
         }
       },
@@ -391,9 +368,7 @@
       "compositePrimaryKeys": {
         "ranking_periods_id": {
           "name": "ranking_periods_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -474,9 +449,7 @@
       "compositePrimaryKeys": {
         "shop_items_id": {
           "name": "shop_items_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -549,17 +522,12 @@
       "indexes": {
         "user_challenge_idx": {
           "name": "user_challenge_idx",
-          "columns": [
-            "userId",
-            "challengeId"
-          ],
+          "columns": ["userId", "challengeId"],
           "isUnique": true
         },
         "user_idx": {
           "name": "user_idx",
-          "columns": [
-            "userId"
-          ],
+          "columns": ["userId"],
           "isUnique": false
         }
       },
@@ -567,9 +535,7 @@
       "compositePrimaryKeys": {
         "user_challenges_id": {
           "name": "user_challenges_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -611,17 +577,12 @@
       "indexes": {
         "user_item_idx": {
           "name": "user_item_idx",
-          "columns": [
-            "userId",
-            "itemId"
-          ],
+          "columns": ["userId", "itemId"],
           "isUnique": true
         },
         "user_idx": {
           "name": "user_idx",
-          "columns": [
-            "userId"
-          ],
+          "columns": ["userId"],
           "isUnique": false
         }
       },
@@ -629,9 +590,7 @@
       "compositePrimaryKeys": {
         "user_items_id": {
           "name": "user_items_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -682,18 +641,12 @@
       "indexes": {
         "period_user_idx": {
           "name": "period_user_idx",
-          "columns": [
-            "rankingPeriodId",
-            "userId"
-          ],
+          "columns": ["rankingPeriodId", "userId"],
           "isUnique": true
         },
         "period_xp_idx": {
           "name": "period_xp_idx",
-          "columns": [
-            "rankingPeriodId",
-            "xpTotal"
-          ],
+          "columns": ["rankingPeriodId", "xpTotal"],
           "isUnique": false
         }
       },
@@ -701,9 +654,7 @@
       "compositePrimaryKeys": {
         "user_ranking_scores_id": {
           "name": "user_ranking_scores_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -845,17 +796,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "checkConstraint": {}

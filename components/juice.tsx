@@ -4,7 +4,15 @@
  * system "reduce motion" setting.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Platform, Pressable, Text, useWindowDimensions, View, type PressableProps, type ViewStyle } from "react-native";
+import {
+  Platform,
+  Pressable,
+  Text,
+  useWindowDimensions,
+  View,
+  type PressableProps,
+  type ViewStyle,
+} from "react-native";
 import * as Haptics from "expo-haptics";
 import Animated, {
   Easing,
@@ -18,6 +26,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { GameIcon } from "@/components/game-icon";
 
 // ============================================
 // HAPTICS + COPY
@@ -26,30 +35,53 @@ import Animated, {
 const isNative = Platform.OS !== "web";
 
 export const haptic = {
-  tap: () => isNative && Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}),
-  pop: () => isNative && Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}),
-  success: () => isNative && Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}),
+  tap: () =>
+    isNative &&
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}),
+  pop: () =>
+    isNative &&
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}),
+  success: () =>
+    isNative &&
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+      () => {},
+    ),
   big: () => {
     if (!isNative) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {}), 180);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+      () => {},
+    );
+    setTimeout(
+      () =>
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {}),
+      180,
+    );
   },
 };
 
 const CHEERS = [
-  "Mandou bem! 🙌",
-  "Arrasou! ✨",
-  "Isso aí! 💪",
-  "Show de bola! ⚽",
-  "Que demais! 🤩",
-  "Firme e forte! 🔥",
-  "Glória! 🙏",
-  "Partiu próximo! 🚀",
+  "Mandou bem!",
+  "Arrasou!",
+  "Isso aí!",
+  "Show de bola!",
+  "Que demais!",
+  "Firme e forte!",
+  "Glória!",
+  "Partiu próximo!",
 ];
 
-export const randomCheer = () => CHEERS[Math.floor(Math.random() * CHEERS.length)];
+export const randomCheer = () =>
+  CHEERS[Math.floor(Math.random() * CHEERS.length)];
 
-export const CONFETTI_COLORS = ["#4ECDC4", "#FFD166", "#FF7F7F", "#A8E6E1", "#38BDF8", "#B388FF", "#FFFFFF"];
+export const CONFETTI_COLORS = [
+  "#F2B50C", // ouro
+  "#FFD64E", // estrela
+  "#E24B50", // vermelho estandarte
+  "#3D6FD6", // azul real
+  "#43B36E", // verde
+  "#7B3FA0", // roxo realeza
+  "#FFFFFF",
+];
 
 // ============================================
 // PRESSABLE THAT SQUISHES
@@ -63,9 +95,16 @@ export function PressableScale({
   style,
   hapticOnPress = true,
   ...rest
-}: PressableProps & { className?: string; style?: ViewStyle; hapticOnPress?: boolean; children: ReactNode }) {
+}: PressableProps & {
+  className?: string;
+  style?: ViewStyle;
+  hapticOnPress?: boolean;
+  children: ReactNode;
+}) {
   const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
     <Pressable
@@ -82,7 +121,10 @@ export function PressableScale({
         onPress?.(event);
       }}
     >
-      <Animated.View className={className} style={[style, animatedStyle, disabled ? { opacity: 0.5 } : null]}>
+      <Animated.View
+        className={className}
+        style={[style, animatedStyle, disabled ? { opacity: 0.5 } : null]}
+      >
         {children}
       </Animated.View>
     </Pressable>
@@ -94,7 +136,15 @@ export function PressableScale({
 // ============================================
 
 /** Gentle breathing scale, to call attention to something claimable. */
-export function Pulse({ active = true, children, amount = 0.06 }: { active?: boolean; children: ReactNode; amount?: number }) {
+export function Pulse({
+  active = true,
+  children,
+  amount = 0.06,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  amount?: number;
+}) {
   const reduced = useReducedMotion();
   const scale = useSharedValue(1);
 
@@ -106,19 +156,30 @@ export function Pulse({ active = true, children, amount = 0.06 }: { active?: boo
     }
     scale.value = withRepeat(
       withSequence(
-        withTiming(1 + amount, { duration: 550, easing: Easing.inOut(Easing.quad) }),
-        withTiming(1, { duration: 550, easing: Easing.inOut(Easing.quad) })
+        withTiming(1 + amount, {
+          duration: 550,
+          easing: Easing.inOut(Easing.quad),
+        }),
+        withTiming(1, { duration: 550, easing: Easing.inOut(Easing.quad) }),
       ),
-      -1
+      -1,
     );
   }, [active, reduced, amount, scale]);
 
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
 /** Shake every couple of seconds, like a chest that wants to be opened. */
-export function Wiggle({ active = true, children }: { active?: boolean; children: ReactNode }) {
+export function Wiggle({
+  active = true,
+  children,
+}: {
+  active?: boolean;
+  children: ReactNode;
+}) {
   const reduced = useReducedMotion();
   const rotate = useSharedValue(0);
 
@@ -134,25 +195,37 @@ export function Wiggle({ active = true, children }: { active?: boolean; children
         withTiming(8, { duration: 70 }),
         withTiming(-6, { duration: 70 }),
         withTiming(6, { duration: 70 }),
-        withTiming(0, { duration: 70 })
+        withTiming(0, { duration: 70 }),
       ),
-      -1
+      -1,
     );
   }, [active, reduced, rotate]);
 
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotate.value}deg` }] }));
+  const style = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotate.value}deg` }],
+  }));
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
 /** Flickering flame for the streak. Bigger streaks burn a bit faster. */
-export function Flame({ size = 36, streak = 1, emoji = "🔥" }: { size?: number; streak?: number; emoji?: string }) {
+export function Flame({
+  size = 36,
+  streak = 1,
+}: {
+  size?: number;
+  streak?: number;
+}) {
   const reduced = useReducedMotion();
   const t = useSharedValue(0);
   const speed = streak >= 30 ? 260 : streak >= 7 ? 340 : 420;
 
   useEffect(() => {
     if (reduced) return;
-    t.value = withRepeat(withTiming(1, { duration: speed, easing: Easing.inOut(Easing.sin) }), -1, true);
+    t.value = withRepeat(
+      withTiming(1, { duration: speed, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
   }, [reduced, speed, t]);
 
   const style = useAnimatedStyle(() => ({
@@ -165,20 +238,35 @@ export function Flame({ size = 36, streak = 1, emoji = "🔥" }: { size?: number
 
   return (
     <Animated.View style={[{ transformOrigin: "bottom" } as ViewStyle, style]}>
-      <Text style={{ fontSize: size }}>{emoji}</Text>
+      <GameIcon name="streak" size={Math.round(size * 1.15)} />
     </Animated.View>
   );
 }
 
 /** Slow up-and-down float, for mascots, chests and big icons. */
-export function Float({ children, distance = 6 }: { children: ReactNode; distance?: number }) {
+export function Float({
+  children,
+  distance = 6,
+}: {
+  children: ReactNode;
+  distance?: number;
+}) {
   const reduced = useReducedMotion();
   const y = useSharedValue(0);
   useEffect(() => {
     if (reduced) return;
-    y.value = withRepeat(withTiming(-distance, { duration: 1200, easing: Easing.inOut(Easing.sin) }), -1, true);
+    y.value = withRepeat(
+      withTiming(-distance, {
+        duration: 1200,
+        easing: Easing.inOut(Easing.sin),
+      }),
+      -1,
+      true,
+    );
   }, [reduced, distance, y]);
-  const style = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: y.value }],
+  }));
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
@@ -201,12 +289,18 @@ export function PopIn({
   const progress = useSharedValue(0);
   useEffect(() => {
     progress.value = 0;
-    progress.value = withDelay(delay, withSpring(1, { damping: 9, stiffness: 160 }));
+    progress.value = withDelay(
+      delay,
+      withSpring(1, { damping: 9, stiffness: 160 }),
+    );
   }, [delay, trigger, progress]);
 
   const style = useAnimatedStyle(() => ({
     opacity: Math.min(1, progress.value * 1.5),
-    transform: [{ scale: progress.value }, { rotate: spin ? `${(1 - progress.value) * -180}deg` : "0deg" }],
+    transform: [
+      { scale: progress.value },
+      { rotate: spin ? `${(1 - progress.value) * -180}deg` : "0deg" },
+    ],
   }));
   return <Animated.View style={style}>{children}</Animated.View>;
 }
@@ -287,24 +381,48 @@ export function AnimatedBar({
   const clamped = Math.max(0, Math.min(100, percent));
 
   useEffect(() => {
-    width.value = withTiming(clamped, { duration: reduced ? 0 : 900, easing: Easing.out(Easing.cubic) });
+    width.value = withTiming(clamped, {
+      duration: reduced ? 0 : 900,
+      easing: Easing.out(Easing.cubic),
+    });
   }, [clamped, reduced, width]);
 
   useEffect(() => {
     if (!shine || reduced) return;
-    sweep.value = withRepeat(withDelay(1200, withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) })), -1);
+    sweep.value = withRepeat(
+      withDelay(
+        1200,
+        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+    );
   }, [shine, reduced, sweep]);
 
   const fillStyle = useAnimatedStyle(() => ({ width: `${width.value}%` }));
-  const shineStyle = useAnimatedStyle(() => ({ left: `${sweep.value * 140 - 40}%` }));
+  const shineStyle = useAnimatedStyle(() => ({
+    left: `${sweep.value * 140 - 40}%`,
+  }));
 
   return (
-    <View className={`${trackClassName} rounded-full overflow-hidden`} style={{ height }}>
-      <Animated.View className={`${fillClassName} rounded-full overflow-hidden`} style={[{ height }, fillStyle]}>
+    <View
+      className={`${trackClassName} rounded-full overflow-hidden`}
+      style={{ height }}
+    >
+      <Animated.View
+        className={`${fillClassName} rounded-full overflow-hidden`}
+        style={[{ height }, fillStyle]}
+      >
         {shine && (
           <Animated.View
             style={[
-              { position: "absolute", top: 0, bottom: 0, width: "35%", backgroundColor: "rgba(255,255,255,0.45)", transform: [{ skewX: "-20deg" }] },
+              {
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                width: "35%",
+                backgroundColor: "rgba(255,255,255,0.45)",
+                transform: [{ skewX: "-20deg" }],
+              },
               shineStyle,
             ]}
           />
@@ -318,16 +436,30 @@ export function AnimatedBar({
 // CONFETTI
 // ============================================
 
-type Particle = { id: number; x: number; drift: number; delay: number; duration: number; color: string; size: number; spin: number; shape: "rect" | "circle" | "emoji"; emoji: string };
+type Particle = {
+  id: number;
+  x: number;
+  drift: number;
+  delay: number;
+  duration: number;
+  color: string;
+  size: number;
+  spin: number;
+  shape: "rect" | "circle" | "emoji";
+  emoji: string;
+};
 
-const EMOJI_BITS = ["⭐", "✨", "💛", "🎉"];
+const ICON_BITS = ["xp", "extra", "heart", "coin"] as const;
 
 const CONFETTI_MAX_MS = 3400; // max delay (350) + max duration (3000) + margin
 
 function ConfettiPiece({ p, height }: { p: Particle; height: number }) {
   const t = useSharedValue(0);
   useEffect(() => {
-    t.value = withDelay(p.delay, withTiming(1, { duration: p.duration, easing: Easing.in(Easing.quad) }));
+    t.value = withDelay(
+      p.delay,
+      withTiming(1, { duration: p.duration, easing: Easing.in(Easing.quad) }),
+    );
   }, [p, t]);
 
   const style = useAnimatedStyle(() => ({
@@ -342,7 +474,7 @@ function ConfettiPiece({ p, height }: { p: Particle; height: number }) {
   return (
     <Animated.View style={[{ position: "absolute", top: 0, left: 0 }, style]}>
       {p.shape === "emoji" ? (
-        <Text style={{ fontSize: p.size + 6 }}>{p.emoji}</Text>
+        <GameIcon name={p.emoji as (typeof ICON_BITS)[number]} size={p.size + 12} />
       ) : (
         <View
           style={{
@@ -361,7 +493,15 @@ function ConfettiPiece({ p, height }: { p: Particle; height: number }) {
  * Full-screen confetti rain. Change `burstKey` to fire again.
  * Renders nothing when reduce-motion is on.
  */
-export function Confetti({ burstKey, count = 70, onDone }: { burstKey: number | string | null; count?: number; onDone?: () => void }) {
+export function Confetti({
+  burstKey,
+  count = 70,
+  onDone,
+}: {
+  burstKey: number | string | null;
+  count?: number;
+  onDone?: () => void;
+}) {
   const reduced = useReducedMotion();
   const { width, height } = useWindowDimensions();
 
@@ -379,7 +519,7 @@ export function Confetti({ burstKey, count = 70, onDone }: { burstKey: number | 
         size: 8 + Math.random() * 8,
         spin: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720),
         shape: roll < 0.12 ? "emoji" : roll < 0.55 ? "rect" : "circle",
-        emoji: EMOJI_BITS[i % EMOJI_BITS.length],
+        emoji: ICON_BITS[i % ICON_BITS.length],
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -389,14 +529,27 @@ export function Confetti({ burstKey, count = 70, onDone }: { burstKey: number | 
   onDoneRef.current = onDone;
   useEffect(() => {
     if (burstKey === null) return;
-    const timer = setTimeout(() => onDoneRef.current?.(), reduced ? 0 : CONFETTI_MAX_MS);
+    const timer = setTimeout(
+      () => onDoneRef.current?.(),
+      reduced ? 0 : CONFETTI_MAX_MS,
+    );
     return () => clearTimeout(timer);
   }, [burstKey, reduced]);
 
   if (reduced || burstKey === null) return null;
 
   return (
-    <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}>
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999,
+      }}
+    >
       {particles.map((p) => (
         <ConfettiPiece key={`${burstKey}-${p.id}`} p={p} height={height} />
       ))}

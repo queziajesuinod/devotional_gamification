@@ -53,7 +53,7 @@ describe("Custom Authentication", () => {
       },
       {
         withCredentials: true,
-      }
+      },
     );
 
     expect(response.status).toBe(200);
@@ -73,7 +73,7 @@ describe("Custom Authentication", () => {
         },
         {
           withCredentials: true,
-        }
+        },
       );
       // Should not reach here
       expect(true).toBe(false);
@@ -93,7 +93,7 @@ describe("Custom Authentication", () => {
         },
         {
           withCredentials: true,
-        }
+        },
       );
       // Should not reach here
       expect(true).toBe(false);

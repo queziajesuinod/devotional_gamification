@@ -20,7 +20,11 @@ const medalData = [
     description: "Complete a leitura do Evangelho de Mateus (28 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "📖",
-    requirement: JSON.stringify({ type: "book", bookName: "Mateus", chapters: 28 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Mateus",
+      chapters: 28,
+    }),
     order: 1,
   },
   {
@@ -28,7 +32,11 @@ const medalData = [
     description: "Complete a leitura do Evangelho de Marcos (16 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "📕",
-    requirement: JSON.stringify({ type: "book", bookName: "Marcos", chapters: 16 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Marcos",
+      chapters: 16,
+    }),
     order: 2,
   },
   {
@@ -36,7 +44,11 @@ const medalData = [
     description: "Complete a leitura do Evangelho de Lucas (24 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "📗",
-    requirement: JSON.stringify({ type: "book", bookName: "Lucas", chapters: 24 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Lucas",
+      chapters: 24,
+    }),
     order: 3,
   },
   {
@@ -44,7 +56,11 @@ const medalData = [
     description: "Complete a leitura do Evangelho de João (21 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "📘",
-    requirement: JSON.stringify({ type: "book", bookName: "João", chapters: 21 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "João",
+      chapters: 21,
+    }),
     order: 4,
   },
   {
@@ -52,7 +68,11 @@ const medalData = [
     description: "Complete a leitura do livro de Atos (28 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "🔥",
-    requirement: JSON.stringify({ type: "book", bookName: "Atos", chapters: 28 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Atos",
+      chapters: 28,
+    }),
     order: 5,
   },
   {
@@ -60,7 +80,11 @@ const medalData = [
     description: "Complete a leitura da carta aos Romanos (16 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "✉️",
-    requirement: JSON.stringify({ type: "book", bookName: "Romanos", chapters: 16 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Romanos",
+      chapters: 16,
+    }),
     order: 6,
   },
   {
@@ -68,7 +92,11 @@ const medalData = [
     description: "Complete a leitura do livro de Salmos (150 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "🎵",
-    requirement: JSON.stringify({ type: "book", bookName: "Salmos", chapters: 150 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Salmos",
+      chapters: 150,
+    }),
     order: 7,
   },
   {
@@ -76,7 +104,11 @@ const medalData = [
     description: "Complete a leitura do livro de Provérbios (31 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "💡",
-    requirement: JSON.stringify({ type: "book", bookName: "Provérbios", chapters: 31 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Provérbios",
+      chapters: 31,
+    }),
     order: 8,
   },
   {
@@ -84,7 +116,11 @@ const medalData = [
     description: "Complete a leitura do livro de Gênesis (50 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "🌍",
-    requirement: JSON.stringify({ type: "book", bookName: "Gênesis", chapters: 50 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Gênesis",
+      chapters: 50,
+    }),
     order: 9,
   },
   {
@@ -92,7 +128,11 @@ const medalData = [
     description: "Complete a leitura do livro de Apocalipse (22 capítulos)",
     category: "BIBLE_BOOK" as const,
     iconEmoji: "👑",
-    requirement: JSON.stringify({ type: "book", bookName: "Apocalipse", chapters: 22 }),
+    requirement: JSON.stringify({
+      type: "book",
+      bookName: "Apocalipse",
+      chapters: 22,
+    }),
     order: 10,
   },
 
@@ -200,9 +240,9 @@ const medalData = [
     description: "Complete os 4 Evangelhos (Mateus, Marcos, Lucas e João)",
     category: "SPECIAL" as const,
     iconEmoji: "✝️",
-    requirement: JSON.stringify({ 
-      type: "multiple_books", 
-      books: ["Mateus", "Marcos", "Lucas", "João"] 
+    requirement: JSON.stringify({
+      type: "multiple_books",
+      books: ["Mateus", "Marcos", "Lucas", "João"],
     }),
     order: 2,
   },
@@ -211,9 +251,9 @@ const medalData = [
     description: "Complete Provérbios e Salmos",
     category: "SPECIAL" as const,
     iconEmoji: "🦉",
-    requirement: JSON.stringify({ 
-      type: "multiple_books", 
-      books: ["Provérbios", "Salmos"] 
+    requirement: JSON.stringify({
+      type: "multiple_books",
+      books: ["Provérbios", "Salmos"],
     }),
     order: 3,
   },
@@ -237,21 +277,23 @@ const medalData = [
 
 export async function seedMedals() {
   console.log("🏅 Seeding medals...");
-  
+
   const db = await getDb();
   if (!db) {
     throw new Error("Database connection not available");
   }
-  
+
   try {
     // Clear existing medals
     await db.delete(medals);
-    
+
     // Insert medals
     for (const medal of medalData) {
-      await db.insert(medals).values({ ...defaultMedalRewards(medal.requirement), ...medal });
+      await db
+        .insert(medals)
+        .values({ ...defaultMedalRewards(medal.requirement), ...medal });
     }
-    
+
     console.log(`✅ Seeded ${medalData.length} medals successfully`);
   } catch (error) {
     console.error("❌ Error seeding medals:", error);

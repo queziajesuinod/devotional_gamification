@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
+import { GameIcon } from "@/components/game-icon";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import * as Auth from "@/lib/_core/auth";
@@ -34,12 +35,16 @@ export default function LoginScreen() {
 
     try {
       const baseUrl = getApiBaseUrl();
-      const response = await axios.post(`${baseUrl}/api/auth/login`, {
-        email: email.trim().toLowerCase(),
-        password,
-      }, {
-        withCredentials: true,
-      });
+      const response = await axios.post(
+        `${baseUrl}/api/auth/login`,
+        {
+          email: email.trim().toLowerCase(),
+          password,
+        },
+        {
+          withCredentials: true,
+        },
+      );
 
       if (response.data.success) {
         const sessionToken: string | undefined = response.data.sessionToken;
@@ -68,7 +73,9 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(err.response?.data?.error || "Erro ao fazer login. Tente novamente.");
+      setError(
+        err.response?.data?.error || "Erro ao fazer login. Tente novamente.",
+      );
     } finally {
       setLoading(false);
     }
@@ -87,7 +94,7 @@ export default function LoginScreen() {
           <View className="flex-1 justify-center p-6">
             {/* Logo/Header */}
             <View className="items-center mb-8">
-              <Text className="text-6xl mb-4">📖</Text>
+              <GameIcon name="reading" size={72} style={{ marginBottom: 16 }} />
               <Text className="text-foreground text-3xl font-bold text-center">
                 Devocional Quest
               </Text>
@@ -133,7 +140,9 @@ export default function LoginScreen() {
 
               {error ? (
                 <View className="bg-error/10 p-3 rounded-xl">
-                  <Text className="text-error text-sm text-center">{error}</Text>
+                  <Text className="text-error text-sm text-center">
+                    {error}
+                  </Text>
                 </View>
               ) : null}
 
@@ -153,8 +162,12 @@ export default function LoginScreen() {
 
               <View className="flex-row items-center justify-center mt-4">
                 <Text className="text-muted">Não tem uma conta? </Text>
-                <TouchableOpacity onPress={() => router.push("/register" as any)}>
-                  <Text className="text-primary font-semibold">Cadastre-se</Text>
+                <TouchableOpacity
+                  onPress={() => router.push("/register" as any)}
+                >
+                  <Text className="text-primary font-semibold">
+                    Cadastre-se
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

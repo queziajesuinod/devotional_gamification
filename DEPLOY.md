@@ -159,7 +159,7 @@ Ensure your Traefik instance has:
 Example Traefik `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   traefik:
@@ -253,11 +253,13 @@ docker-compose exec app pnpm db:push
 ### Container Won't Start
 
 Check logs:
+
 ```bash
 docker-compose logs app
 ```
 
 Common issues:
+
 - Missing environment variables
 - Database connection failure
 - Port conflicts
@@ -265,6 +267,7 @@ Common issues:
 ### Database Connection Error
 
 Verify:
+
 1. PostgreSQL container is running: `docker-compose ps`
 2. Database credentials in `.env` are correct
 3. `DATABASE_URL` matches the credentials
@@ -272,6 +275,7 @@ Verify:
 ### Traefik Not Routing
 
 Check:
+
 1. Traefik network exists: `docker network ls`
 2. Domain DNS is pointing to your server
 3. Traefik labels are correct in `docker-compose.yml`
@@ -280,6 +284,7 @@ Check:
 ### SSL Certificate Issues
 
 Ensure:
+
 1. Port 80 and 443 are open
 2. Domain is correctly pointed to your server
 3. Let's Encrypt rate limits haven't been exceeded
@@ -302,6 +307,7 @@ Ensure:
 ## Support
 
 For issues or questions:
+
 - Check logs: `docker-compose logs -f`
 - Review environment variables
 - Verify Traefik configuration

@@ -1387,9 +1387,7 @@
         "users_openId_unique": {
           "name": "users_openId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "policies": {},

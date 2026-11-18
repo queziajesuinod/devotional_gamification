@@ -9,19 +9,31 @@ const parseRequirement = (value: string): Record<string, any> | null => {
   }
 };
 
-const sameBook = (a: string, b: string) => a.trim().toLocaleUpperCase("pt-BR") === b.trim().toLocaleUpperCase("pt-BR");
+const sameBook = (a: string, b: string) =>
+  a.trim().toLocaleUpperCase("pt-BR") === b.trim().toLocaleUpperCase("pt-BR");
 
 /** Current hour in the app's timezone (America/Campo_Grande). */
 const campoGrandeHour = (date = new Date()) =>
   Number(
-    new Intl.DateTimeFormat("en-US", { timeZone: "America/Campo_Grande", hour: "numeric", hour12: false })
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Campo_Grande",
+      hour: "numeric",
+      hour12: false,
+    })
       .formatToParts(date)
-      .find((p) => p.type === "hour")?.value ?? 0
+      .find((p) => p.type === "hour")?.value ?? 0,
   ) % 24;
 
 export type EarnedMedal = Pick<
   Medal,
-  "id" | "name" | "description" | "iconEmoji" | "iconUrl" | "tier" | "xpReward" | "denarioReward"
+  | "id"
+  | "name"
+  | "description"
+  | "iconEmoji"
+  | "iconUrl"
+  | "tier"
+  | "xpReward"
+  | "denarioReward"
 >;
 
 const toEarned = (medal: Medal): EarnedMedal => ({
@@ -46,7 +58,12 @@ type UserStats = {
   completedChallenges: number;
   reflections: number;
   countByType: (type: string) => Promise<number>;
-  bibleProgress: { bookName: string; chaptersRead: number; totalChapters: number; isCompleted: boolean }[];
+  bibleProgress: {
+    bookName: string;
+    chaptersRead: number;
+    totalChapters: number;
+    isCompleted: boolean;
+  }[];
 };
 
 async function loadStats(userId: number): Promise<UserStats | null> {
@@ -66,7 +83,12 @@ async function loadStats(userId: number): Promise<UserStats | null> {
     bibleProgress,
     countByType: async (type) => {
       if (!typeCache.has(type)) {
-        typeCache.set(type, Number(await db.getUserCompletedChallengesCountByType(userId, type)) || 0);
+        typeCache.set(
+          type,
+          Number(
+            await db.getUserCompletedChallengesCountByType(userId, type),
+          ) || 0,
+        );
       }
       return typeCache.get(type)!;
     },
@@ -80,13 +102,22 @@ async function loadStats(userId: number): Promise<UserStats | null> {
 async function measure(requirement: Record<string, any>, stats: UserStats) {
   switch (requirement.type) {
     case "streak":
-      return { current: stats.currentStreak, target: Number(requirement.days) || 0 };
+      return {
+        current: stats.currentStreak,
+        target: Number(requirement.days) || 0,
+      };
     case "total_devotionals":
-      return { current: stats.completedChallenges, target: Number(requirement.count) || 0 };
+      return {
+        current: stats.completedChallenges,
+        target: Number(requirement.count) || 0,
+      };
     case "first_devotional":
       return { current: Math.min(stats.completedChallenges, 1), target: 1 };
     case "total_reflections":
-      return { current: stats.reflections, target: Number(requirement.count) || 0 };
+      return {
+        current: stats.reflections,
+        target: Number(requirement.count) || 0,
+      };
     case "challenge_type_count":
       return {
         current: await stats.countByType(String(requirement.challengeType)),
@@ -94,14 +125,23 @@ async function measure(requirement: Record<string, any>, stats: UserStats) {
       };
     case "book": {
       const bookName = String(requirement.bookName ?? requirement.book ?? "");
-      const row = stats.bibleProgress.find((b) => sameBook(b.bookName, bookName));
+      const row = stats.bibleProgress.find((b) =>
+        sameBook(b.bookName, bookName),
+      );
       const target = Number(requirement.chapters) || row?.totalChapters || 0;
-      return { current: row?.isCompleted ? target : row?.chaptersRead ?? 0, target };
+      return {
+        current: row?.isCompleted ? target : (row?.chaptersRead ?? 0),
+        target,
+      };
     }
     case "multiple_books": {
-      const books: string[] = Array.isArray(requirement.books) ? requirement.books : [];
+      const books: string[] = Array.isArray(requirement.books)
+        ? requirement.books
+        : [];
       const done = books.filter((book) =>
-        stats.bibleProgress.some((b) => b.isCompleted && sameBook(b.bookName, book))
+        stats.bibleProgress.some(
+          (b) => b.isCompleted && sameBook(b.bookName, book),
+        ),
       ).length;
       return { current: done, target: books.length };
     }
@@ -114,7 +154,9 @@ async function measure(requirement: Record<string, any>, stats: UserStats) {
  * Check and award all count/streak based medals.
  * Returns medals earned for the first time in this call.
  */
-export async function checkAndAwardAllMedals(userId: number): Promise<EarnedMedal[]> {
+export async function checkAndAwardAllMedals(
+  userId: number,
+): Promise<EarnedMedal[]> {
   const earned: EarnedMedal[] = [];
   const stats = await loadStats(userId);
   if (!stats) return earned;
@@ -124,11 +166,20 @@ export async function checkAndAwardAllMedals(userId: number): Promise<EarnedMeda
     const requirement = parseRequirement(medal.requirement);
     if (!requirement || typeof requirement.type !== "string") continue;
     // Book medals are handled by checkAndAwardBookMedal; time medals by checkTimeBasedMedals
-    if (["book", "multiple_books", "early_bird", "night_owl"].includes(requirement.type)) continue;
+    if (
+      ["book", "multiple_books", "early_bird", "night_owl"].includes(
+        requirement.type,
+      )
+    )
+      continue;
 
     try {
       const progress = await measure(requirement, stats);
-      if (progress && progress.target > 0 && progress.current >= progress.target) {
+      if (
+        progress &&
+        progress.target > 0 &&
+        progress.current >= progress.target
+      ) {
         await award(userId, medal, earned);
       }
     } catch (error) {
@@ -141,13 +192,18 @@ export async function checkAndAwardAllMedals(userId: number): Promise<EarnedMeda
 /**
  * Check and award medal for completing a Bible book (plus multi-book medals).
  */
-export async function checkAndAwardBookMedal(userId: number, bookName: string): Promise<EarnedMedal[]> {
+export async function checkAndAwardBookMedal(
+  userId: number,
+  bookName: string,
+): Promise<EarnedMedal[]> {
   const earned: EarnedMedal[] = [];
   const medals = await db.getAllMedals();
   const bookMedal = medals.find((m) => {
     const requirement = parseRequirement(m.requirement);
     if (requirement?.type === "book") {
-      const reqBook = (requirement.bookName as string | undefined) || (requirement.book as string | undefined);
+      const reqBook =
+        (requirement.bookName as string | undefined) ||
+        (requirement.book as string | undefined);
       return !!reqBook && sameBook(reqBook, bookName);
     }
     return false;
@@ -161,16 +217,23 @@ export async function checkAndAwardBookMedal(userId: number, bookName: string): 
   return earned;
 }
 
-async function checkSpecialBookMedals(userId: number, medals: Medal[]): Promise<EarnedMedal[]> {
+async function checkSpecialBookMedals(
+  userId: number,
+  medals: Medal[],
+): Promise<EarnedMedal[]> {
   const earned: EarnedMedal[] = [];
   const completedBooks = await db.getCompletedBooks(userId);
 
   for (const medal of medals) {
     const requirement = parseRequirement(medal.requirement);
-    if (requirement?.type !== "multiple_books" || !Array.isArray(requirement.books)) continue;
+    if (
+      requirement?.type !== "multiple_books" ||
+      !Array.isArray(requirement.books)
+    )
+      continue;
     try {
       const hasAllBooks = requirement.books.every((book: string) =>
-        completedBooks.some((b) => sameBook(b.bookName, book))
+        completedBooks.some((b) => sameBook(b.bookName, book)),
       );
       if (hasAllBooks) await award(userId, medal, earned);
     } catch (error) {
@@ -183,7 +246,9 @@ async function checkSpecialBookMedals(userId: number, medals: Medal[]): Promise<
 /**
  * Check and award time-based special medals (early bird, night owl), using the app timezone.
  */
-export async function checkTimeBasedMedals(userId: number): Promise<EarnedMedal[]> {
+export async function checkTimeBasedMedals(
+  userId: number,
+): Promise<EarnedMedal[]> {
   const earned: EarnedMedal[] = [];
   const medals = await db.getAllMedals();
   const hour = campoGrandeHour();
@@ -209,17 +274,25 @@ export async function checkTimeBasedMedals(userId: number): Promise<EarnedMedal[
  * All active medals with earned status and measurable progress for the user.
  */
 export async function getMedalsWithProgress(userId: number) {
-  const [medals, stats] = await Promise.all([db.getUserMedalsWithProgress(userId), loadStats(userId)]);
+  const [medals, stats] = await Promise.all([
+    db.getUserMedalsWithProgress(userId),
+    loadStats(userId),
+  ]);
 
   return Promise.all(
     medals.map(async (medal) => {
       const requirement = parseRequirement(medal.requirement);
-      const measured = !medal.isEarned && requirement && stats ? await measure(requirement, stats) : null;
+      const measured =
+        !medal.isEarned && requirement && stats
+          ? await measure(requirement, stats)
+          : null;
       return {
         ...medal,
-        progressCurrent: measured ? Math.min(measured.current, measured.target) : null,
+        progressCurrent: measured
+          ? Math.min(measured.current, measured.target)
+          : null,
         progressTarget: measured?.target ?? null,
       };
-    })
+    }),
   );
 }

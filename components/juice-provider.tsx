@@ -1,10 +1,28 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Text, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { Confetti, haptic, randomCheer } from "@/components/juice";
+import { GameIcon } from "@/components/game-icon";
 
 type BurstOptions = {
-  /** Headline; defaults to a random cheer ("Mandou bem! 🙌") */
+  /** Headline; defaults to a random cheer ("Mandou bem!") */
   title?: string;
   xp?: number;
   denario?: number;
@@ -23,17 +41,30 @@ type JuiceApi = {
 
 const JuiceContext = createContext<JuiceApi | null>(null);
 
-type ActiveBurst = Required<Pick<BurstOptions, "title">> & BurstOptions & { key: number };
+type ActiveBurst = Required<Pick<BurstOptions, "title">> &
+  BurstOptions & { key: number };
 
-function RewardChip({ burst, onDone }: { burst: ActiveBurst; onDone: () => void }) {
+function RewardChip({
+  burst,
+  onDone,
+}: {
+  burst: ActiveBurst;
+  onDone: () => void;
+}) {
   const scale = useSharedValue(0.3);
   const y = useSharedValue(0);
   const opacity = useSharedValue(0);
 
   useEffect(() => {
-    opacity.value = withSequence(withTiming(1, { duration: 120 }), withDelay(1300, withTiming(0, { duration: 350 })));
+    opacity.value = withSequence(
+      withTiming(1, { duration: 120 }),
+      withDelay(1300, withTiming(0, { duration: 350 })),
+    );
     scale.value = withSpring(1, { damping: 7, stiffness: 180 });
-    y.value = withDelay(500, withTiming(-90, { duration: 1250, easing: Easing.in(Easing.quad) }));
+    y.value = withDelay(
+      500,
+      withTiming(-90, { duration: 1250, easing: Easing.in(Easing.quad) }),
+    );
     const timer = setTimeout(onDone, 1900);
     return () => clearTimeout(timer);
   }, [burst.key, onDone, opacity, scale, y]);
@@ -44,20 +75,43 @@ function RewardChip({ burst, onDone }: { burst: ActiveBurst; onDone: () => void 
   }));
 
   return (
-    <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: "38%", alignItems: "center", zIndex: 1000 }}>
-      <Animated.View style={style} className="bg-background rounded-3xl px-6 py-4 items-center border-2 border-primary shadow-lg">
-        <Text className="text-foreground text-2xl font-extrabold">{burst.title}</Text>
-        {burst.subtitle ? <Text className="text-muted text-sm mt-1">{burst.subtitle}</Text> : null}
-        {(burst.xp || burst.denario) ? (
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: "38%",
+        alignItems: "center",
+        zIndex: 1000,
+      }}
+    >
+      <Animated.View
+        style={style}
+        className="bg-background rounded-3xl px-6 py-4 items-center border-2 border-primary shadow-lg"
+      >
+        <Text className="text-foreground text-2xl font-extrabold">
+          {burst.title}
+        </Text>
+        {burst.subtitle ? (
+          <Text className="text-muted text-sm mt-1">{burst.subtitle}</Text>
+        ) : null}
+        {burst.xp || burst.denario ? (
           <View className="flex-row gap-2 mt-2">
             {burst.xp ? (
-              <View className="bg-primary px-3 py-1 rounded-full">
-                <Text className="text-white font-extrabold">+{burst.xp} XP</Text>
+              <View className="bg-primary px-3 py-1 rounded-full flex-row items-center">
+                <GameIcon name="xp" size="sm" style={{ marginRight: 4 }} />
+                <Text className="text-white font-extrabold">
+                  +{burst.xp} XP
+                </Text>
               </View>
             ) : null}
             {burst.denario ? (
-              <View className="bg-warning px-3 py-1 rounded-full">
-                <Text className="text-foreground font-extrabold">+{burst.denario} 💰</Text>
+              <View className="bg-warning px-3 py-1 rounded-full flex-row items-center">
+                <GameIcon name="coin" size="sm" style={{ marginRight: 4 }} />
+                <Text className="text-foreground font-extrabold">
+                  +{burst.denario}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -83,10 +137,14 @@ export function JuiceProvider({ children }: { children: ReactNode }) {
     (options: BurstOptions = {}) => {
       counter.current += 1;
       haptic.success();
-      setActive({ ...options, title: options.title ?? randomCheer(), key: counter.current });
+      setActive({
+        ...options,
+        title: options.title ?? randomCheer(),
+        key: counter.current,
+      });
       if (options.confetti !== false) confetti(40);
     },
-    [confetti]
+    [confetti],
   );
 
   const clearBurst = useCallback(() => setActive(null), []);
@@ -97,8 +155,14 @@ export function JuiceProvider({ children }: { children: ReactNode }) {
     <JuiceContext.Provider value={api}>
       <View style={{ flex: 1 }}>
         {children}
-        {active && <RewardChip key={active.key} burst={active} onDone={clearBurst} />}
-        <Confetti burstKey={confettiKey} count={confettiCount} onDone={clearConfetti} />
+        {active && (
+          <RewardChip key={active.key} burst={active} onDone={clearBurst} />
+        )}
+        <Confetti
+          burstKey={confettiKey}
+          count={confettiCount}
+          onDone={clearConfetti}
+        />
       </View>
     </JuiceContext.Provider>
   );

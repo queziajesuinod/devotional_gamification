@@ -101,7 +101,8 @@ const maskWhatsappInput = (value: string) => {
   return parts.join(" ").trim();
 };
 
-const formatWhatsappForInput = (value?: string | null) => maskWhatsappInput(value ?? "");
+const formatWhatsappForInput = (value?: string | null) =>
+  maskWhatsappInput(value ?? "");
 
 const buildBirthDateIso = (digits: string) => {
   const day = digits.slice(0, 2).padStart(2, "0");
@@ -140,7 +141,9 @@ export default function SettingsScreen() {
 
   const getApiUrl = () => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
-      const origin = window.location.origin.replace(':8081', ':3009').replace('8081-', '3009-');
+      const origin = window.location.origin
+        .replace(":8081", ":3009")
+        .replace("8081-", "3009-");
       return `${origin}/api`;
     }
     return "https://3000-il1293ezarklxcfek50kx-f2f21d31.us2.manus.computer/api";
@@ -198,7 +201,10 @@ export default function SettingsScreen() {
       if (trimmedFullName) {
         payload.name = trimmedFullName;
       }
-      if (trimmedNickname && trimmedNickname !== (userData?.nickname || "").trim()) {
+      if (
+        trimmedNickname &&
+        trimmedNickname !== (userData?.nickname || "").trim()
+      ) {
         payload.nickname = trimmedNickname;
       }
       if (trimmedEmail) payload.email = trimmedEmail.toLowerCase();
@@ -220,7 +226,9 @@ export default function SettingsScreen() {
     } catch (err: any) {
       console.error("Profile update error:", err);
       setError(err.response?.data?.error || "Erro ao atualizar perfil");
-      notifications.error(err.response?.data?.error || "Erro ao atualizar perfil");
+      notifications.error(
+        err.response?.data?.error || "Erro ao atualizar perfil",
+      );
     } finally {
       setLoading(false);
     }
@@ -261,7 +269,7 @@ export default function SettingsScreen() {
         },
         {
           withCredentials: true,
-        }
+        },
       );
 
       if (response.data.success) {
@@ -343,23 +351,23 @@ export default function SettingsScreen() {
           </View>
 
           {/* Stats */}
-        <View className="flex-row gap-4 mb-6">
-          <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
-            <Text className="text-muted text-xs mb-1">XP Total</Text>
-            <Text className="text-foreground text-2xl font-bold">
-              {userData.xpTotal}
-            </Text>
+          <View className="flex-row gap-4 mb-6">
+            <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
+              <Text className="text-muted text-xs mb-1">XP Total</Text>
+              <Text className="text-foreground text-2xl font-bold">
+                {userData.xpTotal}
+              </Text>
+            </View>
+            <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
+              <Text className="text-muted text-xs mb-1">Denários</Text>
+              <Text className="text-foreground text-2xl font-bold">
+                {userData.denarioBalance}
+              </Text>
+            </View>
           </View>
-          <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
-            <Text className="text-muted text-xs mb-1">Denários</Text>
-            <Text className="text-foreground text-2xl font-bold">
-              {userData.denarioBalance}
-            </Text>
-          </View>
-        </View>
 
-        {/* Profile Information */}
-        <View className="bg-surface rounded-xl p-4 border border-border mb-4">
+          {/* Profile Information */}
+          <View className="bg-surface rounded-xl p-4 border border-border mb-4">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-foreground text-lg font-bold">
                 Informações do Perfil
@@ -421,8 +429,7 @@ export default function SettingsScreen() {
 
                 <View>
                   <Text className="text-foreground text-sm font-semibold mb-2">
-                    Sexo{" "}
-                    <Text className="text-muted text-xs">(opcional)</Text>
+                    Sexo <Text className="text-muted text-xs">(opcional)</Text>
                   </Text>
                   <View className="flex-row gap-2">
                     {GENDER_OPTIONS.map((option) => (
@@ -430,7 +437,7 @@ export default function SettingsScreen() {
                         key={option.value}
                         onPress={() =>
                           setGender((current) =>
-                            current === option.value ? "" : option.value
+                            current === option.value ? "" : option.value,
                           )
                         }
                         className={`flex-1 rounded-xl border px-4 py-3 items-center justify-center ${
@@ -441,7 +448,9 @@ export default function SettingsScreen() {
                       >
                         <Text
                           className={`font-semibold ${
-                            gender === option.value ? "text-primary" : "text-foreground"
+                            gender === option.value
+                              ? "text-primary"
+                              : "text-foreground"
                           }`}
                         >
                           {option.label}
@@ -461,7 +470,9 @@ export default function SettingsScreen() {
                     placeholder="DD/MM/AAAA"
                     placeholderTextColor="#9BA1A6"
                     value={birthDate}
-                    onChangeText={(value) => setBirthDate(maskBirthDateInput(value))}
+                    onChangeText={(value) =>
+                      setBirthDate(maskBirthDateInput(value))
+                    }
                     keyboardType="numeric"
                     maxLength={10}
                     editable={!loading}
@@ -478,7 +489,9 @@ export default function SettingsScreen() {
                     placeholder="(00) 00000-0000"
                     placeholderTextColor="#9BA1A6"
                     value={whatsapp}
-                    onChangeText={(value) => setWhatsapp(maskWhatsappInput(value))}
+                    onChangeText={(value) =>
+                      setWhatsapp(maskWhatsappInput(value))
+                    }
                     keyboardType="phone-pad"
                     maxLength={18}
                     editable={!loading}
@@ -487,7 +500,9 @@ export default function SettingsScreen() {
 
                 {error ? (
                   <View className="bg-error/10 p-3 rounded-xl">
-                    <Text className="text-error text-sm text-center">{error}</Text>
+                    <Text className="text-error text-sm text-center">
+                      {error}
+                    </Text>
                   </View>
                 ) : null}
 
@@ -679,7 +694,9 @@ export default function SettingsScreen() {
             className="bg-error py-4 rounded-full active:opacity-70 mb-6"
             onPress={handleLogout}
           >
-            <Text className="text-white text-center font-bold text-lg">Sair</Text>
+            <Text className="text-white text-center font-bold text-lg">
+              Sair
+            </Text>
           </TouchableOpacity>
 
           {/* Back Button */}

@@ -47,23 +47,37 @@ const toCampoGrandeParts = (date: Date): CampoGrandeParts => {
 };
 
 const buildUtcFromParts = (parts: CampoGrandeParts) =>
-  Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+  );
 
-const clampParts = (parts: CampoGrandeParts, overrides: Partial<CampoGrandeParts>) => ({
+const clampParts = (
+  parts: CampoGrandeParts,
+  overrides: Partial<CampoGrandeParts>,
+) => ({
   ...parts,
   ...overrides,
 });
 
 const parseDateValue = (value: string | Date) => {
   if (typeof value === "string") {
-    const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2}))?/.exec(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2}))?/.exec(
+      value,
+    );
     if (match) {
       const [_, year, month, day, hour, minute, second] = match;
       const hasTime = typeof hour !== "undefined";
       if (hasTime) {
         return new Date(value);
       }
-      return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12));
+      return new Date(
+        Date.UTC(Number(year), Number(month) - 1, Number(day), 12),
+      );
     }
   }
   return new Date(value);

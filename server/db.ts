@@ -43,6 +43,7 @@ import {
   levelFromXp,
   weekKey,
 } from "../shared/progression";
+import { DEFAULT_CHARACTER } from "../shared/character-catalog";
 
 let _pool: Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -80,7 +81,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   try {
     const values: InsertUser = {
       openId: user.openId,
-      nickname: user.nickname || user.name || user.email?.split('@')[0] || 'Usuário',
+      nickname:
+        user.nickname || user.name || user.email?.split("@")[0] || "Usuário",
     };
     const updateSet: Record<string, unknown> = {};
 
@@ -96,7 +98,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     };
 
     textFields.forEach(assignNullable);
-    
+
     // Handle nickname separately since it's required
     if (user.nickname) {
       values.nickname = user.nickname;
@@ -140,7 +142,11 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -149,7 +155,11 @@ export async function getUserById(userId: number) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -157,7 +167,11 @@ export async function getUserByEmail(email: string) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -187,7 +201,11 @@ export async function createUser(user: {
   await db.insert(users).values(insertData);
 
   // Fetch the created user
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
   if (result.length === 0) {
     throw new Error("Failed to create user");
   }
@@ -195,7 +213,11 @@ export async function createUser(user: {
   return result[0];
 }
 
-export async function updateUserXpAndDenario(userId: number, xpDelta: number, denarioDelta: number) {
+export async function updateUserXpAndDenario(
+  userId: number,
+  xpDelta: number,
+  denarioDelta: number,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -216,7 +238,11 @@ export async function updateUserXpAndDenario(userId: number, xpDelta: number, de
     await db.update(users).set({ level: newLevel }).where(eq(users.id, userId));
   }
 
-  return { xpTotal: updated.xpTotal, levelBefore: updated.level, levelAfter: newLevel };
+  return {
+    xpTotal: updated.xpTotal,
+    levelBefore: updated.level,
+    levelAfter: newLevel,
+  };
 }
 
 export async function updateUserAvatar(
@@ -226,17 +252,22 @@ export async function updateUserAvatar(
   equippedClothesId?: number | null,
   equippedAccessoryId?: number | null,
   equippedHairStyleId?: number | null,
-  equippedHairColorId?: number | null
+  equippedHairColorId?: number | null,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const updateData: any = { avatarConfig };
-  if (equippedBackgroundId !== undefined) updateData.equippedBackgroundId = equippedBackgroundId;
-  if (equippedClothesId !== undefined) updateData.equippedClothesId = equippedClothesId;
-  if (equippedAccessoryId !== undefined) updateData.equippedAccessoryId = equippedAccessoryId;
-  if (equippedHairStyleId !== undefined) updateData.equippedHairStyleId = equippedHairStyleId;
-  if (equippedHairColorId !== undefined) updateData.equippedHairColorId = equippedHairColorId;
+  if (equippedBackgroundId !== undefined)
+    updateData.equippedBackgroundId = equippedBackgroundId;
+  if (equippedClothesId !== undefined)
+    updateData.equippedClothesId = equippedClothesId;
+  if (equippedAccessoryId !== undefined)
+    updateData.equippedAccessoryId = equippedAccessoryId;
+  if (equippedHairStyleId !== undefined)
+    updateData.equippedHairStyleId = equippedHairStyleId;
+  if (equippedHairColorId !== undefined)
+    updateData.equippedHairColorId = equippedHairColorId;
 
   await db.update(users).set(updateData).where(eq(users.id, userId));
 }
@@ -263,9 +294,7 @@ export async function getDevotionalDayByDate(date: Date | string) {
   if (!db) return undefined;
 
   const dateStr =
-    typeof date === 'string'
-      ? date
-      : date.toISOString().split('T')[0];
+    typeof date === "string" ? date : date.toISOString().split("T")[0];
   const result = await db
     .select()
     .from(devotionalDays)
@@ -292,21 +321,32 @@ export async function getChallengesByDevotionalDayId(devotionalDayId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select().from(challenges).where(eq(challenges.devotionalDayId, devotionalDayId));
+  return db
+    .select()
+    .from(challenges)
+    .where(eq(challenges.devotionalDayId, devotionalDayId));
 }
 
 // ============================================
 // CHALLENGES
 // ============================================
 
-export async function getUserChallengeStatus(userId: number, challengeId: number) {
+export async function getUserChallengeStatus(
+  userId: number,
+  challengeId: number,
+) {
   const db = await getDb();
   if (!db) return undefined;
 
   const result = await db
     .select()
     .from(userChallenges)
-    .where(and(eq(userChallenges.userId, userId), eq(userChallenges.challengeId, challengeId)))
+    .where(
+      and(
+        eq(userChallenges.userId, userId),
+        eq(userChallenges.challengeId, challengeId),
+      ),
+    )
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
@@ -324,7 +364,7 @@ export async function completeUserChallenge(
   challengeId: number,
   xpEarned: number,
   denariosEarned: number,
-  responseText?: string
+  responseText?: string,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -337,8 +377,13 @@ export async function completeUserChallenge(
       responseText: responseText || null,
       completedAt: new Date(),
     })
-    .where(and(eq(userChallenges.userId, userId), eq(userChallenges.challengeId, challengeId)));
-    
+    .where(
+      and(
+        eq(userChallenges.userId, userId),
+        eq(userChallenges.challengeId, challengeId),
+      ),
+    );
+
   // Update user's streak
   const streak = await updateUserStreak(userId);
 
@@ -352,7 +397,11 @@ export async function getChallengeById(challengeId: number) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db.select().from(challenges).where(eq(challenges.id, challengeId)).limit(1);
+  const result = await db
+    .select()
+    .from(challenges)
+    .where(eq(challenges.id, challengeId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -372,13 +421,16 @@ export async function getUserReflections(userId: number) {
     })
     .from(userChallenges)
     .innerJoin(challenges, eq(userChallenges.challengeId, challenges.id))
-    .innerJoin(devotionalDays, eq(challenges.devotionalDayId, devotionalDays.id))
+    .innerJoin(
+      devotionalDays,
+      eq(challenges.devotionalDayId, devotionalDays.id),
+    )
     .where(
       and(
         eq(userChallenges.userId, userId),
         eq(challenges.type, "REFLECTION"),
-        sql`${userChallenges.responseText} IS NOT NULL`
-      )
+        sql`${userChallenges.responseText} IS NOT NULL`,
+      ),
     )
     .orderBy(desc(userChallenges.completedAt));
 
@@ -401,7 +453,9 @@ export type StreakUpdateResult = {
  * Missed days are covered by "Graças" (streak freezes) when available; one Graça is
  * granted per week (up to MAX_STREAK_FREEZES).
  */
-export async function updateUserStreak(userId: number): Promise<StreakUpdateResult | undefined> {
+export async function updateUserStreak(
+  userId: number,
+): Promise<StreakUpdateResult | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -409,7 +463,9 @@ export async function updateUserStreak(userId: number): Promise<StreakUpdateResu
   if (!user) return;
 
   const today = getCampoGrandeDateString();
-  const lastActivity = user.lastActivityDate ? String(user.lastActivityDate).slice(0, 10) : null;
+  const lastActivity = user.lastActivityDate
+    ? String(user.lastActivityDate).slice(0, 10)
+    : null;
 
   // Weekly Graça grant
   let freezes = user.streakFreezes ?? 0;
@@ -470,7 +526,9 @@ export async function updateUserStreak(userId: number): Promise<StreakUpdateResu
       lastActivityDate: today,
       streakFreezes: freezes,
       streakFreezeWeek: currentWeek,
-      ...(bonusDenarios > 0 ? { denarioBalance: sql`${users.denarioBalance} + ${bonusDenarios}` } : {}),
+      ...(bonusDenarios > 0
+        ? { denarioBalance: sql`${users.denarioBalance} + ${bonusDenarios}` }
+        : {}),
     })
     .where(eq(users.id, userId));
 
@@ -512,8 +570,8 @@ export async function buyStreakFreeze(userId: number) {
     .where(
       and(
         eq(users.id, userId),
-        sql`${users.streakFreezeWeek} IS DISTINCT FROM ${currentWeek}`
-      )
+        sql`${users.streakFreezeWeek} IS DISTINCT FROM ${currentWeek}`,
+      ),
     );
 
   const [updated] = await db
@@ -526,10 +584,13 @@ export async function buyStreakFreeze(userId: number) {
       and(
         eq(users.id, userId),
         sql`${users.streakFreezes} < ${MAX_STREAK_FREEZES}`,
-        gte(users.denarioBalance, STREAK_FREEZE_PRICE)
-      )
+        gte(users.denarioBalance, STREAK_FREEZE_PRICE),
+      ),
     )
-    .returning({ streakFreezes: users.streakFreezes, denarioBalance: users.denarioBalance });
+    .returning({
+      streakFreezes: users.streakFreezes,
+      denarioBalance: users.denarioBalance,
+    });
 
   if (!updated) return null;
 
@@ -570,7 +631,11 @@ export async function getShopItemById(itemId: number) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db.select().from(shopItems).where(eq(shopItems.id, itemId)).limit(1);
+  const result = await db
+    .select()
+    .from(shopItems)
+    .where(eq(shopItems.id, itemId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -603,17 +668,25 @@ export async function userOwnsItem(userId: number, itemId: number) {
   return result.length > 0;
 }
 
-export async function purchaseItem(userId: number, itemId: number, price: number) {
+export async function purchaseItem(
+  userId: number,
+  itemId: number,
+  price: number,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Deduct denarios
-  await db
+  // Deduct denarios atomically (never below zero, even with double taps)
+  const [debited] = await db
     .update(users)
     .set({
       denarioBalance: sql`${users.denarioBalance} - ${price}`,
     })
-    .where(eq(users.id, userId));
+    .where(and(eq(users.id, userId), gte(users.denarioBalance, price)))
+    .returning({ id: users.id });
+  if (!debited) {
+    throw new Error("Insufficient denarios");
+  }
 
   // Add item to user's inventory
   await db.insert(userItems).values({
@@ -640,7 +713,9 @@ export async function grantFreeItemsToUser(userId: number) {
     const freeItems = await db
       .select()
       .from(shopItems)
-      .where(and(eq(shopItems.priceDenario, 0), eq(shopItems.isAvailable, true)));
+      .where(
+        and(eq(shopItems.priceDenario, 0), eq(shopItems.isAvailable, true)),
+      );
 
     // Grant each free item to the user
     for (const item of freeItems) {
@@ -664,16 +739,24 @@ export async function equipItem(userId: number, itemId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Check if user owns the item
-  const owns = await userOwnsItem(userId, itemId);
-  if (!owns) {
-    throw new Error("User does not own this item");
-  }
-
   // Get item details
   const item = await getShopItemById(itemId);
   if (!item) {
     throw new Error("Item not found");
+  }
+
+  // Free catalog items are owned by everyone
+  const owns = (item.slug && item.priceDenario === 0) || (await userOwnsItem(userId, itemId));
+  if (!owns) {
+    throw new Error("User does not own this item");
+  }
+
+  // Looks and hair colors belong to one character
+  if (item.characterKey) {
+    const user = await getUserById(userId);
+    if ((user?.characterKey ?? DEFAULT_CHARACTER) !== item.characterKey) {
+      throw new Error("Este item é de outro personagem");
+    }
   }
 
   // Update user's equipped item based on type
@@ -701,7 +784,7 @@ export async function unequipItem(
     | "ACCESSORY"
     | "HAIR_STYLE"
     | "HAIR_COLOR"
-    | "BASE_FEATURE"
+    | "BASE_FEATURE",
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -721,6 +804,16 @@ export async function unequipItem(
   }
 
   await db.update(users).set(updateData).where(eq(users.id, userId));
+}
+
+/** Pick the figurine character; looks/hair of the previous character are unequipped. */
+export async function setUserCharacter(userId: number, characterKey: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({ characterKey, equippedClothesId: null, equippedHairColorId: null })
+    .where(eq(users.id, userId));
 }
 
 export async function getEquippedItems(userId: number) {
@@ -765,7 +858,7 @@ export async function getActiveRankingPeriod(periodType: "MONTH" | "YEAR") {
   const db = await getDb();
   if (!db) return undefined;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
   const result = await db
     .select()
     .from(rankingPeriods)
@@ -774,15 +867,19 @@ export async function getActiveRankingPeriod(periodType: "MONTH" | "YEAR") {
         eq(rankingPeriods.periodType, periodType),
         eq(rankingPeriods.isActive, true),
         lte(rankingPeriods.startDate, today as any),
-        gte(rankingPeriods.endDate, today as any)
-      )
+        gte(rankingPeriods.endDate, today as any),
+      ),
     )
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function updateUserRankingScore(rankingPeriodId: number, userId: number, xpDelta: number) {
+export async function updateUserRankingScore(
+  rankingPeriodId: number,
+  userId: number,
+  xpDelta: number,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -791,7 +888,10 @@ export async function updateUserRankingScore(rankingPeriodId: number, userId: nu
     .select()
     .from(userRankingScores)
     .where(
-      and(eq(userRankingScores.rankingPeriodId, rankingPeriodId), eq(userRankingScores.userId, userId))
+      and(
+        eq(userRankingScores.rankingPeriodId, rankingPeriodId),
+        eq(userRankingScores.userId, userId),
+      ),
     )
     .limit(1);
 
@@ -802,7 +902,10 @@ export async function updateUserRankingScore(rankingPeriodId: number, userId: nu
         xpTotal: sql`${userRankingScores.xpTotal} + ${xpDelta}`,
       })
       .where(
-        and(eq(userRankingScores.rankingPeriodId, rankingPeriodId), eq(userRankingScores.userId, userId))
+        and(
+          eq(userRankingScores.rankingPeriodId, rankingPeriodId),
+          eq(userRankingScores.userId, userId),
+        ),
       );
   } else {
     await db.insert(userRankingScores).values({
@@ -813,7 +916,10 @@ export async function updateUserRankingScore(rankingPeriodId: number, userId: nu
   }
 }
 
-export async function getLeaderboard(rankingPeriodId: number, limit: number = 100) {
+export async function getLeaderboard(
+  rankingPeriodId: number,
+  limit: number = 100,
+) {
   const db = await getDb();
   if (!db) return [];
 
@@ -831,7 +937,10 @@ export async function getLeaderboard(rankingPeriodId: number, limit: number = 10
     .limit(limit);
 }
 
-export async function getUserRankingPosition(rankingPeriodId: number, userId: number) {
+export async function getUserRankingPosition(
+  rankingPeriodId: number,
+  userId: number,
+) {
   const db = await getDb();
   if (!db) return undefined;
 
@@ -839,7 +948,10 @@ export async function getUserRankingPosition(rankingPeriodId: number, userId: nu
     .select()
     .from(userRankingScores)
     .where(
-      and(eq(userRankingScores.rankingPeriodId, rankingPeriodId), eq(userRankingScores.userId, userId))
+      and(
+        eq(userRankingScores.rankingPeriodId, rankingPeriodId),
+        eq(userRankingScores.userId, userId),
+      ),
     )
     .limit(1);
 
@@ -851,8 +963,8 @@ export async function getUserRankingPosition(rankingPeriodId: number, userId: nu
     .where(
       and(
         eq(userRankingScores.rankingPeriodId, rankingPeriodId),
-        sql`${userRankingScores.xpTotal} > ${userScore[0].xpTotal}`
-      )
+        sql`${userRankingScores.xpTotal} > ${userScore[0].xpTotal}`,
+      ),
     );
 
   return {
@@ -876,7 +988,11 @@ export async function getGroupById(groupId: number) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
+  const result = await db
+    .select()
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
   return result[0];
 }
 
@@ -884,7 +1000,11 @@ export async function getGroupByLeaderId(leaderId: number) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db.select().from(groups).where(eq(groups.leaderId, leaderId)).limit(1);
+  const result = await db
+    .select()
+    .from(groups)
+    .where(eq(groups.leaderId, leaderId))
+    .limit(1);
   return result[0];
 }
 
@@ -903,7 +1023,9 @@ export async function requestJoinGroup(userId: number, groupId: number) {
   const existing = await db
     .select()
     .from(groupMembers)
-    .where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId)))
+    .where(
+      and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId)),
+    )
     .limit(1);
 
   if (existing.length > 0) {
@@ -917,12 +1039,19 @@ export async function requestJoinGroup(userId: number, groupId: number) {
   });
 }
 
-export async function approveGroupMember(requestId: number, approverId: number) {
+export async function approveGroupMember(
+  requestId: number,
+  approverId: number,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const request = await db.select().from(groupMembers).where(eq(groupMembers.id, requestId)).limit(1);
-  
+  const request = await db
+    .select()
+    .from(groupMembers)
+    .where(eq(groupMembers.id, requestId))
+    .limit(1);
+
   if (request.length === 0) {
     throw new Error("Solicitação não encontrada");
   }
@@ -997,7 +1126,12 @@ export async function getPendingGroupRequests(groupId: number) {
     })
     .from(groupMembers)
     .innerJoin(users, eq(groupMembers.userId, users.id))
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.status, "pending")))
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.status, "pending"),
+      ),
+    )
     .orderBy(desc(groupMembers.requestedAt));
 }
 
@@ -1041,7 +1175,12 @@ export async function getGroupMembersForLeader(groupId: number) {
     })
     .from(groupMembers)
     .innerJoin(users, eq(groupMembers.userId, users.id))
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.status, "approved")))
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.status, "approved"),
+      ),
+    )
     .orderBy(desc(users.xpTotal));
 }
 
@@ -1060,7 +1199,9 @@ export async function getUserGroup(userId: number) {
     })
     .from(groupMembers)
     .innerJoin(groups, eq(groupMembers.groupId, groups.id))
-    .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "approved")))
+    .where(
+      and(eq(groupMembers.userId, userId), eq(groupMembers.status, "approved")),
+    )
     .limit(1);
 
   return membership[0];
@@ -1193,7 +1334,7 @@ export async function getUserMedalsWithProgress(userId: number) {
 
   // Get all medals
   const allMedals = await getAllMedals();
-  
+
   // Get user's earned medals
   const earnedMedals = await db
     .select()
@@ -1212,7 +1353,11 @@ export async function getUserMedalsWithProgress(userId: number) {
   });
 }
 
-export async function awardMedal(userId: number, medalId: number, progress: number = 100) {
+export async function awardMedal(
+  userId: number,
+  medalId: number,
+  progress: number = 100,
+) {
   const db = await getDb();
   if (!db) return null;
 
@@ -1221,7 +1366,9 @@ export async function awardMedal(userId: number, medalId: number, progress: numb
     const existing = await db
       .select()
       .from(userMedals)
-      .where(and(eq(userMedals.userId, userId), eq(userMedals.medalId, medalId)))
+      .where(
+        and(eq(userMedals.userId, userId), eq(userMedals.medalId, medalId)),
+      )
       .limit(1);
 
     if (existing.length > 0) {
@@ -1245,7 +1392,11 @@ export async function awardMedal(userId: number, medalId: number, progress: numb
     }
 
     // Grant the medal's rewards
-    const [medal] = await db.select().from(medals).where(eq(medals.id, medalId)).limit(1);
+    const [medal] = await db
+      .select()
+      .from(medals)
+      .where(eq(medals.id, medalId))
+      .limit(1);
     if (medal && (medal.xpReward > 0 || medal.denarioReward > 0)) {
       await updateUserXpAndDenario(userId, medal.xpReward, medal.denarioReward);
       await createPointTransaction({
@@ -1257,14 +1408,24 @@ export async function awardMedal(userId: number, medalId: number, progress: numb
       });
     }
 
-    return { userId, medalId, progress, isNew: true as const, medal: medal ?? null };
+    return {
+      userId,
+      medalId,
+      progress,
+      isNew: true as const,
+      medal: medal ?? null,
+    };
   } catch (error) {
     console.error("Error awarding medal:", error);
     return null;
   }
 }
 
-export async function updateMedalProgress(userId: number, medalId: number, progress: number) {
+export async function updateMedalProgress(
+  userId: number,
+  medalId: number,
+  progress: number,
+) {
   const db = await getDb();
   if (!db) return;
 
@@ -1283,7 +1444,8 @@ type ParsedBibleReference = {
   chapters: number[];
 };
 
-const normalizeBookName = (value: string) => value.trim().replace(/\s+/g, " ").toUpperCase();
+const normalizeBookName = (value: string) =>
+  value.trim().replace(/\s+/g, " ").toUpperCase();
 
 const parseChapterToken = (value: string): number[] => {
   const token = value.trim();
@@ -1343,14 +1505,22 @@ const parseBibleReference = (reference: string): ParsedBibleReference[] => {
   }));
 };
 
-export async function getBibleReadingProgress(userId: number, bookName: string) {
+export async function getBibleReadingProgress(
+  userId: number,
+  bookName: string,
+) {
   const db = await getDb();
   if (!db) return null;
 
   const result = await db
     .select()
     .from(bibleReadingProgress)
-    .where(and(eq(bibleReadingProgress.userId, userId), eq(bibleReadingProgress.bookName, bookName)))
+    .where(
+      and(
+        eq(bibleReadingProgress.userId, userId),
+        eq(bibleReadingProgress.bookName, bookName),
+      ),
+    )
     .limit(1);
 
   return result[0] || null;
@@ -1360,7 +1530,7 @@ export async function updateBibleReadingProgress(
   userId: number,
   bookName: string,
   chaptersRead: number,
-  totalChapters: number
+  totalChapters: number,
 ) {
   const db = await getDb();
   if (!db) return null;
@@ -1382,7 +1552,12 @@ export async function updateBibleReadingProgress(
           lastReadAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(and(eq(bibleReadingProgress.userId, userId), eq(bibleReadingProgress.bookName, bookName)));
+        .where(
+          and(
+            eq(bibleReadingProgress.userId, userId),
+            eq(bibleReadingProgress.bookName, bookName),
+          ),
+        );
     } else {
       // Insert new progress
       await db.insert(bibleReadingProgress).values({
@@ -1406,7 +1581,7 @@ export async function updateBibleReadingProgress(
 export async function recalculateBibleProgressForBook(
   userId: number,
   planId: number,
-  bookName: string
+  bookName: string,
 ) {
   const db = await getDb();
   if (!db) return null;
@@ -1445,8 +1620,8 @@ export async function recalculateBibleProgressForBook(
       and(
         eq(bibleReadingSegments.userId, userId),
         eq(bibleReadingSegments.planId, planId),
-        eq(bibleReadingSegments.bookName, normalizedBook)
-      )
+        eq(bibleReadingSegments.bookName, normalizedBook),
+      ),
     )
     .groupBy(bibleReadingSegments.chapter);
 
@@ -1464,10 +1639,18 @@ export async function recalculateBibleProgressForBook(
   }
 
   const totalChapters = requiredSegments.size;
-  return updateBibleReadingProgress(userId, normalizedBook, chaptersRead, totalChapters);
+  return updateBibleReadingProgress(
+    userId,
+    normalizedBook,
+    chaptersRead,
+    totalChapters,
+  );
 }
 
-export async function recordBibleReadingForDay(userId: number, devotionalDayId: number) {
+export async function recordBibleReadingForDay(
+  userId: number,
+  devotionalDayId: number,
+) {
   const db = await getDb();
   if (!db) return [];
 
@@ -1500,9 +1683,16 @@ export async function recordBibleReadingForDay(userId: number, devotionalDayId: 
     updatedBooks.add(bookName);
   }
 
-  const results: Array<{ bookName: string; progress: InsertBibleReadingProgress | null }> = [];
+  const results: Array<{
+    bookName: string;
+    progress: InsertBibleReadingProgress | null;
+  }> = [];
   for (const bookName of updatedBooks) {
-    const progress = await recalculateBibleProgressForBook(userId, planId, bookName);
+    const progress = await recalculateBibleProgressForBook(
+      userId,
+      planId,
+      bookName,
+    );
     results.push({ bookName, progress });
   }
 
@@ -1527,25 +1717,37 @@ export async function getCompletedBooks(userId: number) {
   return await db
     .select()
     .from(bibleReadingProgress)
-    .where(and(eq(bibleReadingProgress.userId, userId), eq(bibleReadingProgress.isCompleted, true)))
+    .where(
+      and(
+        eq(bibleReadingProgress.userId, userId),
+        eq(bibleReadingProgress.isCompleted, true),
+      ),
+    )
     .orderBy(desc(bibleReadingProgress.completedAt));
 }
 
-export async function getUserCompletedChallengesCount(userId: number): Promise<number> {
+export async function getUserCompletedChallengesCount(
+  userId: number,
+): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
 
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(userChallenges)
-    .where(and(eq(userChallenges.userId, userId), sql`${userChallenges.completedAt} IS NOT NULL`));
+    .where(
+      and(
+        eq(userChallenges.userId, userId),
+        sql`${userChallenges.completedAt} IS NOT NULL`,
+      ),
+    );
 
   return result[0]?.count || 0;
 }
 
 export async function getUserCompletedChallengesCountByType(
   userId: number,
-  challengeType: string
+  challengeType: string,
 ): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
@@ -1558,8 +1760,8 @@ export async function getUserCompletedChallengesCountByType(
       and(
         eq(userChallenges.userId, userId),
         eq(challenges.type, challengeType as typeof challenges.type.$type),
-        sql`${userChallenges.completedAt} IS NOT NULL`
-      )
+        sql`${userChallenges.completedAt} IS NOT NULL`,
+      ),
     );
 
   return result[0]?.count || 0;

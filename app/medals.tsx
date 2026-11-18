@@ -13,13 +13,21 @@ import { useRouter } from "expo-router";
 import { trpc } from "@/lib/trpc";
 import { MEDAL_TIER_COLOR, MEDAL_TIER_LABEL } from "@shared/medal-rewards";
 import { AnimatedBar } from "@/components/juice";
+import { GameIcon, type GameIconName } from "@/components/game-icon";
+
+const MEDAL_TIER_ICON: Record<string, GameIconName> = {
+  BRONZE: "medal-bronze",
+  SILVER: "medal-silver",
+  GOLD: "medal-gold",
+  DIAMOND: "medal-diamond",
+};
 
 type TabType = "all" | "earned" | "available";
 
 export default function MedalsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("all");
-  
+
   const { data: medals, isLoading } = trpc.medals.list.useQuery();
 
   const earnedMedals = medals?.filter((m) => m.isEarned) || [];
@@ -29,38 +37,41 @@ export default function MedalsScreen() {
     activeTab === "all"
       ? medals || []
       : activeTab === "earned"
-      ? earnedMedals
-      : availableMedals;
+        ? earnedMedals
+        : availableMedals;
 
   const getCategoryName = (category: string) => {
     const names: Record<string, string> = {
-      BIBLE_BOOK: "📖 Livros Bíblicos",
-      STREAK: "🔥 Sequências",
-      MILESTONE: "🏆 Marcos",
-      SPECIAL: "⭐ Especiais",
+      BIBLE_BOOK: "Livros Bíblicos",
+      STREAK: "Sequências",
+      MILESTONE: "Marcos",
+      SPECIAL: "Especiais",
     };
     return names[category] || category;
   };
 
-  const groupedMedals = displayedMedals.reduce((acc, medal) => {
-    const category = medal.category;
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(medal);
-    return acc;
-  }, {} as Record<string, typeof displayedMedals>);
+  const groupedMedals = displayedMedals.reduce(
+    (acc, medal) => {
+      const category = medal.category;
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(medal);
+      return acc;
+    },
+    {} as Record<string, typeof displayedMedals>,
+  );
 
   return (
     <ScreenContainer>
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         {/* Header */}
         <View className="p-6 pb-4">
           <View className="flex-row items-center mb-4">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="mr-3"
-            >
+            <TouchableOpacity onPress={() => router.back()} className="mr-3">
               <Text className="text-primary text-2xl">←</Text>
             </TouchableOpacity>
             <Text className="text-foreground text-2xl font-bold flex-1">
@@ -144,9 +155,11 @@ export default function MedalsScreen() {
           </View>
         ) : displayedMedals.length === 0 ? (
           <View className="flex-1 justify-center items-center py-20 px-6">
-            <Text className="text-6xl mb-4">
-              {activeTab === "earned" ? "🏅" : "🎯"}
-            </Text>
+            <GameIcon
+              name={activeTab === "earned" ? "medal-gold" : "quest-target"}
+              size="hero"
+              style={{ marginBottom: 16 }}
+            />
             <Text className="text-foreground text-lg font-bold text-center mb-2">
               {activeTab === "earned"
                 ? "Nenhuma medalha conquistada ainda"
@@ -155,7 +168,7 @@ export default function MedalsScreen() {
             <Text className="text-muted text-center">
               {activeTab === "earned"
                 ? "Complete desafios para conquistar suas primeiras medalhas!"
-                : "Todas as medalhas foram conquistadas! 🎉"}
+                : "Todas as medalhas foram conquistadas!"}
             </Text>
           </View>
         ) : (
@@ -195,7 +208,11 @@ export default function MedalsScreen() {
                               resizeMode="contain"
                             />
                           ) : (
-                            <Text className="text-4xl">{medal.iconEmoji || "🏅"}</Text>
+                            <GameIcon
+                              name={MEDAL_TIER_ICON[medal.tier] ?? "medal-bronze"}
+                              size={48}
+                              dimmed={!medal.isEarned}
+                            />
                           )}
                         </View>
 
@@ -204,16 +221,18 @@ export default function MedalsScreen() {
                           <View className="flex-row items-center mb-1">
                             <Text
                               className={`text-lg font-bold flex-1 ${
-                                medal.isEarned ? "text-foreground" : "text-muted"
+                                medal.isEarned
+                                  ? "text-foreground"
+                                  : "text-muted"
                               }`}
                             >
                               {medal.name}
                             </Text>
                             {medal.isEarned && (
                               <View className="bg-primary rounded-full px-3 py-1">
-                                  <Text className="text-white text-xs font-bold">
-                                    ✓ Conquistada
-                                  </Text>
+                                <Text className="text-white text-xs font-bold">
+                                  ✓ Conquistada
+                                </Text>
                               </View>
                             )}
                           </View>
@@ -227,14 +246,24 @@ export default function MedalsScreen() {
                           <View className="flex-row items-center gap-2 mt-2">
                             <Text
                               className="text-xs font-bold"
-                              style={{ color: MEDAL_TIER_COLOR[medal.tier] ?? MEDAL_TIER_COLOR.BRONZE }}
+                              style={{
+                                color:
+                                  MEDAL_TIER_COLOR[medal.tier] ??
+                                  MEDAL_TIER_COLOR.BRONZE,
+                              }}
                             >
                               {MEDAL_TIER_LABEL[medal.tier] ?? "Bronze"}
                             </Text>
-                            {(medal.xpReward > 0 || medal.denarioReward > 0) && (
+                            {(medal.xpReward > 0 ||
+                              medal.denarioReward > 0) && (
                               <Text className="text-xs text-muted">
-                                · {medal.xpReward > 0 ? `+${medal.xpReward} XP ` : ""}
-                                {medal.denarioReward > 0 ? `+${medal.denarioReward} 💰` : ""}
+                                ·{" "}
+                                {medal.xpReward > 0
+                                  ? `+${medal.xpReward} XP `
+                                  : ""}
+                                {medal.denarioReward > 0
+                                  ? `+${medal.denarioReward} denários`
+                                  : ""}
                               </Text>
                             )}
                           </View>
@@ -244,12 +273,17 @@ export default function MedalsScreen() {
                             medal.progressCurrent !== null && (
                               <View className="mt-2">
                                 <AnimatedBar
-                                  percent={(medal.progressCurrent / medal.progressTarget) * 100}
+                                  percent={
+                                    (medal.progressCurrent /
+                                      medal.progressTarget) *
+                                    100
+                                  }
                                   height={8}
                                   shine={false}
                                 />
                                 <Text className="text-xs text-muted mt-1">
-                                  {medal.progressCurrent}/{medal.progressTarget} · faltam{" "}
+                                  {medal.progressCurrent}/{medal.progressTarget}{" "}
+                                  · faltam{" "}
                                   {medal.progressTarget - medal.progressCurrent}
                                 </Text>
                               </View>
@@ -258,7 +292,7 @@ export default function MedalsScreen() {
                             <Text className="text-xs text-primary mt-2">
                               Conquistada em{" "}
                               {new Date(medal.earnedAt).toLocaleDateString(
-                                "pt-BR"
+                                "pt-BR",
                               )}
                             </Text>
                           )}

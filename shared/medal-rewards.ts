@@ -4,15 +4,25 @@
  */
 export type MedalTier = "BRONZE" | "SILVER" | "GOLD" | "DIAMOND";
 
-export type MedalRewardDefaults = { tier: MedalTier; xpReward: number; denarioReward: number };
+export type MedalRewardDefaults = {
+  tier: MedalTier;
+  xpReward: number;
+  denarioReward: number;
+};
 
-const r = (tier: MedalTier, xpReward: number, denarioReward: number): MedalRewardDefaults => ({
+const r = (
+  tier: MedalTier,
+  xpReward: number,
+  denarioReward: number,
+): MedalRewardDefaults => ({
   tier,
   xpReward,
   denarioReward,
 });
 
-export const defaultMedalRewards = (requirementJson: string): MedalRewardDefaults => {
+export const defaultMedalRewards = (
+  requirementJson: string,
+): MedalRewardDefaults => {
   let req: Record<string, any> = {};
   try {
     req = JSON.parse(requirementJson) ?? {};

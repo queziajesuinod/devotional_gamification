@@ -1561,9 +1561,7 @@
         "users_openId_unique": {
           "name": "users_openId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "policies": {},
@@ -1575,67 +1573,37 @@
     "public.challenge_type": {
       "name": "challenge_type",
       "schema": "public",
-      "values": [
-        "READING",
-        "DEVOTIONAL",
-        "REFLECTION",
-        "EXTRA"
-      ]
+      "values": ["READING", "DEVOTIONAL", "REFLECTION", "EXTRA"]
     },
     "public.group_member_status": {
       "name": "group_member_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.medal_category": {
       "name": "medal_category",
       "schema": "public",
-      "values": [
-        "BIBLE_BOOK",
-        "STREAK",
-        "MILESTONE",
-        "SPECIAL"
-      ]
+      "values": ["BIBLE_BOOK", "STREAK", "MILESTONE", "SPECIAL"]
     },
     "public.point_source": {
       "name": "point_source",
       "schema": "public",
-      "values": [
-        "CHALLENGE",
-        "BONUS_STREAK",
-        "ADMIN",
-        "PURCHASE"
-      ]
+      "values": ["CHALLENGE", "BONUS_STREAK", "ADMIN", "PURCHASE"]
     },
     "public.ranking_period_type": {
       "name": "ranking_period_type",
       "schema": "public",
-      "values": [
-        "MONTH",
-        "YEAR"
-      ]
+      "values": ["MONTH", "YEAR"]
     },
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": [
-        "user",
-        "admin",
-        "leader"
-      ]
+      "values": ["user", "admin", "leader"]
     },
     "public.shop_item_rarity": {
       "name": "shop_item_rarity",
       "schema": "public",
-      "values": [
-        "COMMON",
-        "RARE",
-        "EPIC"
-      ]
+      "values": ["COMMON", "RARE", "EPIC"]
     },
     "public.shop_item_type": {
       "name": "shop_item_type",

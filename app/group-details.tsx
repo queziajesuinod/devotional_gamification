@@ -1,10 +1,18 @@
-import { ActivityIndicator, FlatList, Platform, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/hooks/use-auth";
 import { GroupWeekCard } from "@/components/group-week-card";
+import { GameIcon } from "@/components/game-icon";
 
 export default function GroupDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -50,18 +58,26 @@ export default function GroupDetailsScreen() {
           <Pressable onPress={handleBack} className="mb-4">
             <Text className="text-white text-lg">← Voltar</Text>
           </Pressable>
-          <Text className="text-white text-2xl font-bold">{data.group.name}</Text>
+          <Text className="text-white text-2xl font-bold">
+            {data.group.name}
+          </Text>
           {data.group.description && (
-            <Text className="text-white/80 text-sm mt-2">{data.group.description}</Text>
+            <Text className="text-white/80 text-sm mt-2">
+              {data.group.description}
+            </Text>
           )}
           <View className="flex-row items-center gap-6 mt-4">
             <View className="flex-row items-center gap-2">
-              <Text className="text-2xl">👥</Text>
-              <Text className="text-white font-semibold">{data.group.memberCount} membros</Text>
+              <GameIcon name="tab-cells" size={32} />
+              <Text className="text-white font-semibold">
+                {data.group.memberCount} membros
+              </Text>
             </View>
             <View className="flex-row items-center gap-2">
-              <Text className="text-2xl">⭐</Text>
-              <Text className="text-white font-semibold">{data.group.totalPoints} pontos</Text>
+              <GameIcon name="xp" size={32} />
+              <Text className="text-white font-semibold">
+                {data.group.totalPoints} pontos
+              </Text>
             </View>
           </View>
         </View>
@@ -73,14 +89,15 @@ export default function GroupDetailsScreen() {
               onPress={() => router.push(`/group-admin?id=${groupId}` as any)}
               className="bg-accent py-3 rounded-lg active:opacity-80"
             >
-              <Text className="text-white text-center font-semibold">⚙️ Gerenciar Solicitações</Text>
+              <Text className="text-white text-center font-semibold">
+                Gerenciar Solicitações
+              </Text>
             </Pressable>
           </View>
         )}
 
         {/* Members List */}
         <View className="flex-1 px-4">
-          
           <FlatList
             data={data.members || []}
             keyExtractor={(item) => item.id.toString()}
@@ -91,7 +108,9 @@ export default function GroupDetailsScreen() {
                     <GroupWeekCard groupId={groupId} />
                   </View>
                 )}
-                <Text className="text-lg font-bold text-foreground mb-3">Membros</Text>
+                <Text className="text-lg font-bold text-foreground mb-3">
+                  Membros
+                </Text>
               </>
             }
             renderItem={({ item }) => (
@@ -103,16 +122,22 @@ export default function GroupDetailsScreen() {
                     </Text>
                     <View className="flex-row items-center gap-4 mt-2">
                       <View className="flex-row items-center gap-1">
-                        <Text className="text-sm text-muted">Nível {item.userLevel}</Text>
+                        <Text className="text-sm text-muted">
+                          Nível {item.userLevel}
+                        </Text>
                       </View>
                       <View className="flex-row items-center gap-1">
-                        <Text className="text-sm text-muted">{item.userXp} XP</Text>
+                        <Text className="text-sm text-muted">
+                          {item.userXp} XP
+                        </Text>
                       </View>
                     </View>
                   </View>
                   {data.group.leaderId === item.userId && (
                     <View className="bg-accent/20 px-3 py-1 rounded-full">
-                      <Text className="text-accent text-xs font-semibold">Líder</Text>
+                      <Text className="text-accent text-xs font-semibold">
+                        Líder
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -120,8 +145,10 @@ export default function GroupDetailsScreen() {
             )}
             ListEmptyComponent={
               <View className="items-center justify-center py-12">
-                <Text className="text-4xl mb-4">👥</Text>
-                <Text className="text-muted text-center">Nenhum membro ainda</Text>
+                <GameIcon name="tab-cells" size={48} style={{ marginBottom: 16 }} />
+                <Text className="text-muted text-center">
+                  Nenhum membro ainda
+                </Text>
               </View>
             }
           />

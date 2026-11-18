@@ -1,5 +1,9 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { ToastProvider, type ToastOptions, useToast } from "react-native-toast-notifications";
+import {
+  ToastProvider,
+  type ToastOptions,
+  useToast,
+} from "react-native-toast-notifications";
 
 type NotificationVariant = "success" | "error" | "info";
 
@@ -16,7 +20,10 @@ type NotificationApi = {
 
 const NotificationContext = createContext<NotificationApi | null>(null);
 
-const createToast = (toast: ReturnType<typeof useToast>, variant: NotificationVariant) => {
+const createToast = (
+  toast: ReturnType<typeof useToast>,
+  variant: NotificationVariant,
+) => {
   return (message: string, options: NotificationOptions = {}) => {
     toast.show(message, {
       ...options,
@@ -40,7 +47,11 @@ const NotificationBridge = ({ children }: { children: ReactNode }) => {
     [toast],
   );
 
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  return (
+    <NotificationContext.Provider value={value}>
+      {children}
+    </NotificationContext.Provider>
+  );
 };
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => (
@@ -59,7 +70,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => (
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
-    throw new Error("useNotifications must be used within a NotificationProvider");
+    throw new Error(
+      "useNotifications must be used within a NotificationProvider",
+    );
   }
   return context;
 };

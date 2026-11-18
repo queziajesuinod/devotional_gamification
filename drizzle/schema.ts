@@ -37,16 +37,37 @@ export const shopItemTypeEnum = pgEnum("shop_item_type", [
   "HAIR_COLOR",
   "BASE_FEATURE",
 ]);
-export const shopItemRarityEnum = pgEnum("shop_item_rarity", ["COMMON", "RARE", "EPIC"]);
-export const rankingPeriodTypeEnum = pgEnum("ranking_period_type", ["MONTH", "YEAR"]);
+export const shopItemRarityEnum = pgEnum("shop_item_rarity", [
+  "COMMON",
+  "RARE",
+  "EPIC",
+]);
+export const rankingPeriodTypeEnum = pgEnum("ranking_period_type", [
+  "MONTH",
+  "YEAR",
+]);
 export const groupMemberStatusEnum = pgEnum("group_member_status", [
   "pending",
   "approved",
   "rejected",
 ]);
-export const medalTierEnum = pgEnum("medal_tier", ["BRONZE", "SILVER", "GOLD", "DIAMOND"]);
-export const leagueTierEnum = pgEnum("league_tier", ["BRONZE", "SILVER", "GOLD", "DIAMOND"]);
-export const encouragementTypeEnum = pgEnum("encouragement_type", ["PRAYED", "CHEER", "PROUD"]);
+export const medalTierEnum = pgEnum("medal_tier", [
+  "BRONZE",
+  "SILVER",
+  "GOLD",
+  "DIAMOND",
+]);
+export const leagueTierEnum = pgEnum("league_tier", [
+  "BRONZE",
+  "SILVER",
+  "GOLD",
+  "DIAMOND",
+]);
+export const encouragementTypeEnum = pgEnum("encouragement_type", [
+  "PRAYED",
+  "CHEER",
+  "PROUD",
+]);
 export const medalCategoryEnum = pgEnum("medal_category", [
   "BIBLE_BOOK",
   "STREAK",
@@ -59,50 +80,49 @@ export const medalCategoryEnum = pgEnum("medal_category", [
  * Extend this file with additional tables as your product grows.
  * Columns use camelCase to match both database fields and generated types.
  */
-export const users = pgTable(
-  "users",
-  {
-    id: serial("id").primaryKey(),
-    openId: varchar("openId", { length: 64 }).notNull().unique(),
-    name: text("name"),
-    email: varchar("email", { length: 320 }),
-    passwordHash: varchar("passwordHash", { length: 255 }),
-    avatarUrl: varchar("avatarUrl", { length: 500 }),
-    loginMethod: varchar("loginMethod", { length: 64 }),
-    role: roleEnum("role").default("user").notNull(),
-    gender: varchar("gender", { length: 16 }),
-    birthDate: date("birthDate"),
-    whatsapp: varchar("whatsapp", { length: 32 }),
-    
-    // Gamification fields
-    nickname: varchar("nickname", { length: 100 }).notNull(),
-    xpTotal: integer("xpTotal").default(0).notNull(),
-    level: integer("level").default(1).notNull(),
-    denarioBalance: integer("denarioBalance").default(0).notNull(),
-    
-    // Avatar configuration (JSON)
-    avatarConfig: text("avatarConfig"),
-    
-    // Equipped items
-    equippedBackgroundId: integer("equippedBackgroundId"),
-    equippedClothesId: integer("equippedClothesId"),
-    equippedAccessoryId: integer("equippedAccessoryId"),
-    equippedHairStyleId: integer("equippedHairStyleId"),
-    equippedHairColorId: integer("equippedHairColorId"),
-    
-    // Streak tracking
-    currentStreak: integer("currentStreak").default(0).notNull(),
-    longestStreak: integer("longestStreak").default(0).notNull(),
-    lastActivityDate: date("lastActivityDate"),
-    // "Graças": streak freezes that protect a missed day
-    streakFreezes: integer("streakFreezes").default(1).notNull(),
-    streakFreezeWeek: varchar("streakFreezeWeek", { length: 10 }),
-    
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-  }
-);
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  name: text("name"),
+  email: varchar("email", { length: 320 }),
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  avatarUrl: varchar("avatarUrl", { length: 500 }),
+  loginMethod: varchar("loginMethod", { length: 64 }),
+  role: roleEnum("role").default("user").notNull(),
+  gender: varchar("gender", { length: 16 }),
+  birthDate: date("birthDate"),
+  whatsapp: varchar("whatsapp", { length: 32 }),
+
+  // Gamification fields
+  nickname: varchar("nickname", { length: 100 }).notNull(),
+  xpTotal: integer("xpTotal").default(0).notNull(),
+  level: integer("level").default(1).notNull(),
+  denarioBalance: integer("denarioBalance").default(0).notNull(),
+
+  // Avatar configuration (JSON)
+  avatarConfig: text("avatarConfig"),
+
+  // Equipped items
+  equippedBackgroundId: integer("equippedBackgroundId"),
+  equippedClothesId: integer("equippedClothesId"),
+  equippedAccessoryId: integer("equippedAccessoryId"),
+  equippedHairStyleId: integer("equippedHairStyleId"),
+  equippedHairColorId: integer("equippedHairColorId"),
+
+  // Streak tracking
+  currentStreak: integer("currentStreak").default(0).notNull(),
+  longestStreak: integer("longestStreak").default(0).notNull(),
+  lastActivityDate: date("lastActivityDate"),
+  // "Graças": streak freezes that protect a missed day
+  streakFreezes: integer("streakFreezes").default(1).notNull(),
+  streakFreezeWeek: varchar("streakFreezeWeek", { length: 10 }),
+  // Chosen figurine character (see shared/character-catalog.ts); null = not chosen yet
+  characterKey: varchar("characterKey", { length: 20 }),
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+});
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -133,9 +153,12 @@ export const devotionalDays = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
-    planDayIdx: uniqueIndex("devotional_days_plan_day_idx").on(table.planId, table.dayNumber),
+    planDayIdx: uniqueIndex("devotional_days_plan_day_idx").on(
+      table.planId,
+      table.dayNumber,
+    ),
     dateIdx: index("devotional_days_date_idx").on(table.date),
-  })
+  }),
 );
 
 // ============================================
@@ -155,8 +178,10 @@ export const challenges = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
-    devotionalDayIdx: index("challenges_devotional_day_idx").on(table.devotionalDayId),
-  })
+    devotionalDayIdx: index("challenges_devotional_day_idx").on(
+      table.devotionalDayId,
+    ),
+  }),
 );
 
 export const userChallenges = pgTable(
@@ -173,9 +198,12 @@ export const userChallenges = pgTable(
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
   (table) => ({
-    userChallengeIdx: uniqueIndex("user_challenges_user_challenge_idx").on(table.userId, table.challengeId),
+    userChallengeIdx: uniqueIndex("user_challenges_user_challenge_idx").on(
+      table.userId,
+      table.challengeId,
+    ),
     userIdx: index("user_challenges_user_idx").on(table.userId),
-  })
+  }),
 );
 
 // ============================================
@@ -195,8 +223,10 @@ export const pointTransactions = pgTable(
   },
   (table) => ({
     userIdx: index("point_transactions_user_idx").on(table.userId),
-    createdAtIdx: index("point_transactions_created_at_idx").on(table.createdAt),
-  })
+    createdAtIdx: index("point_transactions_created_at_idx").on(
+      table.createdAt,
+    ),
+  }),
 );
 
 // ============================================
@@ -213,6 +243,12 @@ export const shopItems = pgTable("shop_items", {
   priceDenario: integer("priceDenario").notNull(),
   description: text("description"),
   isAvailable: boolean("isAvailable").default(true).notNull(),
+  // Catalog items (shared/character-catalog.ts, synced by `pnpm catalog:sync`)
+  slug: varchar("slug", { length: 80 }).unique(),
+  characterKey: varchar("characterKey", { length: 20 }),
+  assetKey: varchar("assetKey", { length: 60 }),
+  minLevel: integer("minLevel"),
+  medalsRequired: integer("medalsRequired"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -225,9 +261,12 @@ export const userItems = pgTable(
     purchasedAt: timestamp("purchasedAt").defaultNow().notNull(),
   },
   (table) => ({
-    userItemIdx: uniqueIndex("user_items_user_item_idx").on(table.userId, table.itemId),
+    userItemIdx: uniqueIndex("user_items_user_item_idx").on(
+      table.userId,
+      table.itemId,
+    ),
     userIdx: index("user_items_user_idx").on(table.userId),
-  })
+  }),
 );
 
 // ============================================
@@ -245,9 +284,11 @@ export const rankingPeriods = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
-    periodTypeIdx: index("ranking_periods_period_type_idx").on(table.periodType),
+    periodTypeIdx: index("ranking_periods_period_type_idx").on(
+      table.periodType,
+    ),
     activeIdx: index("ranking_periods_active_idx").on(table.isActive),
-  })
+  }),
 );
 
 export const userRankingScores = pgTable(
@@ -260,9 +301,15 @@ export const userRankingScores = pgTable(
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
   (table) => ({
-    periodUserIdx: uniqueIndex("user_ranking_scores_period_user_idx").on(table.rankingPeriodId, table.userId),
-    periodXpIdx: index("user_ranking_scores_period_xp_idx").on(table.rankingPeriodId, table.xpTotal),
-  })
+    periodUserIdx: uniqueIndex("user_ranking_scores_period_user_idx").on(
+      table.rankingPeriodId,
+      table.userId,
+    ),
+    periodXpIdx: index("user_ranking_scores_period_xp_idx").on(
+      table.rankingPeriodId,
+      table.xpTotal,
+    ),
+  }),
 );
 
 // ============================================
@@ -328,7 +375,7 @@ export const groupMembers = pgTable(
   (table) => ({
     groupIdx: index("group_members_group_idx").on(table.groupId),
     userIdx: index("group_members_user_idx").on(table.userId),
-  })
+  }),
 );
 
 export type GroupMember = typeof groupMembers.$inferSelect;
@@ -359,7 +406,7 @@ export const medals = pgTable(
   (table) => ({
     categoryIdx: index("medals_category_idx").on(table.category),
     orderIdx: index("medals_order_idx").on(table.order),
-  })
+  }),
 );
 
 export type Medal = typeof medals.$inferSelect;
@@ -375,10 +422,13 @@ export const userMedals = pgTable(
     progress: integer("progress").default(0).notNull(), // Current progress towards medal (if applicable)
   },
   (table) => ({
-    userMedalIdx: uniqueIndex("user_medals_user_medal_idx").on(table.userId, table.medalId),
+    userMedalIdx: uniqueIndex("user_medals_user_medal_idx").on(
+      table.userId,
+      table.medalId,
+    ),
     userIdx: index("user_medals_user_idx").on(table.userId),
     medalIdx: index("user_medals_medal_idx").on(table.medalId),
-  })
+  }),
 );
 
 export type UserMedal = typeof userMedals.$inferSelect;
@@ -399,14 +449,20 @@ export const bibleReadingProgress = pgTable(
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
   (table) => ({
-    userBookIdx: uniqueIndex("bible_reading_progress_user_book_idx").on(table.userId, table.bookName),
+    userBookIdx: uniqueIndex("bible_reading_progress_user_book_idx").on(
+      table.userId,
+      table.bookName,
+    ),
     userIdx: index("bible_reading_progress_user_idx").on(table.userId),
-    completedIdx: index("bible_reading_progress_completed_idx").on(table.isCompleted),
-  })
+    completedIdx: index("bible_reading_progress_completed_idx").on(
+      table.isCompleted,
+    ),
+  }),
 );
 
 export type BibleReadingProgress = typeof bibleReadingProgress.$inferSelect;
-export type InsertBibleReadingProgress = typeof bibleReadingProgress.$inferInsert;
+export type InsertBibleReadingProgress =
+  typeof bibleReadingProgress.$inferInsert;
 
 export const bibleReadingSegments = pgTable(
   "bible_reading_segments",
@@ -420,19 +476,23 @@ export const bibleReadingSegments = pgTable(
     completedAt: timestamp("completedAt").defaultNow().notNull(),
   },
   (table) => ({
-    userDayChapterIdx: uniqueIndex("bible_reading_segments_user_day_chapter_idx").on(
+    userDayChapterIdx: uniqueIndex(
+      "bible_reading_segments_user_day_chapter_idx",
+    ).on(table.userId, table.devotionalDayId, table.bookName, table.chapter),
+    userBookIdx: index("bible_reading_segments_user_book_idx").on(
       table.userId,
-      table.devotionalDayId,
       table.bookName,
-      table.chapter
     ),
-    userBookIdx: index("bible_reading_segments_user_book_idx").on(table.userId, table.bookName),
-    bookChapterIdx: index("bible_reading_segments_book_chapter_idx").on(table.bookName, table.chapter),
-  })
+    bookChapterIdx: index("bible_reading_segments_book_chapter_idx").on(
+      table.bookName,
+      table.chapter,
+    ),
+  }),
 );
 
 export type BibleReadingSegment = typeof bibleReadingSegments.$inferSelect;
-export type InsertBibleReadingSegment = typeof bibleReadingSegments.$inferInsert;
+export type InsertBibleReadingSegment =
+  typeof bibleReadingSegments.$inferInsert;
 
 // ============================================
 // PHASE 2: ACTIVITY, QUESTS, CELL GOAL, ENCOURAGEMENT, LEAGUES
@@ -453,9 +513,12 @@ export const userActivityDays = pgTable(
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
   (table) => ({
-    userDayIdx: uniqueIndex("user_activity_days_user_day_idx").on(table.userId, table.day),
+    userDayIdx: uniqueIndex("user_activity_days_user_day_idx").on(
+      table.userId,
+      table.day,
+    ),
     dayIdx: index("user_activity_days_day_idx").on(table.day),
-  })
+  }),
 );
 
 export type UserActivityDay = typeof userActivityDays.$inferSelect;
@@ -473,9 +536,9 @@ export const weeklyQuestClaims = pgTable(
     userWeekQuestIdx: uniqueIndex("weekly_quest_claims_user_week_quest_idx").on(
       table.userId,
       table.weekKey,
-      table.questId
+      table.questId,
     ),
-  })
+  }),
 );
 
 export const groupChestClaims = pgTable(
@@ -491,9 +554,9 @@ export const groupChestClaims = pgTable(
     userGroupWeekIdx: uniqueIndex("group_chest_claims_user_group_week_idx").on(
       table.userId,
       table.groupId,
-      table.weekKey
+      table.weekKey,
     ),
-  })
+  }),
 );
 
 /** Fixed-message encouragement between members of the same cell (no free text). */
@@ -510,10 +573,20 @@ export const encouragements = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
-    pairDayIdx: uniqueIndex("encouragements_from_to_day_idx").on(table.fromUserId, table.toUserId, table.day),
-    toUserIdx: index("encouragements_to_user_idx").on(table.toUserId, table.createdAt),
-    fromDayIdx: index("encouragements_from_day_idx").on(table.fromUserId, table.day),
-  })
+    pairDayIdx: uniqueIndex("encouragements_from_to_day_idx").on(
+      table.fromUserId,
+      table.toUserId,
+      table.day,
+    ),
+    toUserIdx: index("encouragements_to_user_idx").on(
+      table.toUserId,
+      table.createdAt,
+    ),
+    fromDayIdx: index("encouragements_from_day_idx").on(
+      table.fromUserId,
+      table.day,
+    ),
+  }),
 );
 
 /** A user's league for a given week, with the XP earned in it. */
@@ -530,9 +603,16 @@ export const leagueMemberships = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
-    userWeekIdx: uniqueIndex("league_memberships_user_week_idx").on(table.userId, table.weekKey),
-    weekTierXpIdx: index("league_memberships_week_tier_xp_idx").on(table.weekKey, table.tier, table.xp),
-  })
+    userWeekIdx: uniqueIndex("league_memberships_user_week_idx").on(
+      table.userId,
+      table.weekKey,
+    ),
+    weekTierXpIdx: index("league_memberships_week_tier_xp_idx").on(
+      table.weekKey,
+      table.tier,
+      table.xp,
+    ),
+  }),
 );
 
 export type LeagueMembership = typeof leagueMemberships.$inferSelect;

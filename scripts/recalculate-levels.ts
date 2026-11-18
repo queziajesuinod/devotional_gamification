@@ -13,7 +13,9 @@ async function main() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const rows = await db.select({ id: users.id, xpTotal: users.xpTotal, level: users.level }).from(users);
+  const rows = await db
+    .select({ id: users.id, xpTotal: users.xpTotal, level: users.level })
+    .from(users);
   let changed = 0;
   for (const row of rows) {
     const level = levelFromXp(row.xpTotal);
@@ -22,7 +24,9 @@ async function main() {
       changed += 1;
     }
   }
-  console.log(`✅ ${changed} de ${rows.length} usuários tiveram o nível recalculado.`);
+  console.log(
+    `✅ ${changed} de ${rows.length} usuários tiveram o nível recalculado.`,
+  );
 }
 
 main()

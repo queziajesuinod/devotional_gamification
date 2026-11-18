@@ -71,7 +71,10 @@ export async function recordActivity(params: {
     .from(challenges)
     .leftJoin(
       userChallenges,
-      and(eq(userChallenges.challengeId, challenges.id), eq(userChallenges.userId, params.userId))
+      and(
+        eq(userChallenges.challengeId, challenges.id),
+        eq(userChallenges.userId, params.userId),
+      ),
     )
     .where(eq(challenges.devotionalDayId, params.devotionalDayId));
   const dayComplete = total > 0 && done >= total;
@@ -79,7 +82,12 @@ export async function recordActivity(params: {
   const [before] = await db
     .select({ fullDay: userActivityDays.fullDay })
     .from(userActivityDays)
-    .where(and(eq(userActivityDays.userId, params.userId), eq(userActivityDays.day, day)))
+    .where(
+      and(
+        eq(userActivityDays.userId, params.userId),
+        eq(userActivityDays.day, day),
+      ),
+    )
     .limit(1);
 
   await db
@@ -108,7 +116,10 @@ export async function recordActivity(params: {
   return { dayComplete: dayComplete && !before?.fullDay };
 }
 
-export async function getWeeklyStats(userId: number, week: string): Promise<WeeklyStats> {
+export async function getWeeklyStats(
+  userId: number,
+  week: string,
+): Promise<WeeklyStats> {
   const db = await requireDb();
   const { start, end } = weekRange(week);
 
@@ -126,14 +137,20 @@ export async function getWeeklyStats(userId: number, week: string): Promise<Week
         eq(userActivityDays.userId, userId),
         gte(userActivityDays.day, start),
         lte(userActivityDays.day, end),
-        gt(userActivityDays.challengesCompleted, 0)
-      )
+        gt(userActivityDays.challengesCompleted, 0),
+      ),
     );
 
   const [sent] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(encouragements)
-    .where(and(eq(encouragements.fromUserId, userId), gte(encouragements.day, start), lte(encouragements.day, end)));
+    .where(
+      and(
+        eq(encouragements.fromUserId, userId),
+        gte(encouragements.day, start),
+        lte(encouragements.day, end),
+      ),
+    );
 
   return {
     daysActive: activity?.daysActive ?? 0,
@@ -159,7 +176,12 @@ export async function getWeeklyQuests(userId: number) {
     db
       .select({ questId: weeklyQuestClaims.questId })
       .from(weeklyQuestClaims)
-      .where(and(eq(weeklyQuestClaims.userId, userId), eq(weeklyQuestClaims.weekKey, week))),
+      .where(
+        and(
+          eq(weeklyQuestClaims.userId, userId),
+          eq(weeklyQuestClaims.weekKey, week),
+        ),
+      ),
   ]);
   const claimed = new Set(claims.map((c) => c.questId));
   const days = weekDays(today);
@@ -184,7 +206,8 @@ export async function claimQuest(userId: number, questId: string) {
   if (!quest) throw new Error("Missão não disponível nesta semana");
 
   const stats = await getWeeklyStats(userId, week);
-  if (!questProgress(quest, stats).done) throw new Error("Missão ainda não concluída");
+  if (!questProgress(quest, stats).done)
+    throw new Error("Missão ainda não concluída");
 
   const inserted = await db
     .insert(weeklyQuestClaims)
@@ -197,7 +220,7 @@ export async function claimQuest(userId: number, questId: string) {
     userId,
     { xp: quest.xpReward, denario: quest.denarioReward },
     "QUEST",
-    `Missão semanal: ${quest.title}`
+    `Missão semanal: ${quest.title}`,
   );
 }
 
@@ -208,10 +231,20 @@ export async function claimQuest(userId: number, questId: string) {
 async function getApprovedMembers(groupId: number) {
   const db = await requireDb();
   return db
-    .select({ userId: groupMembers.userId, nickname: users.nickname, name: users.name, xpTotal: users.xpTotal })
+    .select({
+      userId: groupMembers.userId,
+      nickname: users.nickname,
+      name: users.name,
+      xpTotal: users.xpTotal,
+    })
     .from(groupMembers)
     .innerJoin(users, eq(groupMembers.userId, users.id))
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.status, "approved")));
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.status, "approved"),
+      ),
+    );
 }
 
 async function getGroupWeekProgress(groupId: number, week: string) {
@@ -229,8 +262,8 @@ async function getGroupWeekProgress(groupId: number, week: string) {
             inArray(userActivityDays.userId, memberIds),
             gte(userActivityDays.day, start),
             lte(userActivityDays.day, end),
-            gt(userActivityDays.challengesCompleted, 0)
-          )
+            gt(userActivityDays.challengesCompleted, 0),
+          ),
         )
     : [];
 
@@ -243,7 +276,13 @@ async function getGroupWeekProgress(groupId: number, week: string) {
 
   const goal = groupWeeklyGoal(members.length);
   const progress = activity.length;
-  return { members, daysByUser, goal, progress, reached: members.length > 0 && progress >= goal };
+  return {
+    members,
+    daysByUser,
+    goal,
+    progress,
+    reached: members.length > 0 && progress >= goal,
+  };
 }
 
 /** Cell weekly goal, chest state and per-member week for the viewer. */
@@ -253,7 +292,11 @@ export async function getGroupWeek(groupId: number, viewerId: number) {
   const week = weekKey(today);
   const prevWeek = previousWeekKey(today);
 
-  const [group] = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
+  const [group] = await db
+    .select()
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
   if (!group) throw new Error("Célula não encontrada");
 
   const [current, previous, claims, sentToday] = await Promise.all([
@@ -266,19 +309,27 @@ export async function getGroupWeek(groupId: number, viewerId: number) {
         and(
           eq(groupChestClaims.userId, viewerId),
           eq(groupChestClaims.groupId, groupId),
-          inArray(groupChestClaims.weekKey, [week, prevWeek])
-        )
+          inArray(groupChestClaims.weekKey, [week, prevWeek]),
+        ),
       ),
     db
       .select({ toUserId: encouragements.toUserId })
       .from(encouragements)
-      .where(and(eq(encouragements.fromUserId, viewerId), eq(encouragements.day, today))),
+      .where(
+        and(
+          eq(encouragements.fromUserId, viewerId),
+          eq(encouragements.day, today),
+        ),
+      ),
   ]);
 
   const claimedWeeks = new Set(claims.map((c) => c.weekKey));
   const isMember = current.members.some((m) => m.userId === viewerId);
   const canClaim = (progress: typeof current, wk: string) =>
-    isMember && progress.reached && (progress.daysByUser.get(viewerId)?.length ?? 0) > 0 && !claimedWeeks.has(wk);
+    isMember &&
+    progress.reached &&
+    (progress.daysByUser.get(viewerId)?.length ?? 0) > 0 &&
+    !claimedWeeks.has(wk);
   const encouragedToday = new Set(sentToday.map((s) => s.toUserId));
 
   return {
@@ -320,7 +371,9 @@ export async function claimGroupChest(userId: number, week: string) {
   const progress = await getGroupWeekProgress(membership.groupId, week);
   if (!progress.reached) throw new Error("A célula ainda não atingiu a meta");
   if ((progress.daysByUser.get(userId)?.length ?? 0) === 0) {
-    throw new Error("Participe de pelo menos um dia da semana para abrir o baú");
+    throw new Error(
+      "Participe de pelo menos um dia da semana para abrir o baú",
+    );
   }
 
   const inserted = await db
@@ -330,28 +383,47 @@ export async function claimGroupChest(userId: number, week: string) {
     .returning({ id: groupChestClaims.id });
   if (inserted.length === 0) throw new Error("Baú já aberto");
 
-  return grantReward(userId, GROUP_CHEST_REWARD, "GROUP_CHEST", `Baú da célula ${membership.groupName}`);
+  return grantReward(
+    userId,
+    GROUP_CHEST_REWARD,
+    "GROUP_CHEST",
+    `Baú da célula ${membership.groupName}`,
+  );
 }
 
 // ============================================
 // ENCOURAGEMENTS
 // ============================================
 
-export async function sendEncouragement(fromUserId: number, toUserId: number, type: EncouragementType) {
+export async function sendEncouragement(
+  fromUserId: number,
+  toUserId: number,
+  type: EncouragementType,
+) {
   if (fromUserId === toUserId) throw new Error("Escolha outro membro");
   const db = await requireDb();
 
-  const [fromGroup, toGroup] = await Promise.all([getUserGroup(fromUserId), getUserGroup(toUserId)]);
+  const [fromGroup, toGroup] = await Promise.all([
+    getUserGroup(fromUserId),
+    getUserGroup(toUserId),
+  ]);
   if (!fromGroup || !toGroup || fromGroup.groupId !== toGroup.groupId) {
     throw new Error("Vocês precisam estar na mesma célula");
   }
 
   const inserted = await db
     .insert(encouragements)
-    .values({ fromUserId, toUserId, groupId: fromGroup.groupId, type, day: getCampoGrandeDateString() })
+    .values({
+      fromUserId,
+      toUserId,
+      groupId: fromGroup.groupId,
+      type,
+      day: getCampoGrandeDateString(),
+    })
     .onConflictDoNothing()
     .returning({ id: encouragements.id });
-  if (inserted.length === 0) throw new Error("Você já encorajou essa pessoa hoje");
+  if (inserted.length === 0)
+    throw new Error("Você já encorajou essa pessoa hoje");
 
   return { success: true };
 }
@@ -370,7 +442,12 @@ export async function getEncouragementInbox(userId: number) {
     })
     .from(encouragements)
     .innerJoin(users, eq(encouragements.fromUserId, users.id))
-    .where(and(eq(encouragements.toUserId, userId), gte(encouragements.createdAt, since)))
+    .where(
+      and(
+        eq(encouragements.toUserId, userId),
+        gte(encouragements.createdAt, since),
+      ),
+    )
     .orderBy(desc(encouragements.createdAt))
     .limit(30);
 
@@ -389,7 +466,9 @@ export async function markEncouragementsSeen(userId: number) {
   await db
     .update(encouragements)
     .set({ seenAt: new Date() })
-    .where(and(eq(encouragements.toUserId, userId), isNull(encouragements.seenAt)));
+    .where(
+      and(eq(encouragements.toUserId, userId), isNull(encouragements.seenAt)),
+    );
   return { success: true };
 }
 
@@ -405,7 +484,12 @@ async function rankInLeague(week: string, tier: LeagueTier, xp: number) {
       above: sql<number>`count(*) filter (where ${leagueMemberships.xp} > ${xp})::int`,
     })
     .from(leagueMemberships)
-    .where(and(eq(leagueMemberships.weekKey, week), eq(leagueMemberships.tier, tier)));
+    .where(
+      and(
+        eq(leagueMemberships.weekKey, week),
+        eq(leagueMemberships.tier, tier),
+      ),
+    );
   return { rank: (row?.above ?? 0) + 1, size: row?.size ?? 1 };
 }
 
@@ -421,7 +505,12 @@ export async function ensureLeagueMembership(userId: number) {
   const [existing] = await db
     .select()
     .from(leagueMemberships)
-    .where(and(eq(leagueMemberships.userId, userId), eq(leagueMemberships.weekKey, week)))
+    .where(
+      and(
+        eq(leagueMemberships.userId, userId),
+        eq(leagueMemberships.weekKey, week),
+      ),
+    )
     .limit(1);
   if (existing) return existing;
 
@@ -438,8 +527,17 @@ export async function ensureLeagueMembership(userId: number) {
 
   if (last) {
     if (last.weekKey === previousWeekKey(today)) {
-      const { rank, size } = await rankInLeague(last.weekKey, last.tier, last.xp);
-      ({ tier, outcome } = resolveLeagueWeek({ tier: last.tier, rank, size, xp: last.xp }));
+      const { rank, size } = await rankInLeague(
+        last.weekKey,
+        last.tier,
+        last.xp,
+      );
+      ({ tier, outcome } = resolveLeagueWeek({
+        tier: last.tier,
+        rank,
+        size,
+        xp: last.xp,
+      }));
       previousRank = rank;
     } else {
       ({ tier, outcome } = resolveInactiveWeeks(last.tier));
@@ -448,13 +546,25 @@ export async function ensureLeagueMembership(userId: number) {
 
   await db
     .insert(leagueMemberships)
-    .values({ userId, weekKey: week, tier, xp: 0, previousOutcome: outcome, previousRank })
+    .values({
+      userId,
+      weekKey: week,
+      tier,
+      xp: 0,
+      previousOutcome: outcome,
+      previousRank,
+    })
     .onConflictDoNothing();
 
   const [created] = await db
     .select()
     .from(leagueMemberships)
-    .where(and(eq(leagueMemberships.userId, userId), eq(leagueMemberships.weekKey, week)))
+    .where(
+      and(
+        eq(leagueMemberships.userId, userId),
+        eq(leagueMemberships.weekKey, week),
+      ),
+    )
     .limit(1);
   return created;
 }
@@ -484,7 +594,12 @@ export async function getLeague(userId: number) {
     })
     .from(leagueMemberships)
     .innerJoin(users, eq(leagueMemberships.userId, users.id))
-    .where(and(eq(leagueMemberships.weekKey, me.weekKey), eq(leagueMemberships.tier, me.tier)))
+    .where(
+      and(
+        eq(leagueMemberships.weekKey, me.weekKey),
+        eq(leagueMemberships.tier, me.tier),
+      ),
+    )
     .orderBy(desc(leagueMemberships.xp), leagueMemberships.createdAt)
     .limit(100);
 
@@ -502,7 +617,16 @@ export async function getLeague(userId: number) {
     myXp: me.xp,
     size,
     promoteUntil: me.tier === "DIAMOND" ? 0 : zones.promoteUntil,
-    demoteFrom: me.tier === "BRONZE" ? null : Number.isFinite(zones.demoteFrom) ? zones.demoteFrom : null,
-    standings: standings.map((s, i) => ({ ...s, position: i + 1, isMe: s.userId === userId })),
+    demoteFrom:
+      me.tier === "BRONZE"
+        ? null
+        : Number.isFinite(zones.demoteFrom)
+          ? zones.demoteFrom
+          : null,
+    standings: standings.map((s, i) => ({
+      ...s,
+      position: i + 1,
+      isMe: s.userId === userId,
+    })),
   };
 }
