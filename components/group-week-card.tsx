@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from "react-native";
-import * as Haptics from "expo-haptics";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { trpc } from "@/lib/trpc";
+import { useJuice } from "@/components/juice-provider";
+import { AnimatedBar, PopIn, PressableScale, Pulse, Wiggle } from "@/components/juice";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/components/notification-provider";
 import { ENCOURAGEMENT_INFO, ENCOURAGEMENT_TYPES, GROUP_DAYS_PER_MEMBER } from "@shared/engagement";
@@ -19,12 +20,17 @@ export function GroupWeekCard({ groupId, readOnly = false }: { groupId: number; 
   const [openMemberId, setOpenMemberId] = useState<number | null>(null);
   const { data, isLoading, refetch } = trpc.engagement.groupWeek.useQuery({ groupId });
 
+  const juice = useJuice();
+
   const claimChest = trpc.engagement.claimGroupChest.useMutation({
     onSuccess: (result) => {
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      }
-      notifications.success(`Baú aberto! +${result.xp} XP · +${result.denario} 💰`);
+      juice.burst({
+        title: "Baú aberto! 🎁",
+        subtitle: "Trabalho em equipe! 🤝",
+        xp: result.xp,
+        denario: result.denario + (result.levelUp?.denarioReward ?? 0),
+      });
+      juice.confetti(120);
       refetch();
       utils.user.me.invalidate();
     },
@@ -33,10 +39,7 @@ export function GroupWeekCard({ groupId, readOnly = false }: { groupId: number; 
 
   const encourage = trpc.engagement.encourage.useMutation({
     onSuccess: () => {
-      if (Platform.OS !== "web") {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      }
-      notifications.success("Encorajamento enviado 💌");
+      juice.burst({ title: "Enviado! 💌", subtitle: "Você alegrou o dia de alguém", confetti: false });
       setOpenMemberId(null);
       refetch();
       utils.engagement.weeklyQuests.invalidate();
@@ -58,17 +61,17 @@ export function GroupWeekCard({ groupId, readOnly = false }: { groupId: number; 
 
   return (
     <View className="bg-surface rounded-2xl p-4 border border-border">
-      <Text className="text-foreground text-lg font-bold">Meta da semana</Text>
+      <Text className="text-foreground text-lg font-extrabold">🤝 Missão da célula</Text>
       <Text className="text-muted text-xs mt-1">
-        Juntos: cada membro presente em {GROUP_DAYS_PER_MEMBER} dias. Cada dia de cada membro conta!
+        Juntos: cada membro presente em {GROUP_DAYS_PER_MEMBER} dias. Cada dia de cada um conta!
       </Text>
 
       <View className="flex-row items-center gap-3 mt-3">
-        <View className="flex-1 bg-border h-3 rounded-full overflow-hidden">
-          <View className="bg-primary h-3 rounded-full" style={{ width: `${percent}%` }} />
+        <View className="flex-1">
+          <AnimatedBar percent={percent} height={16} />
         </View>
-        <Text className="text-foreground text-sm font-bold">
-          {data.progress}/{data.goal}
+        <Text className="text-foreground text-sm font-extrabold">
+          {data.reached ? "🏆" : `${data.progress}/${data.goal}`}
         </Text>
       </View>
 
@@ -76,24 +79,36 @@ export function GroupWeekCard({ groupId, readOnly = false }: { groupId: number; 
       {!readOnly && data.isMember && (
         <View className="mt-3">
           {data.chest.canClaimPrevious && (
-            <TouchableOpacity
-              className="bg-secondary py-3 rounded-full mb-2 active:opacity-70"
-              disabled={claimChest.isPending}
-              onPress={() => claimChest.mutate({ weekKey: data.chest.previousWeekKey })}
-            >
-              <Text className="text-white text-center font-bold">🎁 Abrir baú da semana passada</Text>
-            </TouchableOpacity>
+            <View className="mb-2">
+              <Pulse>
+                <PressableScale
+                  className="bg-secondary py-3 rounded-full flex-row items-center justify-center gap-2"
+                  disabled={claimChest.isPending}
+                  onPress={() => claimChest.mutate({ weekKey: data.chest.previousWeekKey })}
+                >
+                  <Wiggle>
+                    <Text className="text-2xl">🎁</Text>
+                  </Wiggle>
+                  <Text className="text-white text-center font-extrabold">Abrir baú da semana passada</Text>
+                </PressableScale>
+              </Pulse>
+            </View>
           )}
           {data.chest.canClaimCurrent ? (
-            <TouchableOpacity
-              className="bg-primary py-3 rounded-full active:opacity-70"
-              disabled={claimChest.isPending}
-              onPress={() => claimChest.mutate({ weekKey: data.weekKey })}
-            >
-              <Text className="text-white text-center font-bold">
-                🎁 Abrir baú · +{data.chestReward.xp} XP · +{data.chestReward.denario} 💰
-              </Text>
-            </TouchableOpacity>
+            <Pulse>
+              <PressableScale
+                className="bg-warning py-3 rounded-full border-2 border-primary flex-row items-center justify-center gap-2"
+                disabled={claimChest.isPending}
+                onPress={() => claimChest.mutate({ weekKey: data.weekKey })}
+              >
+                <Wiggle>
+                  <Text className="text-2xl">🎁</Text>
+                </Wiggle>
+                <Text className="text-foreground text-center font-extrabold">
+                  Abrir baú! +{data.chestReward.xp} XP · +{data.chestReward.denario} 💰
+                </Text>
+              </PressableScale>
+            </Pulse>
           ) : (
             <Text className="text-muted text-xs text-center">
               {data.chest.claimedCurrent
@@ -121,17 +136,23 @@ export function GroupWeekCard({ groupId, readOnly = false }: { groupId: number; 
                 <View className="flex-row gap-1">
                   {data.weekDays.map((day, i) => {
                     const active = member.activeDays.includes(day);
-                    return (
+                    const dot = (
                       <View
-                        key={day}
                         className={`w-5 h-5 rounded-full items-center justify-center ${
                           active ? "bg-primary" : i > todayIndex ? "bg-background border border-border" : "bg-border"
                         }`}
                       >
                         <Text className={`text-[9px] font-bold ${active ? "text-white" : "text-muted"}`}>
-                          {WEEKDAY_LETTERS[i]}
+                          {active ? "✓" : WEEKDAY_LETTERS[i]}
                         </Text>
                       </View>
+                    );
+                    return active ? (
+                      <PopIn key={day} delay={i * 60}>
+                        {dot}
+                      </PopIn>
+                    ) : (
+                      <View key={day}>{dot}</View>
                     );
                   })}
                 </View>
@@ -150,17 +171,18 @@ export function GroupWeekCard({ groupId, readOnly = false }: { groupId: number; 
 
               {openMemberId === member.userId && (
                 <View className="flex-row flex-wrap gap-2 mt-2 justify-end">
-                  {ENCOURAGEMENT_TYPES.map((type) => (
-                    <TouchableOpacity
-                      key={type}
-                      className="bg-accent/20 px-3 py-2 rounded-full active:opacity-70"
-                      disabled={encourage.isPending}
-                      onPress={() => encourage.mutate({ toUserId: member.userId, type })}
-                    >
-                      <Text className="text-foreground text-xs font-semibold">
-                        {ENCOURAGEMENT_INFO[type].emoji} {ENCOURAGEMENT_INFO[type].label}
-                      </Text>
-                    </TouchableOpacity>
+                  {ENCOURAGEMENT_TYPES.map((type, i) => (
+                    <PopIn key={type} delay={i * 70}>
+                      <PressableScale
+                        className="bg-accent/30 px-3 py-2 rounded-full border border-accent"
+                        disabled={encourage.isPending}
+                        onPress={() => encourage.mutate({ toUserId: member.userId, type })}
+                      >
+                        <Text className="text-foreground text-xs font-bold">
+                          {ENCOURAGEMENT_INFO[type].emoji} {ENCOURAGEMENT_INFO[type].label}
+                        </Text>
+                      </PressableScale>
+                    </PopIn>
                   ))}
                 </View>
               )}

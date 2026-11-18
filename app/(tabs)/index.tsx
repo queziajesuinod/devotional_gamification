@@ -23,6 +23,15 @@ import { CelebrationModal, shouldCelebrate, type ChallengeRewardResult } from "@
 import { getLevelProgress, STREAK_MILESTONES } from "@shared/progression";
 import { syncDailyReminders } from "@/lib/reminders";
 import { EncouragementInbox, WeeklyQuestsCard } from "@/components/weekly-quests-card";
+import { AnimatedBar, CountUp, Flame, PopIn, PressableScale, Pulse } from "@/components/juice";
+import { useJuice } from "@/components/juice-provider";
+
+const CHALLENGE_EMOJI: Record<string, string> = {
+  READING: "📖",
+  DEVOTIONAL: "🙏",
+  REFLECTION: "💭",
+  EXTRA: "⭐",
+};
 
 const DEFAULT_AVATAR_CONFIG: NiceAvatarConfig = {
   sex: "man",
@@ -50,6 +59,7 @@ export default function DashboardScreen() {
   const [reflectionText, setReflectionText] = useState("");
   const [selectedChallengeId, setSelectedChallengeId] = useState<number | null>(null);
   const [celebration, setCelebration] = useState<ChallengeRewardResult | null>(null);
+  const juice = useJuice();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -79,7 +89,7 @@ export default function DashboardScreen() {
   const buyFreezeMutation = trpc.user.buyStreakFreeze.useMutation({
     onSuccess: () => {
       refetchUser();
-      notifications.success("Graça adquirida! 🕊️");
+      juice.burst({ title: "Graça guardada! 🕊️", subtitle: "Ela protege um dia que você perder", confetti: false });
     },
     onError: (error) => notifications.error(error.message),
   });
@@ -96,7 +106,7 @@ export default function DashboardScreen() {
     if (shouldCelebrate(result)) {
       setCelebration(result);
     } else {
-      notifications.success(`${fallbackMessage} +${result.xpEarned} XP · +${result.denariosEarned} 💰`);
+      juice.burst({ subtitle: fallbackMessage, xp: result.xpEarned, denario: result.denariosEarned });
     }
   };
 
@@ -209,6 +219,10 @@ export default function DashboardScreen() {
   const freezes = userData?.streakFreezes ?? 0;
   const maxFreezes = userData?.maxStreakFreezes ?? 2;
   const freezePrice = userData?.streakFreezePrice ?? 60;
+  const todayChallenges = todayData?.challenges ?? [];
+  const totalChallenges = todayChallenges.length;
+  const doneCount = todayChallenges.filter((c) => c.completed).length;
+  const nextChallengeId = todayChallenges.find((c) => !c.completed)?.id ?? null;
 
   return (
     <ScreenContainer>
@@ -240,15 +254,13 @@ export default function DashboardScreen() {
               <Text className="text-white/80 text-xs">
                 {levelProgress.title.title} · {levelProgress.xpIntoLevel}/{levelProgress.xpForNextLevel} XP
               </Text>
-              <View className="bg-white/20 h-2 rounded-full mt-1">
-                <View
-                  className="bg-accent h-2 rounded-full"
-                  style={{ width: `${levelProgress.percent}%` }}
-                />
+              <View className="mt-1">
+                <AnimatedBar percent={levelProgress.percent} height={8} fillClassName="bg-warning" trackClassName="bg-white/20" />
               </View>
             </View>
-            <View className="bg-secondary  px-3 py-1 rounded-full">
-              <Text className="text-primary text-sm font-bold">💰 {userData?.denarioBalance || 0}</Text>
+            <View className="bg-warning px-3 py-1 rounded-full flex-row items-center">
+              <Text className="text-sm">💰 </Text>
+              <CountUp value={userData?.denarioBalance || 0} className="text-foreground text-sm font-extrabold" />
             </View>
           </View>
           
@@ -256,11 +268,18 @@ export default function DashboardScreen() {
           <View className="mt-4 bg-white/10 rounded-2xl p-4 border-2 border-white/20">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
-                <Text className="text-4xl">{effectiveStreak === 0 ? "🌱" : "🔥"}</Text>
+                {effectiveStreak === 0 ? (
+                  <Text className="text-4xl">🌱</Text>
+                ) : (
+                  <Flame size={40} streak={effectiveStreak} />
+                )}
                 <View>
-                  <Text className="text-white text-2xl font-bold">
-                    {effectiveStreak} {effectiveStreak === 1 ? "dia" : "dias"}
-                  </Text>
+                  <View className="flex-row items-baseline">
+                    <CountUp value={effectiveStreak} className="text-white text-3xl font-extrabold" />
+                    <Text className="text-white text-xl font-extrabold ml-1">
+                      {effectiveStreak === 1 ? "dia" : "dias"}
+                    </Text>
+                  </View>
                   <Text className="text-white/70 text-xs">Sequência atual</Text>
                 </View>
               </View>
@@ -271,8 +290,10 @@ export default function DashboardScreen() {
             </View>
 
             {/* Status line */}
-            <View className="mt-3 bg-black/10 rounded-xl px-3 py-2">
-              <Text className="text-white text-xs">
+            <View
+              className={`mt-3 rounded-xl px-3 py-2 ${streakStatus === "at_risk" || streakStatus === "protected" ? "bg-warning/30" : "bg-black/10"}`}
+            >
+              <Text className="text-white text-xs font-semibold">
                 {streakStatus === "done_today" && "✅ Sequência garantida hoje. Volte amanhã!"}
                 {streakStatus === "at_risk" && "⏳ Complete um desafio hoje para manter sua sequência!"}
                 {streakStatus === "protected" &&
@@ -287,23 +308,24 @@ export default function DashboardScreen() {
             <View className="mt-3 flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
                 {Array.from({ length: maxFreezes }).map((_, i) => (
-                  <Text key={i} className="text-lg" style={{ opacity: i < freezes ? 1 : 0.3 }}>
-                    🕊️
-                  </Text>
+                  <PopIn key={`${i}-${freezes}`} delay={i * 120}>
+                    <Text className="text-lg" style={{ opacity: i < freezes ? 1 : 0.3 }}>
+                      🕊️
+                    </Text>
+                  </PopIn>
                 ))}
                 <Text className="text-white/80 text-xs ml-2 flex-1">
                   {freezes} {freezes === 1 ? "Graça" : "Graças"}: protegem um dia perdido
                 </Text>
               </View>
               {freezes < maxFreezes && (
-                <TouchableOpacity
-                  className="bg-white/20 px-3 py-1 rounded-full active:opacity-70"
+                <PressableScale
+                  className="bg-white/20 px-3 py-1 rounded-full"
                   disabled={buyFreezeMutation.isPending || (userData?.denarioBalance ?? 0) < freezePrice}
-                  style={{ opacity: (userData?.denarioBalance ?? 0) < freezePrice ? 0.5 : 1 }}
                   onPress={() => buyFreezeMutation.mutate()}
                 >
                   <Text className="text-white text-xs font-bold">+1 por {freezePrice} 💰</Text>
-                </TouchableOpacity>
+                </PressableScale>
               )}
             </View>
 
@@ -358,12 +380,24 @@ export default function DashboardScreen() {
               </View>
 
               {/* Challenges */}
-              <Text className="text-foreground text-lg font-bold mb-3">Desafios do Dia</Text>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-foreground text-lg font-extrabold">Desafios do Dia</Text>
+                <Text className="text-primary font-extrabold">
+                  {doneCount}/{totalChallenges} {doneCount === totalChallenges && totalChallenges > 0 ? "🏆" : ""}
+                </Text>
+              </View>
+              <View className="mb-4">
+                <AnimatedBar percent={totalChallenges ? (doneCount / totalChallenges) * 100 : 0} height={12} />
+              </View>
               {todayData.challenges?.map((challenge) => (
-                <View key={challenge.id} className="bg-surface rounded-2xl p-4 mb-3 border border-border">
+                <View
+                  key={challenge.id}
+                  className={`rounded-2xl p-4 mb-3 border-2 ${challenge.completed ? "bg-primary/10 border-primary" : "bg-surface border-border"}`}
+                >
                   <View className="flex-row items-start justify-between">
+                    <Text className="text-3xl mr-3">{CHALLENGE_EMOJI[challenge.type] ?? "⭐"}</Text>
                     <View className="flex-1">
-                      <Text className="text-foreground text-base font-semibold mb-1">{challenge.title}</Text>
+                      <Text className="text-foreground text-base font-bold mb-1">{challenge.title}</Text>
                       {challenge.description && (
                         <Text className="text-muted text-sm mb-2">{challenge.description}</Text>
                       )}
@@ -377,19 +411,23 @@ export default function DashboardScreen() {
                       </View>
                     </View>
                     {challenge.completed ? (
-                      <View className="bg-success/20 px-3 py-2 rounded-full">
-                        <Text className="text-success text-xs font-bold">✓ Completo</Text>
-                      </View>
+                      <PopIn trigger={challenge.completed} spin>
+                        <View className="bg-primary w-10 h-10 rounded-full items-center justify-center">
+                          <Text className="text-white text-lg font-extrabold">✓</Text>
+                        </View>
+                      </PopIn>
                     ) : (
-                      <TouchableOpacity
-                        className="bg-primary px-4 py-2 rounded-full active:opacity-70"
-                        onPress={() => handleCompleteChallenge(challenge.id, challenge.type)}
-                        disabled={completeChallengeMutation.isPending}
-                      >
-                        <Text className="text-white text-xs font-bold">
-                          {challenge.type === "REFLECTION" ? "Refletir" : "Concluir"}
-                        </Text>
-                      </TouchableOpacity>
+                      <Pulse active={challenge.id === nextChallengeId}>
+                        <PressableScale
+                          className="bg-primary px-4 py-3 rounded-full"
+                          onPress={() => handleCompleteChallenge(challenge.id, challenge.type)}
+                          disabled={completeChallengeMutation.isPending}
+                        >
+                          <Text className="text-white text-sm font-extrabold">
+                            {challenge.type === "REFLECTION" ? "Refletir ✍️" : "Bora! ➜"}
+                          </Text>
+                        </PressableScale>
+                      </Pulse>
                     )}
                   </View>
                 </View>

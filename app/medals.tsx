@@ -12,6 +12,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useRouter } from "expo-router";
 import { trpc } from "@/lib/trpc";
 import { MEDAL_TIER_COLOR, MEDAL_TIER_LABEL } from "@shared/medal-rewards";
+import { AnimatedBar } from "@/components/juice";
 
 type TabType = "all" | "earned" | "available";
 
@@ -242,14 +243,11 @@ export default function MedalsScreen() {
                             medal.progressTarget > 0 &&
                             medal.progressCurrent !== null && (
                               <View className="mt-2">
-                                <View className="bg-border h-2 rounded-full overflow-hidden">
-                                  <View
-                                    className="bg-primary h-2 rounded-full"
-                                    style={{
-                                      width: `${Math.round((medal.progressCurrent / medal.progressTarget) * 100)}%`,
-                                    }}
-                                  />
-                                </View>
+                                <AnimatedBar
+                                  percent={(medal.progressCurrent / medal.progressTarget) * 100}
+                                  height={8}
+                                  shine={false}
+                                />
                                 <Text className="text-xs text-muted mt-1">
                                   {medal.progressCurrent}/{medal.progressTarget} · faltam{" "}
                                   {medal.progressTarget - medal.progressCurrent}

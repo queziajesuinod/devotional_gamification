@@ -1,6 +1,9 @@
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { LEAGUE_INFO, LEAGUE_TIERS } from "@shared/engagement";
+import { CountUp, Float, PopIn, Pulse } from "@/components/juice";
+import { useJuice } from "@/components/juice-provider";
 
 const OUTCOME_TEXT = {
   promoted: "🎉 Você subiu de liga! Parabéns pela dedicação.",
@@ -11,6 +14,17 @@ const OUTCOME_TEXT = {
 /** Weekly league: same-tier standings with promotion and demotion zones. */
 export function LeagueBoard() {
   const { data, isLoading } = trpc.engagement.league.useQuery();
+  const juice = useJuice();
+  const celebrated = useRef<string | null>(null);
+
+  // Celebrate a promotion once per week when the board opens
+  useEffect(() => {
+    if (data?.previousOutcome === "promoted" && celebrated.current !== data.weekKey) {
+      celebrated.current = data.weekKey;
+      juice.burst({ title: `${LEAGUE_INFO[data.tier].emoji} Subiu de liga!`, subtitle: LEAGUE_INFO[data.tier].label });
+      juice.confetti(120);
+    }
+  }, [data?.previousOutcome, data?.weekKey, data?.tier, juice]);
 
   if (isLoading || !data) {
     return (
@@ -29,7 +43,9 @@ export function LeagueBoard() {
       <View className="rounded-2xl p-4 border-2" style={{ borderColor: info.color }}>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
-            <Text className="text-4xl">{info.emoji}</Text>
+            <Float>
+              <Text className="text-5xl">{info.emoji}</Text>
+            </Float>
             <View>
               <Text className="text-foreground text-xl font-bold">{info.label}</Text>
               <Text className="text-muted text-xs">
@@ -39,9 +55,11 @@ export function LeagueBoard() {
           </View>
           <View className="items-end">
             <Text className="text-muted text-xs">Sua posição</Text>
-            <Text className="text-foreground text-2xl font-bold">
-              {data.myRank ? `${data.myRank}º` : "-"}
-            </Text>
+            {data.myRank ? (
+              <CountUp value={data.myRank} from={data.size || data.myRank} suffix="º" className="text-foreground text-3xl font-extrabold" />
+            ) : (
+              <Text className="text-foreground text-3xl font-extrabold">-</Text>
+            )}
           </View>
         </View>
 
@@ -67,35 +85,38 @@ export function LeagueBoard() {
       </View>
 
       {/* Standings */}
-      {data.standings.map((row) => {
+      {data.standings.map((row, index) => {
         const promote = row.position <= data.promoteUntil && row.xp > 0;
         const demote = data.demoteFrom !== null && (row.position >= data.demoteFrom || row.xp === 0);
+        const card = (
+          <View
+            className={`rounded-2xl p-3 flex-row items-center justify-between ${
+              row.isMe ? "bg-accent/30 border-2 border-primary" : "bg-surface border border-border"
+            }`}
+          >
+            <View className="flex-row items-center gap-3 flex-1">
+              <Text
+                className={`w-9 text-center font-extrabold ${promote ? "text-success" : demote ? "text-error" : "text-muted"}`}
+              >
+                {row.position <= 3 && row.xp > 0 ? ["🥇", "🥈", "🥉"][row.position - 1] : `${row.position}º`}
+              </Text>
+              <Text className="text-foreground font-bold flex-1" numberOfLines={1}>
+                {row.isMe ? "Você ⭐" : row.nickname}
+              </Text>
+            </View>
+            <Text className="text-foreground font-extrabold">{row.xp} XP</Text>
+          </View>
+        );
         return (
-          <View key={row.userId}>
+          <PopIn key={row.userId} delay={Math.min(index, 12) * 45}>
             {data.demoteFrom !== null && row.position === data.demoteFrom && (
               <Text className="text-error text-xs font-semibold mb-1 mt-1">▼ Zona de descida</Text>
             )}
-            <View
-              className={`rounded-2xl p-3 flex-row items-center justify-between ${
-                row.isMe ? "bg-accent/20 border-2 border-accent" : "bg-surface border border-border"
-              }`}
-            >
-              <View className="flex-row items-center gap-3 flex-1">
-                <Text
-                  className={`w-8 text-center font-bold ${promote ? "text-success" : demote ? "text-error" : "text-muted"}`}
-                >
-                  {row.position}º
-                </Text>
-                <Text className="text-foreground font-semibold flex-1" numberOfLines={1}>
-                  {row.isMe ? "Você" : row.nickname}
-                </Text>
-              </View>
-              <Text className="text-foreground font-bold">{row.xp} XP</Text>
-            </View>
+            {row.isMe ? <Pulse amount={0.03}>{card}</Pulse> : card}
             {data.promoteUntil > 0 && row.position === data.promoteUntil && (
-              <Text className="text-success text-xs font-semibold mt-1">▲ Zona de subida</Text>
+              <Text className="text-success text-xs font-extrabold mt-1">▲ Zona de subida</Text>
             )}
-          </View>
+          </PopIn>
         );
       })}
 
