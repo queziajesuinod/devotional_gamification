@@ -27,6 +27,12 @@ module.exports = {
   theme: {
     extend: {
       colors: tailwindColors,
+      fontFamily: {
+        // Reino da Palavra
+        sans: ['"Baloo 2"', "system-ui", "sans-serif"], // UI amigável (default)
+        display: ['"Cinzel"', "Georgia", "serif"], // Títulos épicos bíblico-medievais
+        body: ['"Comic Neue"', "system-ui", "sans-serif"], // Leitura / devocional
+      },
     },
   },
   plugins: [

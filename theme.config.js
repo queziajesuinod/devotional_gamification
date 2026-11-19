@@ -3,13 +3,16 @@ const themeColors = {
   // Reino da Palavra — paleta bíblico-medieval: azul real + vermelho estandarte + ouro.
   // (Substitui o teal #4ECDC4 antigo.)
 
-  // Ação / marca
-  primary: { light: "#C1272D", dark: "#E24B50" }, // Vermelho estandarte (CTA)
-  primaryDark: { light: "#8E1B1F", dark: "#A32A2E" }, // Sombra / pressionado
-  primaryLight: { light: "#F0A9A6", dark: "#F0A9A6" }, // Tom suave do primário
+  // Ação / marca — azul profundo o bastante pra texto branco legível (light e dark).
+  primary: { light: "#27509C", dark: "#2F62C4" }, // Azul real (CTA / headers)
+  primaryDark: { light: "#1C3C78", dark: "#244E9C" }, // Sombra / pressionado
+  primaryLight: { light: "#AEC4EC", dark: "#AEC4EC" }, // Tom suave do primário
 
-  secondary: { light: "#2E8B57", dark: "#43B36E" }, // Verde floresta (2º CTA)
+  secondary: { light: "#2E8B57", dark: "#43B36E" }, // Verde floresta (sucesso)
   accent: { light: "#3D6FD6", dark: "#5C94FC" }, // Azul real (XP, destaques, fé)
+
+  // Vermelho estandarte vira detalhe (selo, destaque pontual)
+  banner: { light: "#C1272D", dark: "#E24B50" },
 
   // Neutros / superfícies
   background: { light: "#F3F1EA", dark: "#0B1733" }, // Base (telas sem cenário)

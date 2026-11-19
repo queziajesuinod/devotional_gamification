@@ -1,16 +1,8 @@
-import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from "react-native";
-import { ScreenContainer } from "@/components/screen-container";
-import { GameIcon } from "@/components/game-icon";
+import { useRef, useState } from "react";
+import { View, TextInput, Platform } from "react-native";
+import { GameButton } from "@/components/game-button";
+import { AuthScreen, AuthField, AuthError, AuthDivider, AUTH_INPUT, AUTH_PLACEHOLDER } from "@/components/auth-card";
+import { PasswordInput } from "@/components/password-input";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import * as Auth from "@/lib/_core/auth";
@@ -23,6 +15,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -82,98 +75,61 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScreenContainer>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View className="flex-1 justify-center p-6">
-            {/* Logo/Header */}
-            <View className="items-center mb-8">
-              <GameIcon name="reading" size={72} style={{ marginBottom: 16 }} />
-              <Text className="text-foreground text-3xl font-bold text-center">
-                Devocional Quest
-              </Text>
-              <Text className="text-muted text-center mt-2">
-                Entre para continuar sua jornada
-              </Text>
-            </View>
+    <AuthScreen title="Devocional Quest" subtitle="Sua jornada no Reino continua aqui!">
+      <View className="gap-4 mt-6">
+        <AuthField label="Email" icon="love-letter">
+          <TextInput
+            style={AUTH_INPUT}
+            placeholder="seu@email.com"
+            placeholderTextColor={AUTH_PLACEHOLDER}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            editable={!loading}
+          />
+        </AuthField>
 
-            {/* Login Form */}
-            <View className="gap-4">
-              <View>
-                <Text className="text-foreground text-sm font-semibold mb-2">
-                  Email
-                </Text>
-                <TextInput
-                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
-                  placeholder="seu@email.com"
-                  placeholderTextColor="#9BA1A6"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                  editable={!loading}
-                />
-              </View>
+        <AuthField label="Senha" icon="lock">
+          <PasswordInput
+            inputRef={passwordRef}
+            placeholder="Sua senha secreta"
+            value={password}
+            onChangeText={setPassword}
+            autoComplete="password"
+            returnKeyType="go"
+            onSubmitEditing={handleLogin}
+            editable={!loading}
+          />
+        </AuthField>
 
-              <View>
-                <Text className="text-foreground text-sm font-semibold mb-2">
-                  Senha
-                </Text>
-                <TextInput
-                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
-                  placeholder="••••••••"
-                  placeholderTextColor="#9BA1A6"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoComplete="password"
-                  editable={!loading}
-                />
-              </View>
+        {error ? <AuthError message={error} /> : null}
 
-              {error ? (
-                <View className="bg-error/10 p-3 rounded-xl">
-                  <Text className="text-error text-sm text-center">
-                    {error}
-                  </Text>
-                </View>
-              ) : null}
+        <GameButton
+          style={{ marginTop: 6 }}
+          fullWidth
+          size="lg"
+          variant="royal"
+          icon="rocket"
+          title="Entrar no Reino"
+          onPress={handleLogin}
+          loading={loading}
+        />
+      </View>
 
-              <TouchableOpacity
-                className="bg-primary py-4 rounded-full mt-4 active:opacity-70"
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white text-center font-bold text-lg">
-                    Entrar
-                  </Text>
-                )}
-              </TouchableOpacity>
+      <AuthDivider label="Primeira vez por aqui?" />
 
-              <View className="flex-row items-center justify-center mt-4">
-                <Text className="text-muted">Não tem uma conta? </Text>
-                <TouchableOpacity
-                  onPress={() => router.push("/register" as any)}
-                >
-                  <Text className="text-primary font-semibold">
-                    Cadastre-se
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </ScreenContainer>
+      <GameButton
+        fullWidth
+        variant="gold"
+        icon="party"
+        title="Criar minha conta"
+        disabled={loading}
+        onPress={() => router.push("/register" as any)}
+      />
+    </AuthScreen>
   );
 }

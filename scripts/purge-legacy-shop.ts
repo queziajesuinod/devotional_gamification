@@ -9,6 +9,8 @@
 import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
+// pg ships no types in this project (same as server/db.ts)
+// @ts-expect-error -- untyped module
 import { Pool } from "pg";
 
 const EQUIP_COLUMNS = ["equippedBackgroundId", "equippedClothesId", "equippedAccessoryId", "equippedHairStyleId", "equippedHairColorId"];
@@ -19,7 +21,7 @@ async function main() {
   const client = await pool.connect();
   try {
     const items = (await client.query(`select * from shop_items where slug is null order by id`)).rows;
-    const ids = items.map((i) => i.id);
+    const ids = items.map((i: { id: number }) => i.id);
     const purchases = ids.length
       ? (await client.query(`select * from user_items where "itemId" = any($1::int[]) order by id`, [ids])).rows
       : [];

@@ -14,11 +14,14 @@ import {
   Float,
   PopIn,
   PressableScale,
-  Pulse,
   haptic,
   randomCheer,
 } from "@/components/juice";
+import { Mascot3D } from "@/components/mascot-3d";
 import { GameIcon, type GameIconName } from "@/components/game-icon";
+import { Figurine } from "@/components/figurine";
+import { isCharacterKey } from "@shared/character-catalog";
+import { GameButton } from "@/components/game-button";
 
 const MEDAL_TIER_ICON: Record<string, GameIconName> = {
   BRONZE: "medal-bronze",
@@ -36,8 +39,6 @@ export type ChallengeRewardResult = {
     currentStreak: number;
     increased: boolean;
     wasReset: boolean;
-    freezesUsed: number;
-    freezesLeft: number;
     milestoneReached: number | null;
     bonusDenarios: number;
   } | null;
@@ -46,6 +47,7 @@ export type ChallengeRewardResult = {
     to: number;
     denarioReward: number;
     newTitle: { title: string; emoji: string; icon?: GameIconName } | null;
+    newLooks?: { id: string; name: string; character: string; look: string; hair: string | null; accessory: string | null }[];
   } | null;
   newMedals: {
     id: number;
@@ -140,7 +142,11 @@ export function CelebrationModal({
             {moment.kind === "rewards" && (
               <>
                 <Float>
-                  <GameIcon name={result.dayComplete ? "trophy" : "xp"} size="hero" />
+                  <Mascot3D
+                    mood={result.dayComplete ? "jump" : "cheer"}
+                    moodKey={step}
+                    size={128}
+                  />
                 </Float>
                 <Text className="text-foreground text-3xl font-extrabold text-center mt-1">
                   {result.dayComplete ? "Dia completo!" : cheer}
@@ -221,19 +227,6 @@ export function CelebrationModal({
                     ? "Todo dia é um recomeço. Bora de novo!"
                     : "Sequência pegando fogo! Não deixa apagar!"}
                 </Text>
-                {result.streak.freezesUsed > 0 && (
-                  <PopIn delay={400}>
-                    <View className="bg-accent/30 rounded-2xl p-3 mt-4 flex-row items-center">
-                      <GameIcon name="grace" size="lg" style={{ marginRight: 8 }} />
-                      <Text className="text-foreground text-sm font-semibold flex-1">
-                        {result.streak.freezesUsed === 1
-                          ? "Uma Graça salvou"
-                          : `${result.streak.freezesUsed} Graças salvaram`}{" "}
-                        sua sequência! Restam {result.streak.freezesLeft}.
-                      </Text>
-                    </View>
-                  </PopIn>
-                )}
                 {result.streak.milestoneReached && (
                   <PopIn delay={500} spin>
                     <View className="bg-warning rounded-2xl p-3 mt-4 flex-row items-center">
@@ -284,6 +277,20 @@ export function CelebrationModal({
                     {getLevelTitle(result.levelUp.to).title}
                   </Text>
                 )}
+                {result.levelUp.newLooks?.length && isCharacterKey(result.levelUp.newLooks[0].character) ? (
+                  <PopIn delay={600}>
+                    <View className="items-center mt-3">
+                      <Figurine
+                        figurine={{ ...result.levelUp.newLooks[0], character: result.levelUp.newLooks[0].character, chosen: true }}
+                        height={120}
+                      />
+                      <Text className="text-primary text-base font-extrabold text-center">
+                        Novo look liberado: {result.levelUp.newLooks.map((l) => l.name).join(", ")}!
+                      </Text>
+                      <Text className="text-muted text-xs text-center">Vista no Guarda-roupa</Text>
+                    </View>
+                  </PopIn>
+                ) : null}
                 <PopIn delay={700}>
                   <View className="bg-warning px-4 py-2 rounded-full mt-4 flex-row items-center">
                     <GameIcon name="coin" size="md" style={{ marginRight: 6 }} />
@@ -309,8 +316,7 @@ export function CelebrationModal({
                       Medalha nova!
                     </Text>
                     <PopIn delay={100} spin>
-                      <Pulse amount={0.05}>
-                        <View
+                      <View
                           className="w-32 h-32 rounded-full items-center justify-center my-3"
                           style={{
                             borderWidth: 6,
@@ -320,7 +326,6 @@ export function CelebrationModal({
                         >
                           <GameIcon name={MEDAL_TIER_ICON[medal.tier] ?? "medal-bronze"} size={84} />
                         </View>
-                      </Pulse>
                     </PopIn>
                     <Text className="text-foreground text-2xl font-extrabold text-center">
                       {medal.name}
@@ -363,16 +368,13 @@ export function CelebrationModal({
               })()}
 
             <View className="w-full mt-6">
-              <Pulse amount={0.04}>
-                <PressableScale
-                  className="bg-primary w-full py-4 rounded-full"
+              <GameButton
+                  fullWidth
+                  size="lg"
+                  variant={isLast ? "banner" : "royal"}
+                  title={isLast ? "Amém!" : "Continuar"}
                   onPress={next}
-                >
-                  <Text className="text-white text-center text-lg font-extrabold">
-                    {isLast ? "Amém!" : "Continuar"}
-                  </Text>
-                </PressableScale>
-              </Pulse>
+                />
             </View>
             {moments.length > 1 && (
               <View className="flex-row gap-1 mt-3">

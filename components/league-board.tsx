@@ -2,9 +2,11 @@ import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { LEAGUE_INFO, LEAGUE_TIERS } from "@shared/engagement";
-import { CountUp, Float, PopIn, Pulse } from "@/components/juice";
+import { CountUp, Float, PopIn } from "@/components/juice";
 import { useJuice } from "@/components/juice-provider";
 import { GameIcon } from "@/components/game-icon";
+import { SOFT_SHADOW } from "@/lib/ui";
+import { FaceBadge, PLACE_RING } from "@/components/face-badge";
 
 const OUTCOME_TEXT = {
   promoted: " Você subiu de liga! Parabéns pela dedicação.",
@@ -48,8 +50,8 @@ export function LeagueBoard() {
     <View className="gap-3">
       {/* League header */}
       <View
-        className="rounded-2xl p-4 border-2"
-        style={{ borderColor: info.color }}
+        className="rounded-2xl p-4 border"
+        style={{ borderColor: info.color, ...SOFT_SHADOW }}
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
@@ -118,11 +120,10 @@ export function LeagueBoard() {
           (row.position >= data.demoteFrom || row.xp === 0);
         const card = (
           <View
-            className={`rounded-2xl p-3 flex-row items-center justify-between ${
-              row.isMe
-                ? "bg-accent/30 border-2 border-primary"
-                : "bg-surface border border-border"
+            className={`rounded-2xl p-3 flex-row items-center justify-between bg-surface ${
+              row.isMe ? "border-2 border-primary" : ""
             }`}
+            style={SOFT_SHADOW}
           >
             <View className="flex-row items-center gap-3 flex-1">
               {row.position <= 3 && row.xp > 0 ? (
@@ -140,6 +141,12 @@ export function LeagueBoard() {
                   {row.position}º
                 </Text>
               )}
+              <FaceBadge
+                figurine={row.figurine}
+                size={42}
+                ring={row.position <= 3 && row.xp > 0 ? PLACE_RING[row.position - 1] : row.isMe ? "#27509C" : "#D8C9A8"}
+                label={row.isMe ? "Você" : row.nickname ?? "Jogador"}
+              />
               <Text
                 className="text-foreground font-bold flex-1"
                 numberOfLines={1}
@@ -157,7 +164,7 @@ export function LeagueBoard() {
                 ▼ Zona de descida
               </Text>
             )}
-            {row.isMe ? <Pulse amount={0.03}>{card}</Pulse> : card}
+            {card}
             {data.promoteUntil > 0 && row.position === data.promoteUntil && (
               <Text className="text-success text-xs font-extrabold mt-1">
                 ▲ Zona de subida

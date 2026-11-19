@@ -39,7 +39,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.tint,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.muted,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarLabelStyle: { fontWeight: "800", fontSize: 11 },
@@ -47,9 +48,9 @@ export default function TabLayout() {
           paddingTop: 10,
           paddingBottom: bottomPadding,
           height: tabBarHeight,
-          backgroundColor: colors.background,
+          backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          borderTopWidth: 0.5,
+          borderTopWidth: 1,
         },
       }}
     >
@@ -63,7 +64,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="shop"
         options={{
-          title: "Loja",
+          title: "Reino",
           tabBarIcon: ({ focused }) => <TabIcon name="tab-shop" focused={focused} />,
         }}
       />

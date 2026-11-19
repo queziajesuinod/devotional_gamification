@@ -6,6 +6,8 @@
  *   pnpm db:status
  */
 import "dotenv/config";
+// pg ships no types in this project (same as server/db.ts)
+// @ts-expect-error -- untyped module
 import { Pool } from "pg";
 
 type Check = { label: string; sql: string; params?: unknown[] };
@@ -45,6 +47,24 @@ const MIGRATIONS: { file: string; checks: Check[] }[] = [
       { label: "users.characterKey", sql: `select 1 from information_schema.columns where table_name='users' and column_name='characterKey'` },
     ],
   },
+  {
+    file: "drizzle/0012_challenge_chests.sql",
+    checks: [{ label: "tabela user_chests", sql: `select 1 from information_schema.tables where table_name='user_chests'` }],
+  },
+  {
+    file: "drizzle/0013_chest_types.sql",
+    checks: [
+      { label: "tabela chest_types", sql: `select 1 from information_schema.tables where table_name='chest_types'` },
+      { label: "user_chests.chestTypeId", sql: `select 1 from information_schema.columns where table_name='user_chests' and column_name='chestTypeId'` },
+    ],
+  },
+  {
+    file: "drizzle/0014_encouragement_messages.sql",
+    checks: [
+      { label: "tabela encouragement_messages", sql: `select 1 from information_schema.tables where table_name='encouragement_messages'` },
+      { label: "encouragements.messageId", sql: `select 1 from information_schema.columns where table_name='encouragements' and column_name='messageId'` },
+    ],
+  },
 ];
 
 async function main() {
@@ -63,7 +83,7 @@ async function main() {
     const owners = await pool.query(
       `select t.typname, pg_get_userbyid(t.typowner) as owner from pg_type t where t.typname in ('point_source','shop_item_type')`
     );
-    console.log("\nDono dos enums:", owners.rows.map((r) => `${r.typname}=${r.owner}`).join(", "), "| usuário do app:", (await pool.query("select current_user")).rows[0].current_user);
+    console.log("\nDono dos enums:", owners.rows.map((r: { typname: string; owner: string }) => `${r.typname}=${r.owner}`).join(", "), "| usuário do app:", (await pool.query("select current_user")).rows[0].current_user);
   } finally {
     await pool.end();
   }

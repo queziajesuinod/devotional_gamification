@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
+import type React from "react";
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Alert,
-  Image,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
+import { GameButton } from "@/components/game-button";
+import { GameIcon, type GameIconName } from "@/components/game-icon";
+import { HeroTexture } from "@/components/hero-texture";
+import { Figurine } from "@/components/figurine";
+import { DEFAULT_CHARACTER } from "@shared/character-catalog";
+import { SOFT_SHADOW } from "@/lib/ui";
+import { getLevelProgress } from "@shared/progression";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
@@ -318,398 +325,376 @@ export default function SettingsScreen() {
     );
   }
 
+  const levelProgress = getLevelProgress(userData.xpTotal || 0);
+  const cancelProfileEdit = () => {
+    setEditMode(false);
+    resetProfileForm();
+    setError("");
+  };
+  const cancelPasswordEdit = () => {
+    setPasswordMode(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordError("");
+  };
+
   return (
     <ScreenContainer>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-          className="p-6"
-        >
-          {/* Header */}
-          <View className="items-center mb-6">
-            <View className="w-24 h-24 bg-primary rounded-full items-center justify-center mb-4 relative">
-              {userData.avatarUrl ? (
-                <Image
-                  source={{ uri: userData.avatarUrl }}
-                  className="w-24 h-24 rounded-full"
-                  resizeMode="cover"
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+          {/* Hero */}
+          <View className="bg-primary rounded-b-3xl px-5 pt-5 pb-6" style={SOFT_SHADOW}>
+            <HeroTexture style={{ borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }} />
+            <GameButton variant="wood" size="sm" title="Voltar" onPress={() => router.back()} />
+
+            <View className="items-center mt-2">
+              <View
+                className="rounded-full items-center justify-center bg-white/90"
+                style={{ width: 104, height: 104, borderWidth: 4, borderColor: "#F2B50C", overflow: "hidden" }}
+              >
+                <Figurine
+                  figurine={
+                    userData.figurine ?? {
+                      character: DEFAULT_CHARACTER,
+                      chosen: false,
+                      look: "original",
+                      hair: null,
+                      accessory: null,
+                    }
+                  }
+                  height={96}
+                  mode="head"
+                  label={`Avatar de ${userData.nickname}`}
                 />
-              ) : (
-                <Text className="text-white text-4xl font-bold">
-                  {userData.nickname.charAt(0).toUpperCase()}
+              </View>
+              <Text className="font-display mt-3" style={{ color: "#FFFFFF", fontSize: 24 }}>
+                {userData.nickname}
+              </Text>
+              <View className="flex-row items-center bg-white/15 px-3 py-1 rounded-full mt-1">
+                <GameIcon name={levelProgress.title.icon} size={18} style={{ marginRight: 6 }} />
+                <Text style={{ color: "#FFFFFF" }} className="text-xs font-extrabold">
+                  Nível {levelProgress.level} · {levelProgress.title.title}
                 </Text>
-              )}
+              </View>
             </View>
-            <Text className="text-foreground text-2xl font-bold mt-2">
-              {userData.nickname}
-            </Text>
-            <Text className="text-muted text-sm">Nível {userData.level}</Text>
-          </View>
 
-          {/* Stats */}
-          <View className="flex-row gap-4 mb-6">
-            <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
-              <Text className="text-muted text-xs mb-1">XP Total</Text>
-              <Text className="text-foreground text-2xl font-bold">
-                {userData.xpTotal}
-              </Text>
-            </View>
-            <View className="flex-1 bg-surface rounded-xl p-4 border border-border">
-              <Text className="text-muted text-xs mb-1">Denários</Text>
-              <Text className="text-foreground text-2xl font-bold">
-                {userData.denarioBalance}
-              </Text>
+            <View className="flex-row gap-2 mt-5 w-full self-center" style={{ maxWidth: 520 }}>
+              <StatChip icon="xp" label="XP" value={userData.xpTotal} />
+              <StatChip icon="coin" label="Denários" value={userData.denarioBalance} />
+              <StatChip icon="streak" label="Sequência" value={userData.currentStreak} />
             </View>
           </View>
 
-          {/* Profile Information */}
-          <View className="bg-surface rounded-xl p-4 border border-border mb-4">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-foreground text-lg font-bold">
-                Informações do Perfil
-              </Text>
-              {!editMode && (
-                <TouchableOpacity onPress={handleStartEdit}>
-                  <Text className="text-primary font-semibold">Editar</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+          <View className="px-4 pt-5 gap-4 w-full self-center" style={{ maxWidth: 720 }}>
+            {/* Meu perfil */}
+            <Section
+              icon="tab-profile"
+              title="Meu perfil"
+              action={!editMode ? <GameButton variant="wood" size="sm" title="Editar" onPress={handleStartEdit} /> : null}
+            >
+              {editMode ? (
+                <View className="gap-4">
+                  <Field label="Nome completo" icon="tab-profile">
+                    <TextInput
+                      style={inputStyle}
+                      placeholder={userData.name || "Seu nome e sobrenome"}
+                      placeholderTextColor={PLACEHOLDER}
+                      value={fullName}
+                      onChangeText={setFullName}
+                      autoCapitalize="words"
+                      editable={!loading}
+                    />
+                  </Field>
+                  <Field label="Apelido" icon="level-shield" hint="É assim que você aparece no ranking">
+                    <TextInput
+                      style={inputStyle}
+                      placeholder={userData.nickname || ""}
+                      placeholderTextColor={PLACEHOLDER}
+                      value={nickname}
+                      onChangeText={setNickname}
+                      autoCapitalize="words"
+                      editable={!loading}
+                    />
+                  </Field>
+                  <Field label="Email" icon="love-letter">
+                    <TextInput
+                      style={inputStyle}
+                      placeholder={userData.email || ""}
+                      placeholderTextColor={PLACEHOLDER}
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      editable={!loading}
+                    />
+                  </Field>
+                  <Field label="Sexo" optional>
+                    <View className="flex-row gap-2">
+                      {GENDER_OPTIONS.map((option) => {
+                        const active = gender === option.value;
+                        return (
+                          <Pressable
+                            key={option.value}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: active }}
+                            onPress={() => setGender((current) => (current === option.value ? "" : option.value))}
+                            style={{
+                              flex: 1,
+                              borderRadius: 16,
+                              paddingVertical: 12,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderWidth: 2,
+                              borderColor: active ? "#27509C" : "#D8C9A8",
+                              backgroundColor: active ? "rgba(39,80,156,0.10)" : "rgba(244,228,193,0.4)",
+                            }}
+                          >
+                            <Text className={`font-extrabold ${active ? "text-primary" : "text-foreground"}`}>
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </Field>
+                  <Field label="Data de nascimento" icon="calendar" optional>
+                    <TextInput
+                      style={inputStyle}
+                      placeholder="DD/MM/AAAA"
+                      placeholderTextColor={PLACEHOLDER}
+                      value={birthDate}
+                      onChangeText={(value) => setBirthDate(maskBirthDateInput(value))}
+                      keyboardType="numeric"
+                      maxLength={10}
+                      editable={!loading}
+                    />
+                  </Field>
+                  <Field label="WhatsApp" icon="bell" optional>
+                    <TextInput
+                      style={inputStyle}
+                      placeholder="(00) 00000-0000"
+                      placeholderTextColor={PLACEHOLDER}
+                      value={whatsapp}
+                      onChangeText={(value) => setWhatsapp(maskWhatsappInput(value))}
+                      keyboardType="phone-pad"
+                      maxLength={18}
+                      editable={!loading}
+                    />
+                  </Field>
 
-            {editMode ? (
-              <View className="gap-4">
-                <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    Nome completo
-                  </Text>
-                  <TextInput
-                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder={userData.name || ""}
-                    placeholderTextColor="#9BA1A6"
-                    value={fullName}
-                    onChangeText={setFullName}
-                    autoCapitalize="words"
-                    editable={!loading}
-                  />
-                </View>
+                  {error ? <ErrorNote message={error} /> : null}
 
-                <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    Apelido
-                  </Text>
-                  <TextInput
-                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder={userData.nickname || ""}
-                    placeholderTextColor="#9BA1A6"
-                    value={nickname}
-                    onChangeText={setNickname}
-                    autoCapitalize="words"
-                    editable={!loading}
-                  />
-                </View>
-
-                <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    Email
-                  </Text>
-                  <TextInput
-                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder={userData.email || ""}
-                    placeholderTextColor="#9BA1A6"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    editable={!loading}
-                  />
-                </View>
-
-                <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    Sexo <Text className="text-muted text-xs">(opcional)</Text>
-                  </Text>
-                  <View className="flex-row gap-2">
-                    {GENDER_OPTIONS.map((option) => (
-                      <TouchableOpacity
-                        key={option.value}
-                        onPress={() =>
-                          setGender((current) =>
-                            current === option.value ? "" : option.value,
-                          )
-                        }
-                        className={`flex-1 rounded-xl border px-4 py-3 items-center justify-center ${
-                          gender === option.value
-                            ? "border-primary bg-primary/10"
-                            : "border-border bg-background"
-                        }`}
-                      >
-                        <Text
-                          className={`font-semibold ${
-                            gender === option.value
-                              ? "text-primary"
-                              : "text-foreground"
-                          }`}
-                        >
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  <View className="flex-row gap-3">
+                    <View className="flex-1">
+                      <GameButton fullWidth variant="wood" title="Cancelar" disabled={loading} onPress={cancelProfileEdit} />
+                    </View>
+                    <View className="flex-1">
+                      <GameButton fullWidth variant="royal" title="Salvar" onPress={handleUpdateProfile} loading={loading} />
+                    </View>
                   </View>
                 </View>
-
+              ) : (
                 <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    Data de nascimento{" "}
-                    <Text className="text-muted text-xs">(opcional)</Text>
-                  </Text>
-                  <TextInput
-                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder="DD/MM/AAAA"
-                    placeholderTextColor="#9BA1A6"
-                    value={birthDate}
-                    onChangeText={(value) =>
-                      setBirthDate(maskBirthDateInput(value))
-                    }
-                    keyboardType="numeric"
-                    maxLength={10}
-                    editable={!loading}
-                  />
+                  <InfoRow icon="tab-profile" label="Nome completo" value={userData.name || "-"} />
+                  <InfoRow icon="level-shield" label="Apelido" value={userData.nickname} />
+                  <InfoRow icon="love-letter" label="Email" value={userData.email || "-"} />
+                  <InfoRow icon="tab-cells" label="Sexo" value={getGenderLabel(userData.gender)} />
+                  <InfoRow icon="calendar" label="Data de nascimento" value={formatBirthDateForDisplay(userData.birthDate)} />
+                  <InfoRow icon="bell" label="WhatsApp" value={userData.whatsapp ? formatWhatsappForInput(userData.whatsapp) : "-"} last />
                 </View>
-
-                <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    WhatsApp{" "}
-                    <Text className="text-muted text-xs">(opcional)</Text>
-                  </Text>
-                  <TextInput
-                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder="(00) 00000-0000"
-                    placeholderTextColor="#9BA1A6"
-                    value={whatsapp}
-                    onChangeText={(value) =>
-                      setWhatsapp(maskWhatsappInput(value))
-                    }
-                    keyboardType="phone-pad"
-                    maxLength={18}
-                    editable={!loading}
-                  />
-                </View>
-
-                {error ? (
-                  <View className="bg-error/10 p-3 rounded-xl">
-                    <Text className="text-error text-sm text-center">
-                      {error}
-                    </Text>
-                  </View>
-                ) : null}
-
-                <View className="flex-row gap-2">
-                  <TouchableOpacity
-                    className="flex-1 bg-border py-3 rounded-full active:opacity-70"
-                    onPress={() => {
-                      setEditMode(false);
-                      resetProfileForm();
-                      setError("");
-                    }}
-                    disabled={loading}
-                  >
-                    <Text className="text-foreground text-center font-semibold">
-                      Cancelar
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex-1 bg-primary py-3 rounded-full active:opacity-70"
-                    onPress={handleUpdateProfile}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text className="text-white text-center font-semibold">
-                        Salvar
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <View className="gap-3">
-                <View>
-                  <Text className="text-muted text-xs mb-1">Nome completo</Text>
-                  <Text className="text-foreground text-base">
-                    {userData.name || "-"}
-                  </Text>
-                </View>
-                <View>
-                  <Text className="text-muted text-xs mb-1">Apelido</Text>
-                  <Text className="text-foreground text-base">
-                    {userData.nickname}
-                  </Text>
-                </View>
-                <View>
-                  <Text className="text-muted text-xs mb-1">Email</Text>
-                  <Text className="text-foreground text-base">
-                    {userData.email}
-                  </Text>
-                </View>
-                <View>
-                  <Text className="text-muted text-xs mb-1">Sexo</Text>
-                  <Text className="text-foreground text-base">
-                    {getGenderLabel(userData.gender)}
-                  </Text>
-                </View>
-                <View>
-                  <Text className="text-muted text-xs mb-1">
-                    Data de nascimento
-                  </Text>
-                  <Text className="text-foreground text-base">
-                    {formatBirthDateForDisplay(userData.birthDate)}
-                  </Text>
-                </View>
-                <View>
-                  <Text className="text-muted text-xs mb-1">WhatsApp</Text>
-                  <Text className="text-foreground text-base">
-                    {userData.whatsapp || "-"}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/* Daily reminder */}
-          <ReminderSettings
-            doneToday={userData?.streakStatus === "done_today"}
-            streak={userData?.currentStreak ?? 0}
-          />
-
-          {/* Change Password */}
-          <View className="bg-surface rounded-xl p-4 border border-border mb-4">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-foreground text-lg font-bold">Senha</Text>
-              {!passwordMode && (
-                <TouchableOpacity onPress={() => setPasswordMode(true)}>
-                  <Text className="text-primary font-semibold">Alterar</Text>
-                </TouchableOpacity>
               )}
-            </View>
+            </Section>
 
-            {passwordMode ? (
-              <View className="gap-4">
-                <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    Senha Atual
-                  </Text>
-                  <TextInput
-                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder="Digite sua senha atual"
-                    placeholderTextColor="#9BA1A6"
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
-                    secureTextEntry
-                    editable={!passwordLoading}
-                  />
-                </View>
+            {/* Lembretes */}
+            <Section icon="bell" title="Lembretes">
+              <ReminderSettings doneToday={userData?.streakStatus === "done_today"} streak={userData?.currentStreak ?? 0} />
+              {Platform.OS === "web" ? (
+                <Text className="text-muted text-sm">Os lembretes funcionam no app do celular.</Text>
+              ) : null}
+            </Section>
 
-                <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    Nova Senha
-                  </Text>
-                  <TextInput
-                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder="Mínimo 6 caracteres"
-                    placeholderTextColor="#9BA1A6"
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    secureTextEntry
-                    editable={!passwordLoading}
-                  />
-                </View>
+            {/* Segurança */}
+            <Section
+              icon="lock"
+              title="Segurança"
+              action={!passwordMode ? <GameButton variant="wood" size="sm" title="Alterar" onPress={() => setPasswordMode(true)} /> : null}
+            >
+              {passwordMode ? (
+                <View className="gap-4">
+                  <Field label="Senha atual" icon="lock">
+                    <TextInput
+                      style={inputStyle}
+                      placeholder="Digite sua senha atual"
+                      placeholderTextColor={PLACEHOLDER}
+                      value={currentPassword}
+                      onChangeText={setCurrentPassword}
+                      secureTextEntry
+                      autoComplete="current-password"
+                      editable={!passwordLoading}
+                    />
+                  </Field>
+                  <Field label="Nova senha" icon="level-shield" hint="Mínimo de 6 caracteres">
+                    <TextInput
+                      style={inputStyle}
+                      placeholder="Crie uma nova senha"
+                      placeholderTextColor={PLACEHOLDER}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry
+                      autoComplete="new-password"
+                      editable={!passwordLoading}
+                    />
+                  </Field>
+                  <Field label="Confirmar nova senha" icon="level-shield">
+                    <TextInput
+                      style={inputStyle}
+                      placeholder="Digite a nova senha de novo"
+                      placeholderTextColor={PLACEHOLDER}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry
+                      autoComplete="new-password"
+                      editable={!passwordLoading}
+                    />
+                  </Field>
 
-                <View>
-                  <Text className="text-foreground text-sm font-semibold mb-2">
-                    Confirmar Nova Senha
-                  </Text>
-                  <TextInput
-                    className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
-                    placeholder="Digite a nova senha novamente"
-                    placeholderTextColor="#9BA1A6"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                    editable={!passwordLoading}
-                  />
-                </View>
+                  {passwordError ? <ErrorNote message={passwordError} /> : null}
 
-                {passwordError ? (
-                  <View className="bg-error/10 p-3 rounded-xl">
-                    <Text className="text-error text-sm text-center">
-                      {passwordError}
-                    </Text>
+                  <View className="flex-row gap-3">
+                    <View className="flex-1">
+                      <GameButton fullWidth variant="wood" title="Cancelar" disabled={passwordLoading} onPress={cancelPasswordEdit} />
+                    </View>
+                    <View className="flex-1">
+                      <GameButton fullWidth variant="royal" title="Alterar" onPress={handleChangePassword} loading={passwordLoading} />
+                    </View>
                   </View>
-                ) : null}
-
-                <View className="flex-row gap-2">
-                  <TouchableOpacity
-                    className="flex-1 bg-border py-3 rounded-full active:opacity-70"
-                    onPress={() => {
-                      setPasswordMode(false);
-                      setCurrentPassword("");
-                      setNewPassword("");
-                      setConfirmPassword("");
-                      setPasswordError("");
-                    }}
-                    disabled={passwordLoading}
-                  >
-                    <Text className="text-foreground text-center font-semibold">
-                      Cancelar
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex-1 bg-primary py-3 rounded-full active:opacity-70"
-                    onPress={handleChangePassword}
-                    disabled={passwordLoading}
-                  >
-                    {passwordLoading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text className="text-white text-center font-semibold">
-                        Alterar
-                      </Text>
-                    )}
-                  </TouchableOpacity>
                 </View>
-              </View>
-            ) : (
-              <Text className="text-muted text-sm">
-                Clique em &ldquo;Alterar&rdquo; para mudar sua senha
+              ) : (
+                <View className="flex-row items-center">
+                  <GameIcon name="level-shield" size={36} style={{ marginRight: 10 }} />
+                  <Text className="text-muted text-sm flex-1">Sua senha protege sua jornada. Troque quando quiser.</Text>
+                </View>
+              )}
+            </Section>
+
+            {/* Conta */}
+            <Section icon="settings" title="Conta">
+              <GameButton fullWidth size="lg" variant="banner" title="Sair da conta" onPress={handleLogout} />
+              <Text className="text-muted text-xs text-center mt-2">
+                Você pode voltar quando quiser. Seu progresso fica salvo.
               </Text>
-            )}
+            </Section>
           </View>
-
-          {/* Logout Button */}
-          <TouchableOpacity
-            className="bg-error py-4 rounded-full active:opacity-70 mb-6"
-            onPress={handleLogout}
-          >
-            <Text className="text-white text-center font-bold text-lg">
-              Sair
-            </Text>
-          </TouchableOpacity>
-
-          {/* Back Button */}
-          <TouchableOpacity
-            className="py-3 active:opacity-70"
-            onPress={() => router.back()}
-          >
-            <Text className="text-primary text-center font-semibold">
-              Voltar ao App
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>
+  );
+}
+
+// ---------------- building blocks ----------------
+
+const PLACEHOLDER = "#9B8C74";
+const inputStyle = {
+  fontSize: 16,
+  paddingHorizontal: 14,
+  paddingVertical: 12,
+  borderRadius: 16,
+  borderWidth: 2,
+  borderColor: "#D8C9A8",
+  backgroundColor: "#FFF9EC",
+  color: "#241A12",
+} as const;
+
+function Section({
+  icon,
+  title,
+  action,
+  children,
+}: {
+  icon: GameIconName;
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <View className="bg-surface rounded-3xl p-4" style={SOFT_SHADOW}>
+      <View className="flex-row items-center mb-4">
+        <GameIcon name={icon} size={32} style={{ marginRight: 8 }} />
+        <Text className="font-display text-foreground flex-1" style={{ fontSize: 18 }}>
+          {title}
+        </Text>
+        {action}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function Field({
+  label,
+  icon,
+  optional,
+  hint,
+  children,
+}: {
+  label: string;
+  icon?: GameIconName;
+  optional?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View>
+      <View className="flex-row items-center mb-2">
+        {icon ? <GameIcon name={icon} size={18} style={{ marginRight: 6 }} /> : null}
+        <Text className="text-foreground text-sm font-extrabold">{label}</Text>
+        {optional ? <Text className="text-muted text-xs ml-1">(opcional)</Text> : null}
+      </View>
+      {children}
+      {hint ? <Text className="text-muted text-xs mt-1">{hint}</Text> : null}
+    </View>
+  );
+}
+
+function InfoRow({ icon, label, value, last }: { icon: GameIconName; label: string; value: string; last?: boolean }) {
+  return (
+    <View
+      className="flex-row items-center py-3"
+      style={last ? undefined : { borderBottomWidth: 1, borderBottomColor: "rgba(139,90,43,0.15)" }}
+    >
+      <View className="w-10 h-10 rounded-2xl bg-parchment/60 items-center justify-center mr-3">
+        <GameIcon name={icon} size={24} />
+      </View>
+      <View className="flex-1">
+        <Text className="text-muted text-xs">{label}</Text>
+        <Text className="text-foreground text-base font-bold" numberOfLines={1}>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function StatChip({ icon, label, value }: { icon: GameIconName; label: string; value: number }) {
+  return (
+    <View className="flex-1 bg-white/15 rounded-2xl py-2 items-center">
+      <GameIcon name={icon} size={26} />
+      <Text style={{ color: "#FFFFFF" }} className="text-lg font-extrabold mt-1">
+        {value}
+      </Text>
+      <Text style={{ color: "rgba(255,255,255,0.8)" }} className="text-[11px] font-bold">
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function ErrorNote({ message }: { message: string }) {
+  return (
+    <View className="flex-row items-center bg-error/10 p-3 rounded-2xl" accessibilityRole="alert">
+      <GameIcon name="lock" size={20} style={{ marginRight: 8 }} />
+      <Text className="text-error text-sm font-bold flex-1">{message}</Text>
+    </View>
   );
 }

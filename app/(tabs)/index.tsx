@@ -17,7 +17,6 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { NiceAvatar, type NiceAvatarConfig } from "@/components/nice-avatar";
 import {
   formatCampoGrandeDate,
   getDelayToCampoGrandeNextMidnight,
@@ -39,13 +38,13 @@ import {
   CountUp,
   Flame,
   PopIn,
-  PressableScale,
-  Pulse,
 } from "@/components/juice";
 import { useJuice } from "@/components/juice-provider";
 import { MascotCard, type MascotEvent } from "@/components/mascot-card";
 import { GameIcon, type GameIconName } from "@/components/game-icon";
-import { Figurine } from "@/components/figurine";
+import { GameButton, GameCloseButton } from "@/components/game-button";
+import { SOFT_SHADOW } from "@/lib/ui";
+import { HeroTexture } from "@/components/hero-texture";
 
 const CHALLENGE_ICON: Record<string, GameIconName> = {
   READING: "reading",
@@ -57,26 +56,8 @@ const CHALLENGE_ICON: Record<string, GameIconName> = {
 const STREAK_STATUS_UI: Record<string, { icon: GameIconName; text: string }> = {
   done_today: { icon: "calendar", text: "Sequência garantida hoje. Volte amanhã!" },
   at_risk: { icon: "hourglass", text: "Complete um desafio hoje para manter sua sequência!" },
-  protected: { icon: "grace", text: "Você perdeu um dia, mas uma Graça protege sua sequência se fizer um desafio hoje." },
   broken: { icon: "sprout", text: "Todo dia é um recomeço. Complete um desafio para iniciar uma nova sequência." },
   none: { icon: "sprout", text: "Complete um desafio para começar sua sequência!" },
-};
-
-const DEFAULT_AVATAR_CONFIG: NiceAvatarConfig = {
-  sex: "man",
-  faceColor: "#F9C9B6",
-  earSize: "small",
-  eyeStyle: "oval",
-  mouthStyle: "peace",
-  noseStyle: "short",
-  eyeBrowStyle: "up",
-  glassesStyle: "none",
-  hatStyle: "none",
-  shirtStyle: "short",
-  shirtColor: "#FFFFFF",
-  hairStyle: "normal",
-  hairColor: "#000000",
-  bgColor: "#9CA3AF",
 };
 
 export default function DashboardScreen() {
@@ -128,18 +109,6 @@ export default function DashboardScreen() {
         utils.engagement.league.invalidate();
       },
     });
-
-  const buyFreezeMutation = trpc.user.buyStreakFreeze.useMutation({
-    onSuccess: () => {
-      refetchUser();
-      juice.burst({
-        title: "Graça guardada!",
-        subtitle: "Ela protege um dia que você perder",
-        confetti: false,
-      });
-    },
-    onError: (error) => notifications.error(error.message),
-  });
 
   // Keep local reminders in sync with today's progress
   const doneToday = userData?.streakStatus === "done_today";
@@ -282,23 +251,12 @@ export default function DashboardScreen() {
     );
   }
 
-  const avatarConfig =
-    userData?.avatarConfig &&
-    typeof userData.avatarConfig === "object" &&
-    !Array.isArray(userData.avatarConfig)
-      ? (userData.avatarConfig as NiceAvatarConfig)
-      : null;
-  const headerAvatarConfig = avatarConfig ?? DEFAULT_AVATAR_CONFIG;
-  const showNiceAvatar = !!avatarConfig || !userData?.avatarUrl;
   const levelProgress = getLevelProgress(userData?.xpTotal || 0);
   const streak = userData?.currentStreak || 0;
   const streakStatus = userData?.streakStatus ?? "none";
   const effectiveStreak = streakStatus === "broken" ? 0 : streak;
   const nextMilestone =
     STREAK_MILESTONES.find((m) => m.days > effectiveStreak) ?? null;
-  const freezes = userData?.streakFreezes ?? 0;
-  const maxFreezes = userData?.maxStreakFreezes ?? 2;
-  const freezePrice = userData?.streakFreezePrice ?? 60;
   const todayChallenges = todayData?.challenges ?? [];
   const totalChallenges = todayChallenges.length;
   const doneCount = todayChallenges.filter((c) => c.completed).length;
@@ -314,30 +272,22 @@ export default function DashboardScreen() {
       >
         {/* Header */}
         <View className="bg-primary p-6 rounded-b-3xl">
-          <View className="flex-row items-center gap-3 mb-3">
-            {userData?.figurine ? (
-              <PressableScale
-                className="bg-white/90 rounded-full overflow-hidden border-2 border-white"
-                onPress={() => router.push("/shop" as any)}
-                accessibilityLabel="Abrir guarda-roupa"
-              >
-                <Figurine figurine={userData.figurine} height={52} mode="head" />
-              </PressableScale>
-            ) : showNiceAvatar ? (
-              <NiceAvatar config={headerAvatarConfig} size={48} />
-            ) : null}
-            <Text className="text-white text-lg font-semibold">
-              Olá, {userData?.nickname || "Usuário"}!
-            </Text>
-          </View>
+          <HeroTexture style={{ borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }} />
+          <Text
+            style={{ color: "#FFFFFF" }}
+            className="text-xl font-extrabold mb-3"
+          >
+            Olá, {userData?.nickname || "Usuário"}!
+          </Text>
 
-          {/* Mascot */}
-          <View className="mb-3 -ml-4">
+          {/* Avatar do jogador (construído na loja) + incentivo da Lã-Lã */}
+          <View className="mb-3">
             <MascotCard
               name={userData?.nickname || "amigo"}
               streakStatus={streakStatus}
               streak={effectiveStreak}
               event={mascotEvent}
+              figurine={userData?.figurine}
             />
           </View>
 
@@ -383,18 +333,24 @@ export default function DashboardScreen() {
                   <View className="flex-row items-baseline">
                     <CountUp
                       value={effectiveStreak}
-                      className="text-white text-3xl font-extrabold"
+                      style={{ color: "#FFFFFF" }}
+                      className="text-3xl font-extrabold"
                     />
-                    <Text className="text-white text-xl font-extrabold ml-1">
+                    <Text
+                      style={{ color: "#FFFFFF" }}
+                      className="text-xl font-extrabold ml-1"
+                    >
                       {effectiveStreak === 1 ? "dia" : "dias"}
                     </Text>
                   </View>
-                  <Text className="text-white/70 text-xs">Sequência atual</Text>
+                  <Text className="text-white/90 text-xs">Sequência atual</Text>
                 </View>
               </View>
               <View className="items-end">
-                <Text className="text-white/70 text-xs">Recorde</Text>
-                <Text className="text-white text-lg font-semibold">
+                <Text style={{ color: "#FFFFFF" }} className="text-xs opacity-90">
+                  Recorde
+                </Text>
+                <Text style={{ color: "#FFFFFF" }} className="text-lg font-semibold">
                   {userData?.longestStreak || 0} dias
                 </Text>
               </View>
@@ -402,7 +358,7 @@ export default function DashboardScreen() {
 
             {/* Status line */}
             <View
-              className={`mt-3 rounded-xl px-3 py-2 ${streakStatus === "at_risk" || streakStatus === "protected" ? "bg-warning/30" : "bg-black/10"}`}
+              className={`mt-3 rounded-xl px-3 py-2 ${streakStatus === "at_risk" ? "bg-warning/30" : "bg-black/10"}`}
             >
               <View className="flex-row items-center">
                 <GameIcon name={(STREAK_STATUS_UI[streakStatus] ?? STREAK_STATUS_UI.none).icon} size="md" style={{ marginRight: 8 }} />
@@ -412,40 +368,10 @@ export default function DashboardScreen() {
               </View>
             </View>
 
-            {/* Graças (streak freezes) */}
-            <View className="mt-3 flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                {Array.from({ length: maxFreezes }).map((_, i) => (
-                  <PopIn key={`${i}-${freezes}`} delay={i * 120}>
-                    <GameIcon name="grace" size="md" dimmed={i >= freezes} />
-                  </PopIn>
-                ))}
-                <Text className="text-white/80 text-xs ml-2 flex-1">
-                  {freezes} {freezes === 1 ? "Graça" : "Graças"}: protegem um
-                  dia perdido
-                </Text>
-              </View>
-              {freezes < maxFreezes && (
-                <PressableScale
-                  className="bg-white/20 px-3 py-1 rounded-full"
-                  disabled={
-                    buyFreezeMutation.isPending ||
-                    (userData?.denarioBalance ?? 0) < freezePrice
-                  }
-                  onPress={() => buyFreezeMutation.mutate()}
-                >
-                  <View className="flex-row items-center">
-                    <Text className="text-white text-xs font-bold">+1 por {freezePrice}</Text>
-                    <GameIcon name="coin" size="xs" style={{ marginLeft: 3 }} />
-                  </View>
-                </PressableScale>
-              )}
-            </View>
-
             {/* Milestone Progress */}
             <View className="mt-3">
               <View className="flex-row justify-between mb-1">
-                <Text className="text-white/60 text-xs">Próximo marco:</Text>
+                <Text className="text-white/85 text-xs">Próximo marco:</Text>
                 <Text className="text-white text-xs font-semibold">
                   {nextMilestone
                     ? `${nextMilestone.days} dias (faltam ${nextMilestone.days - effectiveStreak}) · +${nextMilestone.denarios} denários`
@@ -462,7 +388,7 @@ export default function DashboardScreen() {
               </View>
               <View className="flex-row justify-between mt-1">
                 {STREAK_MILESTONES.map((m) => (
-                  <Text key={m.days} className="text-white/60 text-xs">
+                  <Text key={m.days} className="text-white/85 text-xs">
                     {m.days}d
                   </Text>
                 ))}
@@ -476,32 +402,94 @@ export default function DashboardScreen() {
           <EncouragementInbox />
           {todayData?.bibleReference ? (
             <>
-              <View className="bg-parchment rounded-2xl p-5 mb-4 border-2 border-wood">
-                <Text className="text-wood text-sm mb-2 font-semibold">
-                  {formatCampoGrandeDate(todayData.date)}
-                </Text>
-                <View className="flex-row items-center mb-3">
-                  <GameIcon name="scroll" size="lg" style={{ marginRight: 10 }} />
-                  <Text className="text-foreground text-xl font-extrabold flex-1">
-                    {todayData.bibleReference}
-                  </Text>
-                </View>
-                {todayData.devotionalText && (
-                  <Text className="text-foreground text-base leading-relaxed mb-3">
-                    {todayData.devotionalText}
-                  </Text>
-                )}
-                {todayData.reflectionQuestion && (
-                  <View className="bg-accent/10 p-4 rounded-xl mt-2">
-                    <View className="flex-row items-center mb-1">
-                      <GameIcon name="reflection" size="sm" style={{ marginRight: 6 }} />
-                      <Text className="text-accent font-semibold">Reflexão do Dia</Text>
-                    </View>
-                    <Text className="text-foreground text-sm leading-relaxed">
-                      {todayData.reflectionQuestion}
+              <View
+                className="rounded-2xl mb-4 overflow-hidden"
+                style={SOFT_SHADOW}
+              >
+                {/* Capa ilustrada do reino + versículo por cima */}
+                <View style={{ height: 120 }}>
+                  <Image
+                    source={KINGDOM_BG.main.wide}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: "100%",
+                      height: "100%",
+                    }}
+                    resizeMode="cover"
+                  />
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: "rgba(0,0,0,0.38)",
+                    }}
+                  />
+                  {/* Data no canto superior direito */}
+                  <View style={{ position: "absolute", top: 10, right: 12 }}>
+                    <Text
+                      style={{ color: "#FFFFFF" }}
+                      className="text-xs font-semibold opacity-90"
+                    >
+                      {formatCampoGrandeDate(todayData.date)}
                     </Text>
                   </View>
-                )}
+                  <View className="flex-1 justify-end p-4">
+                    <View className="flex-row items-center">
+                      <GameIcon name="scroll" size="sm" style={{ marginRight: 8 }} />
+                      <Text
+                        style={{
+                          color: "#FFFFFF",
+                          textShadowColor: "rgba(0,0,0,0.5)",
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 3,
+                        }}
+                        className="font-display text-xl font-extrabold flex-1"
+                      >
+                        {todayData.bibleReference}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Corpo limpo (sem pergaminho), leitura ampliada */}
+                <View className="bg-surface p-5">
+                  {todayData.devotionalText && (
+                    <Text className="font-body text-foreground text-lg leading-relaxed mb-4">
+                      {todayData.devotionalText}
+                    </Text>
+                  )}
+                  {todayData.reflectionQuestion && (
+                    <View
+                      className="rounded-2xl p-5"
+                      style={{
+                        backgroundColor: "#FDF8EC",
+                        shadowColor: "#6B451F",
+                        shadowOpacity: 0.14,
+                        shadowRadius: 7,
+                        shadowOffset: { width: 0, height: 3 },
+                        elevation: 2,
+                      }}
+                    >
+                      <View className="flex-row items-center mb-2">
+                        <GameIcon name="reflection" size="sm" style={{ marginRight: 6 }} />
+                        <Text className="font-display text-wood font-extrabold">
+                          Reflexão do Dia
+                        </Text>
+                      </View>
+                      <Text className="font-body text-foreground text-base leading-relaxed">
+                        {todayData.reflectionQuestion}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
 
               {/* Challenges */}
@@ -534,9 +522,25 @@ export default function DashboardScreen() {
               {todayData.challenges?.map((challenge) => (
                 <View
                   key={challenge.id}
-                  className={`rounded-2xl p-4 mb-3 border-2 ${challenge.completed ? "bg-secondary/10 border-secondary" : "bg-surface border-border"}`}
+                  className={`rounded-2xl mb-3 overflow-hidden bg-surface ${challenge.completed ? "border border-secondary" : challenge.id === nextChallengeId ? "border border-accent" : ""}`}
+                  style={SOFT_SHADOW}
                 >
-                  <View className="flex-row items-start justify-between">
+                  <Image
+                    source={require("@/assets/images/paper-texture.png")}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: "100%",
+                      height: "100%",
+                      opacity: 0.35,
+                    }}
+                    resizeMode="cover"
+                  />
+                  <View className="p-4">
+                  <View className="flex-row items-center">
                     <GameIcon
                       name={CHALLENGE_ICON[challenge.type] ?? "extra"}
                       size="lg"
@@ -548,49 +552,57 @@ export default function DashboardScreen() {
                         {challenge.title}
                       </Text>
                       {challenge.description && (
-                        <Text className="text-muted text-sm mb-2">
+                        <Text className="text-muted text-sm">
                           {challenge.description}
                         </Text>
                       )}
-                      <View className="flex-row items-center gap-3 mt-2">
-                        <View className="bg-accent/10 px-2 py-1 rounded-full flex-row items-center">
-                          <GameIcon name="xp" size="xs" style={{ marginRight: 3 }} />
-                          <Text className="text-accent text-xs font-extrabold">
-                            +{challenge.baseXp} XP
-                          </Text>
-                        </View>
-                        <View className="bg-warning/40 px-2 py-1 rounded-full flex-row items-center">
-                          <GameIcon name="coin" size="xs" style={{ marginRight: 3 }} />
-                          <Text className="text-foreground text-xs font-extrabold">
-                            +{challenge.baseDenario}
-                          </Text>
-                        </View>
+                    </View>
+                    {/* Pontuação à direita (empilhada) */}
+                    <View className="items-end ml-2" style={{ gap: 6 }}>
+                      <View className="bg-accent/15 px-2.5 py-1 rounded-full flex-row items-center">
+                        <GameIcon name="xp" size="xs" style={{ marginRight: 4 }} />
+                        <Text className="text-accent text-xs font-extrabold">
+                          +{challenge.baseXp} XP
+                        </Text>
+                      </View>
+                      <View className="bg-warning/30 px-2.5 py-1 rounded-full flex-row items-center">
+                        <GameIcon name="coin" size="xs" style={{ marginRight: 4 }} />
+                        <Text className="text-foreground text-xs font-extrabold">
+                          +{challenge.baseDenario}
+                        </Text>
                       </View>
                     </View>
-                    {challenge.completed ? (
-                      <PopIn trigger={challenge.completed} spin>
-                        <GameIcon name="seal" size="lg" label="Desafio concluído" />
-                      </PopIn>
-                    ) : (
-                      <Pulse active={challenge.id === nextChallengeId}>
-                        <PressableScale
-                          className="bg-primary px-4 py-3 rounded-full"
-                          onPress={() =>
-                            handleCompleteChallenge(
-                              challenge.id,
-                              challenge.type,
-                            )
-                          }
-                          disabled={completeChallengeMutation.isPending}
-                        >
-                          <Text className="text-white text-sm font-extrabold">
-                            {challenge.type === "REFLECTION"
-                              ? "Refletir"
-                              : "Bora!"}
-                          </Text>
-                        </PressableScale>
-                      </Pulse>
-                    )}
+                  </View>
+
+                  {/* Ação clara: botão largo embaixo pra marcar o desafio */}
+                  {challenge.completed ? (
+                    <PopIn trigger={challenge.completed}>
+                      <GameButton
+                        asLabel
+                        fullWidth
+                        variant="success"
+                        icon="seal"
+                        title="Concluído!"
+                        style={{ marginTop: 12 }}
+                        accessibilityLabel="Desafio concluído"
+                      />
+                    </PopIn>
+                  ) : (
+                    <GameButton
+                      style={{ marginTop: 12 }}
+                      fullWidth
+                      variant="royal"
+                      icon={challenge.type === "REFLECTION" ? "reflection" : "xp"}
+                      title={challenge.type === "REFLECTION" ? "Escrever reflexão" : "Marcar como feito"}
+                      onPress={() => handleCompleteChallenge(challenge.id, challenge.type)}
+                      disabled={completeChallengeMutation.isPending}
+                      accessibilityLabel={
+                        challenge.type === "REFLECTION"
+                          ? "Escrever reflexão e concluir"
+                          : "Marcar desafio como feito"
+                      }
+                    />
+                  )}
                   </View>
                 </View>
               ))}
@@ -631,11 +643,7 @@ export default function DashboardScreen() {
               <Text className="text-foreground text-xl font-bold">
                 Sua Reflexão
               </Text>
-              <TouchableOpacity
-                onPress={() => setReflectionModalVisible(false)}
-              >
-                <Text className="text-muted text-2xl">×</Text>
-              </TouchableOpacity>
+              <GameCloseButton onPress={() => setReflectionModalVisible(false)} label="Fechar reflexão" />
             </View>
 
             <Text className="text-muted text-sm mb-3">
@@ -654,26 +662,24 @@ export default function DashboardScreen() {
             />
 
             <View className="flex-row gap-3 mt-4">
-              <TouchableOpacity
-                className="flex-1 bg-surface border border-border py-3 rounded-full active:opacity-70"
-                onPress={() => setReflectionModalVisible(false)}
-              >
-                <Text className="text-foreground text-center font-semibold">
-                  Cancelar
-                </Text>
-              </TouchableOpacity>
+              <View className="flex-1">
+                <GameButton
+                  fullWidth
+                  variant="wood"
+                  title="Cancelar"
+                  onPress={() => setReflectionModalVisible(false)}
+                />
+              </View>
 
-              <TouchableOpacity
-                className="flex-1 bg-primary py-3 rounded-full active:opacity-70"
-                onPress={handleSubmitReflection}
-                disabled={completeChallengeMutation.isPending}
-              >
-                <Text className="text-white text-center font-bold">
-                  {completeChallengeMutation.isPending
-                    ? "Enviando..."
-                    : "Enviar"}
-                </Text>
-              </TouchableOpacity>
+              <View className="flex-1">
+                <GameButton
+                  fullWidth
+                  variant="banner"
+                  title="Enviar"
+                  onPress={handleSubmitReflection}
+                  loading={completeChallengeMutation.isPending}
+                />
+              </View>
             </View>
           </View>
         </View>

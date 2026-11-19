@@ -10,8 +10,10 @@ import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { cn } from "@/lib/utils";
 import {
   isResponsiveBackground,
+  NIGHT_BG,
   type ResponsiveBackground,
 } from "@/lib/kingdom-bg";
+import { useThemeContext } from "@/lib/theme-provider";
 
 export interface ScreenContainerProps extends ViewProps {
   /**
@@ -52,6 +54,11 @@ export interface ScreenContainerProps extends ViewProps {
    * `background` is set, otherwise unconstrained. Pass a number to opt in/tune.
    */
   contentMaxWidth?: number;
+  /**
+   * Draw the centered app window over the scene on wide screens (default true).
+   * Pass false for full-bleed screens (e.g. login) that float their own card.
+   */
+  frame?: boolean;
 }
 
 /**
@@ -80,21 +87,26 @@ export function ScreenContainer({
   background,
   scrimOpacity = 0.12,
   contentMaxWidth,
+  frame = true,
   ...props
 }: ScreenContainerProps) {
   const { width, height } = useWindowDimensions();
+  const { colorScheme } = useThemeContext();
   // Tablet/desktop/landscape (web included) get the wide art; phones the portrait.
   const preferWide = width >= height || width >= 700;
-  const backgroundSource = isResponsiveBackground(background)
+  const themed = isResponsiveBackground(background);
+  // Dark mode → night scene, so the bright day art doesn't fight the dark cards.
+  const activeBackground = themed && colorScheme === "dark" ? NIGHT_BG : background;
+  const backgroundSource = isResponsiveBackground(activeBackground)
     ? preferWide
-      ? background.wide
-      : background.portrait
-    : background;
+      ? activeBackground.wide
+      : activeBackground.portrait
+    : activeBackground;
 
-  // Centered content column on wide screens so cards don't stretch edge-to-edge.
-  const maxW =
-    contentMaxWidth ?? (isResponsiveBackground(background) ? 760 : undefined);
-  const constrain = maxW != null && preferWide;
+  // On wide screens, frame the content as a centered app window over the scene
+  // (so it doesn't stretch edge-to-edge or float as a flush strip).
+  const maxW = contentMaxWidth ?? (themed ? 760 : undefined);
+  const constrain = frame && maxW != null && preferWide;
 
   return (
     <View
@@ -132,10 +144,22 @@ export function ScreenContainer({
         style={style}
       >
         <View
-          className={cn("flex-1", className)}
+          className={cn("flex-1", className, constrain && "bg-surface")}
           style={
             constrain
-              ? { width: "100%", maxWidth: maxW, alignSelf: "center" }
+              ? {
+                  width: "100%",
+                  maxWidth: maxW,
+                  alignSelf: "center",
+                  marginVertical: 18,
+                  borderRadius: 28,
+                  overflow: "hidden",
+                  shadowColor: "#0B1733",
+                  shadowOpacity: 0.28,
+                  shadowRadius: 24,
+                  shadowOffset: { width: 0, height: 12 },
+                  elevation: 12,
+                }
               : undefined
           }
         >

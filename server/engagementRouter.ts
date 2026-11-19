@@ -3,7 +3,6 @@ import { z } from "zod";
 import { protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import * as engagement from "./engagement";
-import { ENCOURAGEMENT_TYPES } from "../shared/engagement";
 
 /** Wraps rule violations thrown by the engagement layer as BAD_REQUEST. */
 const asBadRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
@@ -62,13 +61,14 @@ export const engagementRouter = router({
     ),
 
   // Encouragements
+  /** Messages the player can pick (configured in Admin → Mensagens). */
+  messages: protectedProcedure.query(() => engagement.listEncouragementMessages()),
+
   encourage: protectedProcedure
-    .input(
-      z.object({ toUserId: z.number(), type: z.enum(ENCOURAGEMENT_TYPES) }),
-    )
+    .input(z.object({ toUserId: z.number(), messageId: z.number().int() }))
     .mutation(({ ctx, input }) =>
       asBadRequest(() =>
-        engagement.sendEncouragement(ctx.user.id, input.toUserId, input.type),
+        engagement.sendEncouragement(ctx.user.id, input.toUserId, input.messageId),
       ),
     ),
 

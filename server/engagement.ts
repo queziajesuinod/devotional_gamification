@@ -2,10 +2,11 @@
  * Phase 2 data layer: daily activity, weekly quests, cell weekly goal + chest,
  * encouragements and weekly leagues. Rules live in shared/engagement.ts.
  */
-import { and, desc, eq, gt, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import {
   challenges,
   encouragements,
+  encouragementMessages,
   groupChestClaims,
   groupMembers,
   groups,
@@ -15,12 +16,14 @@ import {
   users,
   weeklyQuestClaims,
 } from "../drizzle/schema";
-import { getDb, getUserGroup } from "./db";
+import { getDb, getFigurinesForUsers, getUserGroup } from "./db";
 import { grantReward } from "./rewards";
 import { getCampoGrandeDateString } from "../shared/_core/time";
 import { weekKey } from "../shared/progression";
 import {
   ENCOURAGEMENT_INFO,
+  isEncouragementType,
+  type EncouragementMessageView,
   GROUP_CHEST_REWARD,
   groupWeeklyGoal,
   leagueZones,
@@ -395,13 +398,43 @@ export async function claimGroupChest(userId: number, week: string) {
 // ENCOURAGEMENTS
 // ============================================
 
+/** Messages a player can send (admin-configured, active, in order). */
+export async function listEncouragementMessages(includeInactive = false): Promise<EncouragementMessageView[]> {
+  const db = await requireDb();
+  const rows = await db
+    .select()
+    .from(encouragementMessages)
+    .where(includeInactive ? undefined : eq(encouragementMessages.isActive, true))
+    .orderBy(asc(encouragementMessages.sortOrder), asc(encouragementMessages.id));
+  return rows.map(toMessageView);
+}
+
+const toMessageView = (m: typeof encouragementMessages.$inferSelect): EncouragementMessageView => {
+  const category: EncouragementType = isEncouragementType(m.category) ? m.category : "CHEER";
+  return {
+    id: m.id,
+    label: m.label,
+    received: m.receivedText,
+    emoji: m.emoji,
+    category,
+    icon: ENCOURAGEMENT_INFO[category].icon,
+  };
+};
+
 export async function sendEncouragement(
   fromUserId: number,
   toUserId: number,
-  type: EncouragementType,
+  messageId: number,
 ) {
   if (fromUserId === toUserId) throw new Error("Escolha outro membro");
   const db = await requireDb();
+  const [message] = await db
+    .select()
+    .from(encouragementMessages)
+    .where(and(eq(encouragementMessages.id, messageId), eq(encouragementMessages.isActive, true)))
+    .limit(1);
+  if (!message) throw new Error("Essa mensagem não está mais disponível");
+  const type: EncouragementType = isEncouragementType(message.category) ? message.category : "CHEER";
 
   const [fromGroup, toGroup] = await Promise.all([
     getUserGroup(fromUserId),
@@ -418,6 +451,7 @@ export async function sendEncouragement(
       toUserId,
       groupId: fromGroup.groupId,
       type,
+      messageId: message.id,
       day: getCampoGrandeDateString(),
     })
     .onConflictDoNothing()
@@ -438,10 +472,15 @@ export async function getEncouragementInbox(userId: number) {
       type: encouragements.type,
       createdAt: encouragements.createdAt,
       seenAt: encouragements.seenAt,
+      fromUserId: encouragements.fromUserId,
       fromNickname: users.nickname,
+      messageLabel: encouragementMessages.label,
+      messageReceived: encouragementMessages.receivedText,
+      messageEmoji: encouragementMessages.emoji,
     })
     .from(encouragements)
     .innerJoin(users, eq(encouragements.fromUserId, users.id))
+    .leftJoin(encouragementMessages, eq(encouragements.messageId, encouragementMessages.id))
     .where(
       and(
         eq(encouragements.toUserId, userId),
@@ -450,14 +489,22 @@ export async function getEncouragementInbox(userId: number) {
     )
     .orderBy(desc(encouragements.createdAt))
     .limit(30);
+  const faces = await getFigurinesForUsers(rows.map((r) => r.fromUserId));
 
   return {
     unseen: rows.filter((r) => !r.seenAt).length,
-    items: rows.map((r) => ({
-      ...r,
-      emoji: ENCOURAGEMENT_INFO[r.type].emoji,
-      text: `${r.fromNickname} ${ENCOURAGEMENT_INFO[r.type].received}`,
-    })),
+    items: rows.map(({ messageLabel, messageReceived, messageEmoji, ...r }) => {
+      // Old encouragements (before messages were configurable) fall back to their category
+      const info = ENCOURAGEMENT_INFO[r.type];
+      return {
+        ...r,
+        figurine: faces.get(r.fromUserId) ?? null,
+        label: messageLabel ?? info.label,
+        icon: info.icon,
+        emoji: messageEmoji || info.emoji,
+        text: `${r.fromNickname} ${messageReceived ?? info.received}`,
+      };
+    }),
   };
 }
 
@@ -603,6 +650,7 @@ export async function getLeague(userId: number) {
     .orderBy(desc(leagueMemberships.xp), leagueMemberships.createdAt)
     .limit(100);
 
+  const faces = await getFigurinesForUsers(standings.map((s) => s.userId));
   const size = standings.length;
   const zones = leagueZones(size);
   const myIndex = standings.findIndex((s) => s.userId === userId);
@@ -627,6 +675,7 @@ export async function getLeague(userId: number) {
       ...s,
       position: i + 1,
       isMe: s.userId === userId,
+      figurine: faces.get(s.userId) ?? null,
     })),
   };
 }

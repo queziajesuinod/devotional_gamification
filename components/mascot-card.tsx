@@ -1,79 +1,88 @@
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
-import { Mascot3D, type MascotMood } from "@/components/mascot-3d";
-import { PopIn, haptic } from "@/components/juice";
+import { router } from "expo-router";
+import type { MascotMood } from "@/components/mascot-3d";
+import { Figurine } from "@/components/figurine";
+import { GameIcon } from "@/components/game-icon";
+import { PopIn, PressableScale } from "@/components/juice";
+import type { Figurine as FigurineData } from "@shared/character-catalog";
 
 export type MascotEvent = { mood: MascotMood; line: string; key: number };
 
 type StreakStatus = "none" | "done_today" | "at_risk" | "protected" | "broken";
 
-const TAP_REACTIONS: { mood: MascotMood; line: string }[] = [
-  { mood: "jump", line: "Béééé! Que alegria te ver!" },
-  { mood: "cheer", line: "Bora juntos hoje?" },
-  { mood: "sway", line: "Deus cuida de você, sabia?" },
-  { mood: "wave", line: "Oi oi! Tô aqui torcendo por você!" },
-  { mood: "cheer", line: "Cada dia com Deus conta!" },
-];
-
-/** What the lamb says when the dashboard opens, based on the streak. */
+/** Encouragement shown when the dashboard opens, based on the streak. */
 const greetingFor = (name: string, status: StreakStatus, streak: number): MascotEvent => {
   switch (status) {
     case "done_today":
       return { mood: "sway", line: `Você já brilhou hoje, ${name}! Volta amanhã?`, key: 0 };
     case "at_risk":
       return { mood: "wave", line: `${name}, sua chama de ${streak} dias tá esperando!`, key: 0 };
-    case "protected":
-      return { mood: "wave", line: `Uma Graça guardou sua sequência! Bora fazer um desafio?`, key: 0 };
     case "broken":
       return { mood: "wave", line: `Que bom te ver, ${name}! Hoje é dia de recomeçar`, key: 0 };
     default:
-      return { mood: "wave", line: `Oi, ${name}! Eu sou a Lã-Lã! Vamos começar?`, key: 0 };
+      return { mood: "wave", line: `Oi, ${name}! Bora conquistar o dia?`, key: 0 };
   }
 };
 
 /**
- * Dashboard mascot: 3D lamb + speech bubble. Greets on open, reacts to taps and to
- * `event` (challenge done, level up, …) sent by the screen.
+ * Dashboard hero: the player's **avatar** (built in the shop; 3D in the future) with an
+ * encouragement bubble. Tapping the avatar opens the wardrobe. The lamb Lã-Lã now lives in
+ * the celebration modal (she shows up to cheer when rewards are earned).
  */
 export function MascotCard({
   name,
   streakStatus,
   streak,
   event,
+  figurine,
 }: {
   name: string;
   streakStatus: StreakStatus;
   streak: number;
   event: MascotEvent | null;
+  figurine?: FigurineData | null;
 }) {
   const [state, setState] = useState<MascotEvent>(() => greetingFor(name, streakStatus, streak));
 
-  // Greeting follows the streak state (e.g. after the first challenge of the day)
   useEffect(() => {
     setState((prev) => ({ ...greetingFor(name, streakStatus, streak), key: prev.key + 1 }));
   }, [name, streakStatus, streak]);
 
-  // Reactions pushed by the screen win over the greeting
   useEffect(() => {
     if (event) setState(event);
   }, [event]);
 
-  const onTap = () => {
-    haptic.pop();
-    const reaction = TAP_REACTIONS[Math.floor(Math.random() * TAP_REACTIONS.length)];
-    setState((prev) => ({ ...reaction, key: prev.key + 1 }));
-  };
+  const hasAvatar = !!figurine?.chosen;
 
   return (
     <View className="flex-row items-center">
-      <Mascot3D mood={state.mood} moodKey={state.key} size={150} onTap={onTap} />
-      <View className="flex-1 ml-1">
-        <PopIn trigger={state.key}>
+      {/* Avatar do jogador — construído na loja (futuramente 3D). Toque abre o guarda-roupa. */}
+      <PressableScale
+        onPress={() => router.push("/shop" as any)}
+        accessibilityLabel={hasAvatar ? "Abrir guarda-roupa" : "Montar meu avatar"}
+      >
+        {hasAvatar ? (
+          <Figurine figurine={figurine!} height={150} />
+        ) : (
+          <View className="w-[112px] h-[150px] items-center justify-center rounded-2xl bg-white/15 border-2 border-white/40">
+            <GameIcon name="tab-shop" size="xl" />
+            <Text style={{ color: "#FFFFFF" }} className="text-[11px] font-extrabold mt-1 text-center px-2">
+              Monte seu avatar
+            </Text>
+          </View>
+        )}
+      </PressableScale>
+
+      <View className="flex-1 ml-2">
+        <PopIn trigger={state.key} gentle>
           <View className="bg-white rounded-2xl rounded-bl-none px-4 py-3 shadow-sm">
             <Text className="text-gray-800 text-sm font-bold">{state.line}</Text>
           </View>
         </PopIn>
-        <Text className="text-white/70 text-[10px] mt-1 ml-1">Toque na Lã-Lã</Text>
+        <Text style={{ color: "#FFFFFF" }} className="text-[11px] mt-1 ml-1 font-semibold opacity-90">
+          Toque no seu personagem pra trocar o visual
+        </Text>
       </View>
     </View>
   );

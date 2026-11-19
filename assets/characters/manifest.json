@@ -345,5 +345,125 @@
     "resource": "image-to-image",
     "credits": 12,
     "file": "assets/characters/lia/esporte-cabelo-rosa.png"
+  },
+  "poses/lia-original-harpa": {
+    "taskId": "01a1f0fc-8f4a-76eb-b84d-d3f48102260b",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/lia-original-harpa.png"
+  },
+  "poses/theo-original-bone": {
+    "taskId": "01a1f0fc-efc6-7769-862b-c31cdd218b1f",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/theo-original-bone.png"
+  },
+  "poses/davi-original-harpa": {
+    "taskId": "01a1f1aa-87dd-763c-99b8-53ac39216abc",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/davi-original-harpa.png"
+  },
+  "poses/davi-original-bone": {
+    "taskId": "01a1f1aa-9157-771b-bb82-e03f9b9a14fa",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/davi-original-bone.png"
+  },
+  "poses/davi-original-cajado": {
+    "taskId": "01a1f1aa-9bc6-75e5-a66b-299eec285eb7",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/davi-original-cajado.png"
+  },
+  "poses/davi-original-balao": {
+    "taskId": "01a1f1aa-a6bc-72ee-93fb-8dd89a5b6cf8",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/davi-original-balao.png"
+  },
+  "poses/davi-original-biblia": {
+    "taskId": "01a1f1aa-b03b-73c3-b130-26a8aac2f8f7",
+    "parent": "davi/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/davi-original-biblia.png"
+  },
+  "poses/lia-original-bone": {
+    "taskId": "01a1f1aa-baa5-700f-a870-d473d4ac2dcf",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/lia-original-bone.png"
+  },
+  "poses/lia-original-cajado": {
+    "taskId": "01a1f1aa-c519-70f6-abc2-9419637db350",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/lia-original-cajado.png"
+  },
+  "poses/lia-original-balao": {
+    "taskId": "01a1f1aa-cf7a-76c4-b93e-e28f86925aba",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/lia-original-balao.png"
+  },
+  "poses/lia-original-biblia": {
+    "taskId": "01a1f1aa-d9aa-7451-bc81-d5a890cc930e",
+    "parent": "lia/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/lia-original-biblia.png"
+  },
+  "poses/theo-original-harpa": {
+    "taskId": "01a1f1aa-e374-7361-a32b-f99ff53269e8",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/theo-original-harpa.png"
+  },
+  "poses/theo-original-cajado": {
+    "taskId": "01a1f1aa-ecdc-7396-b03c-6c1ed0d06b6b",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/theo-original-cajado.png"
+  },
+  "poses/theo-original-balao": {
+    "taskId": "01a1f1aa-f58d-75fd-a3d9-27bb7c1f53a1",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/theo-original-balao.png"
+  },
+  "poses/theo-original-biblia": {
+    "taskId": "01a1f1aa-feee-7240-80b1-76e6ba52db74",
+    "parent": "theo/original",
+    "status": "SUCCEEDED",
+    "resource": "image-to-image",
+    "credits": 12,
+    "file": "assets/characters/poses/theo-original-biblia.png"
   }
 }

@@ -1,14 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Baloo+2:wght@400;500;600;700;800&family=Comic+Neue:wght@400;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Base font family */
+/* Reino da Palavra — Baloo 2 (UI/amigável), Cinzel (títulos épicos), Comic Neue (leitura). */
 @layer base {
   body {
     font-family:
-      "Inter",
+      "Baloo 2",
+      system-ui,
       -apple-system,
       BlinkMacSystemFont,
       "Segoe UI",
@@ -21,12 +22,6 @@
   h4,
   h5,
   h6 {
-    font-family: "Poppins", sans-serif;
-  }
-}
-
-@layer utilities {
-  .text-white {
-    color: #267b75 !important;
+    font-family: "Cinzel", Georgia, "Times New Roman", serif;
   }
 }

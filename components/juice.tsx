@@ -132,45 +132,9 @@ export function PressableScale({
 }
 
 // ============================================
-// LOOPS: PULSE, WIGGLE, FLAME, FLOAT
+// LOOPS: WIGGLE, FLAME, FLOAT
+// (No pulsing/breathing scale: the product owner asked for no pulse anywhere.)
 // ============================================
-
-/** Gentle breathing scale, to call attention to something claimable. */
-export function Pulse({
-  active = true,
-  children,
-  amount = 0.06,
-}: {
-  active?: boolean;
-  children: ReactNode;
-  amount?: number;
-}) {
-  const reduced = useReducedMotion();
-  const scale = useSharedValue(1);
-
-  useEffect(() => {
-    if (!active || reduced) {
-      cancelAnimation(scale);
-      scale.value = withTiming(1);
-      return;
-    }
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1 + amount, {
-          duration: 550,
-          easing: Easing.inOut(Easing.quad),
-        }),
-        withTiming(1, { duration: 550, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-    );
-  }, [active, reduced, amount, scale]);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-  return <Animated.View style={style}>{children}</Animated.View>;
-}
 
 /** Shake every couple of seconds, like a chest that wants to be opened. */
 export function Wiggle({
@@ -280,20 +244,23 @@ export function PopIn({
   delay = 0,
   trigger,
   spin = false,
+  gentle = false,
 }: {
   children: ReactNode;
   delay?: number;
   trigger?: unknown;
   spin?: boolean;
+  /** Minimal overshoot — use for speech bubbles / text that shouldn't balloon past its box. */
+  gentle?: boolean;
 }) {
   const progress = useSharedValue(0);
   useEffect(() => {
     progress.value = 0;
     progress.value = withDelay(
       delay,
-      withSpring(1, { damping: 9, stiffness: 160 }),
+      withSpring(1, gentle ? { damping: 18, stiffness: 180 } : { damping: 9, stiffness: 160 }),
     );
-  }, [delay, trigger, progress]);
+  }, [delay, trigger, progress, gentle]);
 
   const style = useAnimatedStyle(() => ({
     opacity: Math.min(1, progress.value * 1.5),

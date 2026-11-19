@@ -2,19 +2,18 @@ import { useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { useJuice } from "@/components/juice-provider";
+import { GameButton } from "@/components/game-button";
 import { GameIcon } from "@/components/game-icon";
 import {
   AnimatedBar,
   PopIn,
   PressableScale,
-  Pulse,
   Wiggle,
 } from "@/components/juice";
+import { SOFT_SHADOW } from "@/lib/ui";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/components/notification-provider";
 import {
-  ENCOURAGEMENT_INFO,
-  ENCOURAGEMENT_TYPES,
   GROUP_DAYS_PER_MEMBER,
 } from "@shared/engagement";
 
@@ -40,6 +39,7 @@ export function GroupWeekCard({
   });
 
   const juice = useJuice();
+  const { data: messages } = trpc.engagement.messages.useQuery();
 
   const claimChest = trpc.engagement.claimGroupChest.useMutation({
     onSuccess: (result) => {
@@ -53,7 +53,10 @@ export function GroupWeekCard({
       refetch();
       utils.user.me.invalidate();
     },
-    onError: (error) => notifications.error(error.message),
+    onError: (error) => {
+      notifications.error(error.message);
+      refetch(); // the chest may have been saved even if something after it failed
+    },
   });
 
   const encourage = trpc.engagement.encourage.useMutation({
@@ -111,40 +114,26 @@ export function GroupWeekCard({
         <View className="mt-3">
           {data.chest.canClaimPrevious && (
             <View className="mb-2">
-              <Pulse>
-                <PressableScale
-                  className="bg-secondary py-3 rounded-full flex-row items-center justify-center gap-2"
-                  disabled={claimChest.isPending}
-                  onPress={() =>
-                    claimChest.mutate({ weekKey: data.chest.previousWeekKey })
-                  }
-                >
-                  <Wiggle>
-                    <GameIcon name="gift" size={32} />
-                  </Wiggle>
-                  <Text className="text-white text-center font-extrabold">
-                    Abrir baú da semana passada
-                  </Text>
-                </PressableScale>
-              </Pulse>
+              <GameButton
+                  fullWidth
+                  variant="royal"
+                  icon="chest"
+                  title="Abrir baú da semana passada"
+                  loading={claimChest.isPending}
+                  onPress={() => claimChest.mutate({ weekKey: data.chest.previousWeekKey })}
+                />
             </View>
           )}
           {data.chest.canClaimCurrent ? (
-            <Pulse>
-              <PressableScale
-                className="bg-warning py-3 rounded-full border-2 border-primary flex-row items-center justify-center gap-2"
-                disabled={claimChest.isPending}
+            <GameButton
+                fullWidth
+                size="lg"
+                variant="gold"
+                icon="chest"
+                title={`Abrir baú! +${data.chestReward.xp} XP · +${data.chestReward.denario} denários`}
+                loading={claimChest.isPending}
                 onPress={() => claimChest.mutate({ weekKey: data.weekKey })}
-              >
-                <Wiggle>
-                  <GameIcon name="gift" size={32} />
-                </Wiggle>
-                <Text className="text-foreground text-center font-extrabold">
-                  Abrir baú! +{data.chestReward.xp} XP · +{data.chestReward.denario}
-                </Text>
-                <GameIcon name="coin" size="sm" />
-              </PressableScale>
-            </Pulse>
+              />
           ) : (
             <Text className="text-muted text-xs text-center">
               {data.chest.claimedCurrent
@@ -224,18 +213,18 @@ export function GroupWeekCard({
 
               {openMemberId === member.userId && (
                 <View className="flex-row flex-wrap gap-2 mt-2 justify-end">
-                  {ENCOURAGEMENT_TYPES.map((type, i) => (
-                    <PopIn key={type} delay={i * 70}>
+                  {(messages ?? []).map((msg, i) => (
+                    <PopIn key={msg.id} delay={i * 70}>
                       <PressableScale
                         className="bg-accent/30 px-3 py-2 rounded-full border border-accent"
                         disabled={encourage.isPending}
                         onPress={() =>
-                          encourage.mutate({ toUserId: member.userId, type })
+                          encourage.mutate({ toUserId: member.userId, messageId: msg.id })
                         }
                       >
                         <View className="flex-row items-center">
-                          <GameIcon name={ENCOURAGEMENT_INFO[type].icon} size="sm" style={{ marginRight: 4 }} />
-                          <Text className="text-foreground text-xs font-bold">{ENCOURAGEMENT_INFO[type].label}</Text>
+                          <GameIcon name={msg.icon} size="sm" style={{ marginRight: 4 }} />
+                          <Text className="text-foreground text-xs font-bold">{msg.label}</Text>
                         </View>
                       </PressableScale>
                     </PopIn>

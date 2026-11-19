@@ -1,16 +1,8 @@
-import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from "react-native";
-import { ScreenContainer } from "@/components/screen-container";
-import { GameIcon } from "@/components/game-icon";
+import { useRef, useState } from "react";
+import { View, Text, TextInput, Platform } from "react-native";
+import { GameButton } from "@/components/game-button";
+import { AuthScreen, AuthField, AuthError, AuthDivider, AUTH_INPUT, AUTH_PLACEHOLDER } from "@/components/auth-card";
+import { PasswordInput } from "@/components/password-input";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import * as Auth from "@/lib/_core/auth";
@@ -26,6 +18,9 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
 
   const getApiUrl = () => {
     // Always use the backend API URL (port 3000)
@@ -111,126 +106,119 @@ export default function RegisterScreen() {
     }
   };
 
+  const longEnough = password.length >= 6;
+  const matches = confirmPassword.length > 0 && password === confirmPassword;
+
+  const goToLogin = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/login" as any);
+  };
+
   return (
-    <ScreenContainer>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+    <AuthScreen title="Criar conta" subtitle="Sua aventura no Reino começa hoje!" subtitleIcon="map" heroScale={0.85}>
+      <View className="gap-4 mt-6">
+        <AuthField label="Apelido" icon="level-shield" hint="É assim que você aparece no ranking">
+          <TextInput
+            style={AUTH_INPUT}
+            placeholder="Como quer ser chamado?"
+            placeholderTextColor={AUTH_PLACEHOLDER}
+            value={nickname}
+            onChangeText={setNickname}
+            autoCapitalize="words"
+            returnKeyType="next"
+            onSubmitEditing={() => emailRef.current?.focus()}
+            editable={!loading}
+          />
+        </AuthField>
+
+        <AuthField label="Email" icon="love-letter">
+          <TextInput
+            ref={emailRef}
+            style={AUTH_INPUT}
+            placeholder="seu@email.com"
+            placeholderTextColor={AUTH_PLACEHOLDER}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            editable={!loading}
+          />
+        </AuthField>
+
+        <AuthField label="Senha" icon="lock">
+          <PasswordInput
+            inputRef={passwordRef}
+            placeholder="Crie uma senha secreta"
+            value={password}
+            onChangeText={setPassword}
+            autoComplete="password-new"
+            returnKeyType="next"
+            onSubmitEditing={() => confirmRef.current?.focus()}
+            editable={!loading}
+          />
+        </AuthField>
+
+        <AuthField label="Confirmar senha" icon="level-shield">
+          <PasswordInput
+            inputRef={confirmRef}
+            placeholder="Digite a senha de novo"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            autoComplete="password-new"
+            returnKeyType="go"
+            onSubmitEditing={handleRegister}
+            editable={!loading}
+          />
+        </AuthField>
+
+        {/* Live checklist: each requirement lights up when met */}
+        <View className="rounded-2xl p-3 gap-2" style={{ backgroundColor: "rgba(244,228,193,0.55)" }}>
+          <Check ok={longEnough} label="Senha com 6 caracteres ou mais" />
+          <Check ok={matches} label="As duas senhas são iguais" />
+        </View>
+
+        {error ? <AuthError message={error} /> : null}
+
+        <GameButton
+          style={{ marginTop: 6 }}
+          fullWidth
+          size="lg"
+          variant="banner"
+          icon="party"
+          title="Começar a aventura"
+          onPress={handleRegister}
+          loading={loading}
+        />
+      </View>
+
+      <AuthDivider label="Já tem uma conta?" />
+
+      <GameButton fullWidth variant="wood" title="Entrar" disabled={loading} onPress={goToLogin} />
+    </AuthScreen>
+  );
+}
+
+function Check({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <View className="flex-row items-center" accessibilityLabel={`${label}: ${ok ? "ok" : "pendente"}`}>
+      <View
+        className="items-center justify-center rounded-full mr-2"
+        style={{
+          width: 22,
+          height: 22,
+          backgroundColor: ok ? "#2E8B57" : "transparent",
+          borderWidth: 2,
+          borderColor: ok ? "#2E8B57" : "#C9B48A",
+        }}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View className="flex-1 justify-center p-6">
-            {/* Logo/Header */}
-            <View className="items-center mb-8">
-              <GameIcon name="reading" size={72} style={{ marginBottom: 16 }} />
-              <Text className="text-foreground text-3xl font-bold text-center">
-                Criar Conta
-              </Text>
-              <Text className="text-muted text-center mt-2">
-                Comece sua jornada de fé hoje
-              </Text>
-            </View>
-
-            {/* Registration Form */}
-            <View className="gap-4">
-              <View>
-                <Text className="text-foreground text-sm font-semibold mb-2">
-                  Apelido
-                </Text>
-                <TextInput
-                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
-                  placeholder="Como quer ser chamado?"
-                  placeholderTextColor="#9BA1A6"
-                  value={nickname}
-                  onChangeText={setNickname}
-                  autoCapitalize="words"
-                  editable={!loading}
-                />
-              </View>
-
-              <View>
-                <Text className="text-foreground text-sm font-semibold mb-2">
-                  Email
-                </Text>
-                <TextInput
-                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
-                  placeholder="seu@email.com"
-                  placeholderTextColor="#9BA1A6"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                  editable={!loading}
-                />
-              </View>
-
-              <View>
-                <Text className="text-foreground text-sm font-semibold mb-2">
-                  Senha
-                </Text>
-                <TextInput
-                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
-                  placeholder="Mínimo 6 caracteres"
-                  placeholderTextColor="#9BA1A6"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoComplete="password-new"
-                  editable={!loading}
-                />
-              </View>
-
-              <View>
-                <Text className="text-foreground text-sm font-semibold mb-2">
-                  Confirmar Senha
-                </Text>
-                <TextInput
-                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
-                  placeholder="Digite a senha novamente"
-                  placeholderTextColor="#9BA1A6"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  autoComplete="password-new"
-                  editable={!loading}
-                />
-              </View>
-
-              {error ? (
-                <View className="bg-error/10 p-3 rounded-xl">
-                  <Text className="text-error text-sm text-center">
-                    {error}
-                  </Text>
-                </View>
-              ) : null}
-
-              <TouchableOpacity
-                className="bg-primary py-4 rounded-full mt-4 active:opacity-70"
-                onPress={handleRegister}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white text-center font-bold text-lg">
-                    Criar Conta
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              <View className="flex-row items-center justify-center mt-4">
-                <Text className="text-muted">Já tem uma conta? </Text>
-                <TouchableOpacity onPress={() => router.back()}>
-                  <Text className="text-primary font-semibold">Entrar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </ScreenContainer>
+        {ok ? <Text style={{ color: "#FFFFFF", fontSize: 12, fontWeight: "900" }}>✓</Text> : null}
+      </View>
+      <Text className="text-sm font-bold" style={{ color: ok ? "#2E6B47" : "#7A5A3C" }}>
+        {label}
+      </Text>
+    </View>
   );
 }

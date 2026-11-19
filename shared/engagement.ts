@@ -274,7 +274,7 @@ export const ENCOURAGEMENT_INFO: Record<
   EncouragementType,
   { emoji: string; icon: GameIconName; label: string; received: string }
 > = {
-  PRAYED: { emoji: "🙏", icon: "pray", label: "Orei por você", received: "orou por você" },
+  PRAYED: { emoji: "🙏", icon: "pray", label: "Estou orando por você", received: "está orando por você" },
   CHEER: {
     emoji: "👏",
     icon: "clap",
@@ -288,3 +288,24 @@ export const ENCOURAGEMENT_INFO: Record<
     received: "disse que você inspira",
   },
 };
+
+/** Categories an admin-configured message belongs to (stored in the encouragement_type enum). */
+export const ENCOURAGEMENT_CATEGORIES: { value: EncouragementType; label: string }[] = [
+  { value: "PRAYED", label: "Oração (conta em desafios de oração)" },
+  { value: "CHEER", label: "Ânimo" },
+  { value: "PROUD", label: "Orgulho / inspiração" },
+];
+
+/** A message a player can send (from the admin's list). */
+export type EncouragementMessageView = {
+  id: number;
+  label: string;
+  /** shown to the receiver after the sender's name, e.g. "está orando por você" */
+  received: string;
+  emoji: string;
+  category: EncouragementType;
+  icon: GameIconName;
+};
+
+export const isEncouragementType = (v: string): v is EncouragementType =>
+  (ENCOURAGEMENT_TYPES as readonly string[]).includes(v);

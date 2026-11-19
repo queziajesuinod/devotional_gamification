@@ -45,6 +45,12 @@ export const KINGDOM_BG: Record<KingdomScene, ResponsiveBackground> = {
   },
 };
 
+/** Fundo noturno — usado no modo escuro pra combinar com os cards escuros. */
+export const NIGHT_BG: ResponsiveBackground = {
+  portrait: require("@/assets/images/reino-bg-night.png"),
+  wide: require("@/assets/images/reino-bg-night-wide.png"),
+};
+
 /** True quando o par tem as chaves portrait/wide (vs. um source simples). */
 export function isResponsiveBackground(
   value: unknown,

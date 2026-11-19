@@ -7,6 +7,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Platform } from "react-native";
+import { useFonts } from "expo-font";
+import { Cinzel_700Bold } from "@expo-google-fonts/cinzel";
+import { Baloo2_600SemiBold } from "@expo-google-fonts/baloo-2";
+import { ComicNeue_400Regular } from "@expo-google-fonts/comic-neue";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import {
@@ -72,6 +76,18 @@ export default function RootLayout() {
   );
   const [trpcClient] = useState(() => createTRPCClient());
 
+  // Fontes do design system. Na web vêm do @import do global.css; no nativo
+  // carregamos via expo-font com os mesmos nomes de família.
+  const [fontsLoaded] = useFonts(
+    Platform.OS === "web"
+      ? {}
+      : {
+          "Baloo 2": Baloo2_600SemiBold,
+          Cinzel: Cinzel_700Bold,
+          "Comic Neue": ComicNeue_400Regular,
+        },
+  );
+
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
     const metrics = initialWindowMetrics ?? {
@@ -87,6 +103,11 @@ export default function RootLayout() {
       },
     };
   }, [initialInsets, initialFrame]);
+
+  // No nativo, espera as fontes (na web fontsLoaded já é true).
+  if (!fontsLoaded) {
+    return null;
+  }
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>

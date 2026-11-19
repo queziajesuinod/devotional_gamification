@@ -1,3 +1,4 @@
+import * as chests from "./chests";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
@@ -15,11 +16,8 @@ import {
   type EarnedMedal,
 } from "./medal-helpers";
 import {
-  MAX_STREAK_FREEZES,
-  STREAK_FREEZE_PRICE,
   getStreakStatus,
   levelFromXp,
-  weekKey,
 } from "../shared/progression";
 import { applyLevelUpRewards } from "./rewards";
 import { engagementRouter } from "./engagementRouter";
@@ -60,6 +58,16 @@ const ensureLeaderRequestAccess = async (
   }
   return request;
 };
+
+/** Runs a mutation and turns plain errors into a friendly BAD_REQUEST. */
+async function asBadRequest<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Algo deu errado" });
+  }
+}
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -135,12 +143,7 @@ export const appRouter = router({
         return value.toISOString().split("T")[0];
       };
 
-      // The weekly Graça is granted lazily on the next activity; show it as available already
       const today = getCampoGrandeDateString();
-      const availableFreezes =
-        user.streakFreezeWeek !== weekKey(today)
-          ? Math.min(MAX_STREAK_FREEZES, user.streakFreezes + 1)
-          : user.streakFreezes;
       const lastActivityDate = formatDateValue(user.lastActivityDate);
 
       return {
@@ -154,13 +157,10 @@ export const appRouter = router({
         denarioBalance: user.denarioBalance,
         currentStreak: user.currentStreak,
         longestStreak: user.longestStreak,
-        streakFreezes: availableFreezes,
-        maxStreakFreezes: MAX_STREAK_FREEZES,
-        streakFreezePrice: STREAK_FREEZE_PRICE,
         streakStatus: getStreakStatus({
           currentStreak: user.currentStreak,
           lastActivityDate: lastActivityDate,
-          freezes: availableFreezes,
+          freezes: 0,
           today,
         }),
         avatarConfig: resolvedAvatarConfig,
@@ -183,16 +183,6 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    buyStreakFreeze: protectedProcedure.mutation(async ({ ctx }) => {
-      const result = await db.buyStreakFreeze(ctx.user.id);
-      if (!result) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Você já tem o máximo de Graças (${MAX_STREAK_FREEZES}) ou não tem ${STREAK_FREEZE_PRICE} denários.`,
-        });
-      }
-      return result;
-    }),
 
     updateAvatar: protectedProcedure
       .input(
@@ -424,6 +414,35 @@ export const appRouter = router({
   // ============================================
   // SHOP
   // ============================================
+  // Baús de Desafio (Mercado → Tesouro): shared/chests.ts, server/chests.ts
+  chests: router({
+    catalog: protectedProcedure.query(() => chests.listChestCatalog()),
+    list: protectedProcedure.query(({ ctx }) => chests.listChests(ctx.user.id)),
+    buy: protectedProcedure
+      .input(z.object({ chestTypeId: z.number().int() }))
+      .mutation(({ ctx, input }) => asBadRequest(() => chests.buyChest(ctx.user.id, input.chestTypeId))),
+    markHonor: protectedProcedure
+      .input(z.object({ chestId: z.number().int(), challengeId: z.string().max(40) }))
+      .mutation(({ ctx, input }) => asBadRequest(() => chests.markHonorDone(ctx.user.id, input.chestId, input.challengeId))),
+    claim: protectedProcedure
+      .input(z.object({ chestId: z.number().int() }))
+      .mutation(({ ctx, input }) => asBadRequest(() => chests.claimChest(ctx.user.id, input.chestId))),
+  }),
+
+  // Guarda-roupa: looks unlocked by level, equipped for free (no buying)
+  wardrobe: router({
+    equip: protectedProcedure
+      .input(z.object({ lookId: z.string().min(1).max(80) }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const { look } = await db.equipWardrobeLook(ctx.user.id, input.lookId);
+          return { success: true, name: look.name };
+        } catch (error) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não deu para equipar" });
+        }
+      }),
+  }),
+
   shop: router({
     items: protectedProcedure.query(async ({ ctx }) => {
       const [items, userItems, user, medalCount] = await Promise.all([
@@ -558,6 +577,7 @@ export const appRouter = router({
       }
 
       const rankings = await db.getLeaderboard(period.id);
+      const faces = await db.getFigurinesForUsers(rankings.map((r) => r.userId));
       const userPosition = await db.getUserRankingPosition(
         period.id,
         ctx.user.id,
@@ -570,6 +590,7 @@ export const appRouter = router({
           nickname: r.nickname,
           level: r.level,
           xpTotal: r.xpTotal,
+          figurine: faces.get(r.userId) ?? null,
         })),
         userPosition,
       };
@@ -585,6 +606,7 @@ export const appRouter = router({
       }
 
       const rankings = await db.getLeaderboard(period.id);
+      const faces = await db.getFigurinesForUsers(rankings.map((r) => r.userId));
       const userPosition = await db.getUserRankingPosition(
         period.id,
         ctx.user.id,
@@ -597,6 +619,7 @@ export const appRouter = router({
           nickname: r.nickname,
           level: r.level,
           xpTotal: r.xpTotal,
+          figurine: faces.get(r.userId) ?? null,
         })),
         userPosition,
       };
@@ -615,6 +638,10 @@ export const appRouter = router({
       return await db.getUserGroup(ctx.user.id);
     }),
 
+    myRequests: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserGroupRequests(ctx.user.id);
+    }),
+
     details: protectedProcedure
       .input(z.object({ groupId: z.number() }))
       .query(async ({ input }) => {
@@ -623,11 +650,12 @@ export const appRouter = router({
           throw new Error("Grupo não encontrado");
         }
 
-        const members = await db.getGroupMembers(input.groupId);
+        const members = (await db.getGroupMembers(input.groupId)).filter((m) => m.status === "approved");
+        const faces = await db.getFigurinesForUsers(members.map((m) => m.userId));
 
         return {
           group,
-          members: members.filter((m) => m.status === "approved"),
+          members: members.map((m) => ({ ...m, figurine: faces.get(m.userId) ?? null })),
         };
       }),
 
@@ -709,11 +737,15 @@ export const appRouter = router({
         db.getGroupMembersForLeader(group.id),
         db.getPendingGroupRequests(group.id),
       ]);
+      const faces = await db.getFigurinesForUsers([
+        ...members.map((m) => m.userId),
+        ...pendingRequests.map((r) => r.userId),
+      ]);
 
       return {
         group,
-        members,
-        pendingRequests,
+        members: members.map((m) => ({ ...m, figurine: faces.get(m.userId) ?? null })),
+        pendingRequests: pendingRequests.map((r) => ({ ...r, figurine: faces.get(r.userId) ?? null })),
       };
     }),
 

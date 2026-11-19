@@ -1,294 +1,187 @@
-import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import * as Haptics from "expo-haptics";
-import { ScreenContainer } from "@/components/screen-container";
-import { trpc } from "@/lib/trpc";
-import { useNotifications } from "@/components/notification-provider";
-import { useAuth } from "@/hooks/use-auth";
+import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { trpc } from "@/lib/trpc";
 import { GroupWeekCard } from "@/components/group-week-card";
+import { FaceBadge } from "@/components/face-badge";
+import { Badge, Btn, Card, DataRow, EmptyState, Grid, KpiCard, Loading, PageHeader } from "@/components/panel/ui";
+import { activityStatus, lastActivityText, STATUS_LABEL, STATUS_TONE } from "@/lib/leader";
 
-const formatDate = (value?: string | Date | null) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("pt-BR");
-};
-
-export default function LeaderDashboardScreen() {
-  const [refreshing, setRefreshing] = useState(false);
-  const notifications = useNotifications();
-  const { logout } = useAuth();
+export default function LeaderDashboard() {
   const router = useRouter();
-  const dashboardQuery = trpc.leader.dashboard.useQuery();
-  const approveMutation = trpc.leader.approveRequest.useMutation({
-    onSuccess: () => dashboardQuery.refetch(),
-  });
-  const rejectMutation = trpc.leader.rejectRequest.useMutation({
-    onSuccess: () => dashboardQuery.refetch(),
-  });
+  const dashboard = trpc.leader.dashboard.useQuery(undefined, { staleTime: 15_000 });
+  const inbox = trpc.engagement.inbox.useQuery(undefined, { staleTime: 30_000 });
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await dashboardQuery.refetch();
-    setRefreshing(false);
-  };
-
-  const handleLeaderLogout = async () => {
-    const confirmed =
-      Platform.OS === "web"
-        ? confirm("Tem certeza que deseja sair?")
-        : await new Promise<boolean>((resolve) => {
-            Alert.alert("Sair", "Deseja sair do sistema?", [
-              {
-                text: "Cancelar",
-                style: "cancel",
-                onPress: () => resolve(false),
-              },
-              {
-                text: "Sair",
-                style: "destructive",
-                onPress: () => resolve(true),
-              },
-            ]);
-          });
-    if (!confirmed) return;
-
-    logout();
-    router.replace("/login" as any);
-  };
-
-  const handleApprove = async (requestId: number, userName: string) => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    try {
-      await approveMutation.mutateAsync({ requestId });
-      notifications.success(`${userName} aprovado`);
-    } catch (error: any) {
-      const message = error?.message || "Failed to approve";
-      notifications.error(message);
-    }
-  };
-
-  const handleReject = async (requestId: number, userName: string) => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    const confirmed =
-      Platform.OS === "web"
-        ? confirm(`Reject request from ${userName}?`)
-        : await new Promise((resolve) => {
-            Alert.alert("Confirm", `Reject request from ${userName}?`, [
-              {
-                text: "Cancel",
-                style: "cancel",
-                onPress: () => resolve(false),
-              },
-              {
-                text: "Reject",
-                style: "destructive",
-                onPress: () => resolve(true),
-              },
-            ]);
-          });
-    if (!confirmed) return;
-
-    try {
-      await rejectMutation.mutateAsync({ requestId });
-      notifications.success(`${userName} rejeitado`);
-    } catch (error: any) {
-      const message = error?.message || "Failed to reject";
-      notifications.error(message);
-    }
-  };
-
-  if (dashboardQuery.isLoading) {
+  if (dashboard.isLoading) return <Loading label="Carregando sua célula..." />;
+  if (dashboard.error) {
     return (
-      <ScreenContainer className="items-center justify-center">
-        <ActivityIndicator size="large" />
-        <Text className="mt-4 text-muted">Loading leader dashboard...</Text>
-      </ScreenContainer>
+      <EmptyState
+        icon="lock"
+        title="Não foi possível carregar o painel"
+        text={dashboard.error.message}
+        action={<Btn title="Tentar de novo" onPress={() => dashboard.refetch()} />}
+      />
     );
   }
 
-  const group = dashboardQuery.data?.group;
-  const members = dashboardQuery.data?.members || [];
-  const pendingRequests = dashboardQuery.data?.pendingRequests || [];
+  const group = dashboard.data?.group;
+  const members = dashboard.data?.members ?? [];
+  const pending = dashboard.data?.pendingRequests ?? [];
+
+  if (!group) {
+    return (
+      <View style={{ gap: 16 }}>
+        <PageHeader title="Visão geral" />
+        <Card>
+          <EmptyState
+            icon="tab-cells"
+            title="Você ainda não lidera uma célula"
+            text="Peça a um administrador para criar a sua célula e definir você como líder."
+          />
+        </Card>
+      </View>
+    );
+  }
+
+  const statuses = members.map((m) => activityStatus(m.lastActivityDate));
+  const activeToday = statuses.filter((s) => s === "today").length;
+  const activeWeek = statuses.filter((s) => s === "today" || s === "week").length;
+  const idle = members.filter((m) => {
+    const s = activityStatus(m.lastActivityDate);
+    return s === "idle" || s === "never";
+  });
+  const avgStreak = members.length
+    ? Math.round((members.reduce((sum, m) => sum + (m.currentStreak ?? 0), 0) / members.length) * 10) / 10
+    : 0;
+  const top = members.slice(0, 5);
+  const unseenMessages = (inbox.data?.items ?? []).filter((m) => !m.seenAt);
 
   return (
-    <ScreenContainer>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+    <View style={{ gap: 20 }}>
+      <PageHeader
+        title={group.name}
+        subtitle={group.description || "Acompanhe sua célula nesta semana"}
+        actions={
+          <Btn variant="secondary" size="sm" title="Atualizar" onPress={() => dashboard.refetch()} loading={dashboard.isFetching} />
         }
-        contentContainerStyle={{ paddingBottom: 32 }}
-      >
-        <View className="bg-primary p-6">
-          <Text className="text-white text-2xl font-bold">
-            Dashboard da Célula
-          </Text>
-          <Text className="text-white/80 mt-2">
-            {group ? group.name : "No group assigned"}
-          </Text>
-        </View>
+      />
 
-        <View className="px-6 pt-4">
-          <TouchableOpacity
-            className="bg-error py-3 rounded-full active:opacity-80"
-            onPress={handleLeaderLogout}
+      <Grid min={220}>
+        <KpiCard icon="tab-cells" label="Membros" value={members.length} hint={`${group.totalPoints} pontos da célula`} />
+        <KpiCard
+          icon="bolt"
+          label="Ativos na semana"
+          value={`${activeWeek}/${members.length}`}
+          hint={`${activeToday} jogaram hoje`}
+        />
+        <KpiCard icon="streak" label="Sequência média" value={`${avgStreak} dias`} hint="Entre os membros" />
+        <KpiCard
+          icon="love-letter"
+          label="Pedidos pendentes"
+          value={pending.length}
+          hint={pending.length ? "Esperando sua resposta" : "Tudo em dia"}
+          tone={pending.length ? "attention" : "default"}
+          onPress={() => router.push("/leader/requests" as any)}
+        />
+      </Grid>
+
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+        <View style={{ flexGrow: 2, flexBasis: 420, gap: 12 }}>
+          <GroupWeekCard groupId={group.id} readOnly />
+          <Card
+            title="Destaques da célula"
+            subtitle="Quem mais somou XP"
+            action={<Btn variant="ghost" size="sm" title="Ver todos" onPress={() => router.push("/leader/members" as any)} />}
+            padded={false}
           >
-            <Text className="text-white text-center font-semibold">Sair</Text>
-          </TouchableOpacity>
+            {top.length === 0 ? (
+              <EmptyState icon="tab-cells" title="Nenhum membro ainda" text="Aprove pedidos para montar sua célula." />
+            ) : (
+              top.map((m, i) => (
+                <DataRow
+                  key={m.id}
+                  last={i === top.length - 1}
+                  leading={
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <Text className="text-muted font-extrabold" style={{ width: 20, textAlign: "right" }}>
+                        {i + 1}
+                      </Text>
+                      <FaceBadge size={40} figurine={m.figurine} />
+                    </View>
+                  }
+                  title={m.userNickname || m.userName || "Membro"}
+                  subtitle={`Nível ${m.userLevel} · ${m.userXp} XP · sequência ${m.currentStreak}`}
+                  right={
+                    <Badge
+                      label={STATUS_LABEL[activityStatus(m.lastActivityDate)]}
+                      tone={STATUS_TONE[activityStatus(m.lastActivityDate)]}
+                    />
+                  }
+                />
+              ))
+            )}
+          </Card>
         </View>
 
-        <View
-          className="p-6 gap-6"
-          style={{ width: "100%", maxWidth: 1100, alignSelf: "center" }}
-        >
-          {group ? (
-            <View className="bg-surface rounded-2xl p-4 border border-border">
-              <Text className="text-lg font-bold text-foreground">
-                Informação da Célula
-              </Text>
-              {group.description ? (
-                <Text className="text-sm text-muted mt-2">
-                  {group.description}
-                </Text>
-              ) : null}
-              <View className="flex-row gap-6 mt-3">
-                <Text className="text-foreground">
-                  Memebros: {group.memberCount}
-                </Text>
-                <Text className="text-foreground">
-                  Pontos: {group.totalPoints}
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <View className="bg-surface rounded-2xl p-4 border border-border">
-              <Text className="text-muted">You do not lead a group yet.</Text>
-            </View>
-          )}
+        <View style={{ flexGrow: 1, flexBasis: 300, gap: 12 }}>
+          {unseenMessages.length > 0 ? (
+            <Card
+              title={unseenMessages.length === 1 ? "Uma mensagem para você" : `${unseenMessages.length} mensagens para você`}
+              subtitle="Sua célula está lembrando de você"
+              action={<Btn variant="ghost" size="sm" title="Ler" onPress={() => router.push("/leader/messages" as any)} />}
+              padded={false}
+              style={{ borderColor: "#F2B50C", borderWidth: 2 }}
+            >
+              {unseenMessages.slice(0, 3).map((m, i, arr) => (
+                <DataRow
+                  key={m.id}
+                  last={i === arr.length - 1}
+                  leading={<FaceBadge size={40} figurine={m.figurine} />}
+                  title={m.fromNickname ?? "Alguém da célula"}
+                  subtitle={`“${m.label}”`}
+                />
+              ))}
+            </Card>
+          ) : null}
 
-          {group ? <GroupWeekCard groupId={group.id} readOnly /> : null}
-
-          <View className="bg-surface rounded-2xl p-4 border border-border">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-lg font-bold text-foreground">
-                Ranking do Time
-              </Text>
-              <Text className="text-xs text-muted">
-                {members.length} Membros
-              </Text>
-            </View>
-            {members.length === 0 ? (
-              <Text className="text-muted">Não Tem Membros na sua célula.</Text>
+          <Card title="Precisam de um incentivo" subtitle="Sem atividade nos últimos 7 dias" padded={false}>
+            {idle.length === 0 ? (
+              <EmptyState icon="party" title="Todo mundo está jogando!" text="Ninguém sumido nesta semana." />
             ) : (
-              <View className="gap-2">
-                {members.map((member, index) => (
-                  <View
-                    key={member.id}
-                    className="border border-border rounded-xl p-3 bg-background/40"
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-foreground font-semibold">
-                          {index + 1}. {member.userNickname || member.userName}
-                        </Text>
-                        <Text className="text-xs text-muted mt-1">
-                          Level {member.userLevel} | XP {member.userXp}
-                        </Text>
-                        <Text className="text-xs text-muted mt-1">
-                          Desafios {member.currentStreak} | Best{" "}
-                          {member.longestStreak} | última atividade{" "}
-                          {formatDate(member.lastActivityDate)}
-                        </Text>
-                      </View>
-                      {group?.leaderId === member.userId && (
-                        <View className="bg-accent/20 px-3 py-1 rounded-full">
-                          <Text className="text-accent text-xs font-semibold">
-                            Líder
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </View>
+              idle.slice(0, 6).map((m, i, arr) => (
+                <DataRow
+                  key={m.id}
+                  last={i === arr.length - 1}
+                  title={m.userNickname || m.userName || "Membro"}
+                  subtitle={lastActivityText(m.lastActivityDate)}
+                />
+              ))
             )}
-          </View>
+          </Card>
 
-          <View className="bg-surface rounded-2xl p-4 border border-border">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-lg font-bold text-foreground">
-                Requisições pendentes
-              </Text>
-              <Text className="text-xs text-muted">
-                {pendingRequests.length} Pendências
-              </Text>
-            </View>
-            {pendingRequests.length === 0 ? (
-              <Text className="text-muted">Sem requisições.</Text>
+          <Card
+            title="Pedidos para entrar"
+            action={
+              pending.length ? (
+                <Btn variant="ghost" size="sm" title="Responder" onPress={() => router.push("/leader/requests" as any)} />
+              ) : null
+            }
+            padded={false}
+          >
+            {pending.length === 0 ? (
+              <EmptyState icon="seal" title="Nenhum pedido" text="Novos pedidos aparecem aqui." />
             ) : (
-              <View className="gap-2">
-                {pendingRequests.map((request) => (
-                  <View
-                    key={request.id}
-                    className="border border-border rounded-xl p-3"
-                  >
-                    <Text className="text-foreground font-semibold">
-                      {request.userNickname || request.userName}
-                    </Text>
-                    <Text className="text-xs text-muted mt-1">
-                      Level {request.userLevel} | Requested{" "}
-                      {formatDate(request.requestedAt)}
-                    </Text>
-                    <View className="flex-row gap-2 mt-3">
-                      <Pressable
-                        className="flex-1 bg-success py-2 rounded-lg"
-                        onPress={() =>
-                          handleApprove(
-                            request.id,
-                            request.userNickname || request.userName || "User",
-                          )
-                        }
-                      >
-                        <Text className="text-green text-center font-semibold">
-                          Aprovado
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        className="flex-1 bg-error py-2 rounded-lg"
-                        onPress={() =>
-                          handleReject(
-                            request.id,
-                            request.userNickname || request.userName || "User",
-                          )
-                        }
-                      >
-                        <Text className="text-red text-center font-semibold">
-                          Rejeitado
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                ))}
-              </View>
+              pending.slice(0, 4).map((r, i, arr) => (
+                <DataRow
+                  key={r.id}
+                  last={i === arr.length - 1}
+                  title={r.userNickname || r.userName || "Usuário"}
+                  subtitle={`Nível ${r.userLevel}`}
+                />
+              ))
             )}
-          </View>
+          </Card>
         </View>
-      </ScrollView>
-    </ScreenContainer>
+      </View>
+    </View>
   );
 }

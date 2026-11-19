@@ -1,4 +1,5 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { resolveFigurine, type Figurine } from "../shared/character-catalog";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import {
@@ -36,14 +37,20 @@ import {
 import { ENV } from "./_core/env";
 import { getCampoGrandeDateString } from "../shared/_core/time";
 import {
-  MAX_STREAK_FREEZES,
-  STREAK_FREEZE_PRICE,
   STREAK_MILESTONES,
   diffDateStrings,
   levelFromXp,
-  weekKey,
 } from "../shared/progression";
-import { DEFAULT_CHARACTER } from "../shared/character-catalog";
+import {
+  DEFAULT_CHARACTER,
+  DEFAULT_LOOK,
+  accessorySlug,
+  hairSlug,
+  isCharacterKey,
+  lookSlug,
+  needsOriginalLook,
+  wardrobeFor,
+} from "../shared/character-catalog";
 
 let _pool: Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -442,16 +449,13 @@ export type StreakUpdateResult = {
   longestStreak: number;
   increased: boolean;
   wasReset: boolean;
-  freezesUsed: number;
-  freezesLeft: number;
   milestoneReached: number | null;
   bonusDenarios: number;
 };
 
 /**
  * Updates the streak using the app's day (America/Campo_Grande), not the server clock.
- * Missed days are covered by "Graças" (streak freezes) when available; one Graça is
- * granted per week (up to MAX_STREAK_FREEZES).
+ * A missed day resets the streak (the old "Graças"/streak freezes were removed from the game).
  */
 export async function updateUserStreak(
   userId: number,
@@ -466,52 +470,26 @@ export async function updateUserStreak(
   const lastActivity = user.lastActivityDate
     ? String(user.lastActivityDate).slice(0, 10)
     : null;
-
-  // Weekly Graça grant
-  let freezes = user.streakFreezes ?? 0;
-  const currentWeek = weekKey(today);
-  const grantWeek = user.streakFreezeWeek !== currentWeek;
-  if (grantWeek) {
-    freezes = Math.min(MAX_STREAK_FREEZES, freezes + 1);
-  }
-
   const daysDiff = lastActivity ? diffDateStrings(lastActivity, today) : null;
 
   if (daysDiff !== null && daysDiff <= 0) {
     // Already counted today
-    if (grantWeek) {
-      await db
-        .update(users)
-        .set({ streakFreezes: freezes, streakFreezeWeek: currentWeek })
-        .where(eq(users.id, userId));
-    }
     return {
       currentStreak: user.currentStreak,
       longestStreak: user.longestStreak,
       increased: false,
       wasReset: false,
-      freezesUsed: 0,
-      freezesLeft: freezes,
       milestoneReached: null,
       bonusDenarios: 0,
     };
   }
 
   let newStreak = 1;
-  let freezesUsed = 0;
   let wasReset = false;
-
   if (daysDiff === 1) {
     newStreak = (user.currentStreak || 0) + 1;
   } else if (daysDiff !== null && daysDiff > 1) {
-    const missedDays = daysDiff - 1;
-    if (user.currentStreak > 0 && missedDays <= freezes) {
-      freezesUsed = missedDays;
-      freezes -= missedDays;
-      newStreak = (user.currentStreak || 0) + 1;
-    } else {
-      wasReset = user.currentStreak > 0;
-    }
+    wasReset = user.currentStreak > 0;
   }
 
   const newLongestStreak = Math.max(newStreak, user.longestStreak || 0);
@@ -524,8 +502,6 @@ export async function updateUserStreak(
       currentStreak: newStreak,
       longestStreak: newLongestStreak,
       lastActivityDate: today,
-      streakFreezes: freezes,
-      streakFreezeWeek: currentWeek,
       ...(bonusDenarios > 0
         ? { denarioBalance: sql`${users.denarioBalance} + ${bonusDenarios}` }
         : {}),
@@ -547,62 +523,9 @@ export async function updateUserStreak(
     longestStreak: newLongestStreak,
     increased: true,
     wasReset,
-    freezesUsed,
-    freezesLeft: freezes,
     milestoneReached: milestone?.days ?? null,
     bonusDenarios,
   };
-}
-
-/** Buy one Graça (streak freeze) with denários. Returns null if not allowed. */
-export async function buyStreakFreeze(userId: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  // Apply this week's free Graça first so a purchase is never wasted by the cap
-  const currentWeek = weekKey(getCampoGrandeDateString());
-  await db
-    .update(users)
-    .set({
-      streakFreezes: sql`LEAST(${users.streakFreezes} + 1, ${MAX_STREAK_FREEZES})`,
-      streakFreezeWeek: currentWeek,
-    })
-    .where(
-      and(
-        eq(users.id, userId),
-        sql`${users.streakFreezeWeek} IS DISTINCT FROM ${currentWeek}`,
-      ),
-    );
-
-  const [updated] = await db
-    .update(users)
-    .set({
-      streakFreezes: sql`${users.streakFreezes} + 1`,
-      denarioBalance: sql`${users.denarioBalance} - ${STREAK_FREEZE_PRICE}`,
-    })
-    .where(
-      and(
-        eq(users.id, userId),
-        sql`${users.streakFreezes} < ${MAX_STREAK_FREEZES}`,
-        gte(users.denarioBalance, STREAK_FREEZE_PRICE),
-      ),
-    )
-    .returning({
-      streakFreezes: users.streakFreezes,
-      denarioBalance: users.denarioBalance,
-    });
-
-  if (!updated) return null;
-
-  await createPointTransaction({
-    userId,
-    source: "PURCHASE",
-    xp: 0,
-    denario: -STREAK_FREEZE_PRICE,
-    description: "Compra de Graça (proteção de sequência)",
-  });
-
-  return updated;
 }
 
 // ============================================
@@ -613,7 +536,23 @@ export async function createPointTransaction(data: InsertPointTransaction) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.insert(pointTransactions).values(data);
+  try {
+    await db.insert(pointTransactions).values(data);
+  } catch (error) {
+    // The remote database may not have every point_source value yet (MEDAL, LEVEL_UP, QUEST,
+    // GROUP_CHEST need the enum owner to add them — see pnpm db:status). Never let the
+    // history log break a reward that was already paid: record it under CHALLENGE instead.
+    const message = String((error as { message?: string; cause?: { message?: string } })?.cause?.message ?? (error as Error)?.message ?? "");
+    if (data.source !== "CHALLENGE" && /invalid input value for enum|point_source/i.test(message)) {
+      await db.insert(pointTransactions).values({
+        ...data,
+        source: "CHALLENGE",
+        description: `[${data.source}] ${data.description ?? ""}`.trim(),
+      });
+      return;
+    }
+    throw error;
+  }
 }
 
 // ============================================
@@ -773,7 +712,57 @@ export async function equipItem(userId: number, itemId: number) {
     updateData.equippedHairColorId = itemId;
   }
 
+  // Pose accessories (harp, cap…) only exist on the Original look with the character's own hair
+  if (item.type === "ACCESSORY" && needsOriginalLook(item.assetKey)) {
+    updateData.equippedClothesId = null;
+  } else if (item.type === "CLOTHES" && item.assetKey !== DEFAULT_LOOK) {
+    const user = await getUserById(userId);
+    const worn = user?.equippedAccessoryId ? await getShopItemById(user.equippedAccessoryId) : null;
+    if (needsOriginalLook(worn?.assetKey)) updateData.equippedAccessoryId = null;
+  }
+
   await db.update(users).set(updateData).where(eq(users.id, userId));
+}
+
+/**
+ * Guarda-roupa: put on a whole look (outfit + hair color + pose accessory) unlocked by level.
+ * Nothing is bought — the look just has to be unlocked (shared/character-catalog wardrobeFor).
+ */
+export async function equipWardrobeLook(userId: number, lookId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const user = await getUserById(userId);
+  if (!user) throw new Error("Usuário não encontrado");
+  const character = isCharacterKey(user.characterKey) ? user.characterKey : DEFAULT_CHARACTER;
+  const look = wardrobeFor(character).find((w) => w.id === lookId);
+  if (!look) throw new Error("Look não encontrado");
+  const level = levelFromXp(user.xpTotal);
+  if (level < look.minLevel) throw new Error(`Esse look libera no nível ${look.minLevel}`);
+
+  const slugs = {
+    clothes: look.look === DEFAULT_LOOK ? null : lookSlug(character, look.look),
+    hair: look.hair ? hairSlug(character, look.hair) : null,
+    accessory: look.accessory ? accessorySlug(look.accessory) : null,
+  };
+  const wanted = Object.values(slugs).filter((v): v is string => !!v);
+  const rows = wanted.length
+    ? await db.select({ id: shopItems.id, slug: shopItems.slug }).from(shopItems).where(inArray(shopItems.slug, wanted))
+    : [];
+  const idOf = (slug: string | null) => {
+    if (!slug) return null;
+    const row = rows.find((r) => r.slug === slug);
+    if (!row) throw new Error("Catálogo desatualizado: peça para a liderança sincronizar (pnpm catalog:sync)");
+    return row.id;
+  };
+  await db
+    .update(users)
+    .set({
+      equippedClothesId: idOf(slugs.clothes),
+      equippedHairColorId: idOf(slugs.hair),
+      equippedAccessoryId: idOf(slugs.accessory),
+    })
+    .where(eq(users.id, userId));
+  return { look };
 }
 
 export async function unequipItem(
@@ -814,6 +803,54 @@ export async function setUserCharacter(userId: number, characterKey: string) {
     .update(users)
     .set({ characterKey, equippedClothesId: null, equippedHairColorId: null })
     .where(eq(users.id, userId));
+}
+
+/**
+ * Figurines for many users at once (ranking faces): two queries, no per-user lookups.
+ * Users missing from the result fall back to the default character on the client.
+ */
+export async function getFigurinesForUsers(userIds: number[]): Promise<Map<number, Figurine>> {
+  const out = new Map<number, Figurine>();
+  const ids = [...new Set(userIds)];
+  const db = await getDb();
+  if (!db || ids.length === 0) return out;
+
+  const rows = await db
+    .select({
+      id: users.id,
+      characterKey: users.characterKey,
+      clothesId: users.equippedClothesId,
+      hairColorId: users.equippedHairColorId,
+      accessoryId: users.equippedAccessoryId,
+    })
+    .from(users)
+    .where(inArray(users.id, ids));
+
+  const itemIds = [
+    ...new Set(
+      rows.flatMap((r) => [r.clothesId, r.hairColorId, r.accessoryId]).filter((v): v is number => typeof v === "number"),
+    ),
+  ];
+  const items = itemIds.length
+    ? await db
+        .select({ id: shopItems.id, slug: shopItems.slug, assetKey: shopItems.assetKey, characterKey: shopItems.characterKey })
+        .from(shopItems)
+        .where(inArray(shopItems.id, itemIds))
+    : [];
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const pick = (id: number | null) => (id ? byId.get(id) ?? null : null);
+
+  for (const r of rows) {
+    out.set(
+      r.id,
+      resolveFigurine(r.characterKey, {
+        clothes: pick(r.clothesId),
+        hairColor: pick(r.hairColorId),
+        accessory: pick(r.accessoryId),
+      }),
+    );
+  }
+  return out;
 }
 
 export async function getEquippedItems(userId: number) {
@@ -1015,6 +1052,16 @@ export async function createGroup(data: InsertGroup) {
   await db.insert(groups).values(data);
 }
 
+/** Every join request of a user (pending / approved / rejected), one row per cell. */
+export async function getUserGroupRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({ groupId: groupMembers.groupId, status: groupMembers.status })
+    .from(groupMembers)
+    .where(eq(groupMembers.userId, userId));
+}
+
 export async function requestJoinGroup(userId: number, groupId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1029,7 +1076,19 @@ export async function requestJoinGroup(userId: number, groupId: number) {
     .limit(1);
 
   if (existing.length > 0) {
-    throw new Error("Você já solicitou entrada neste grupo");
+    // A rejected request can be sent again: reopen the same row as a fresh request
+    if (existing[0].status === "rejected") {
+      await db
+        .update(groupMembers)
+        .set({ status: "pending", requestedAt: new Date(), approvedAt: null, approvedBy: null })
+        .where(eq(groupMembers.id, existing[0].id));
+      return;
+    }
+    throw new Error(
+      existing[0].status === "approved"
+        ? "Você já faz parte desta célula"
+        : "Você já solicitou entrada nesta célula",
+    );
   }
 
   await db.insert(groupMembers).values({

@@ -6,6 +6,7 @@ export const themeColors: {
   primaryLight: Swatch;
   secondary: Swatch;
   accent: Swatch;
+  banner: Swatch;
   background: Swatch;
   surface: Swatch;
   foreground: Swatch;

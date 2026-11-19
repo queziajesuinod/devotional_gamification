@@ -571,6 +571,8 @@ export const encouragements = pgTable(
     day: date("day").notNull(),
     seenAt: timestamp("seenAt"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    /** encouragement_messages.id (admin-configured message); `type` holds its category */
+    messageId: integer("messageId"),
   },
   (table) => ({
     pairDayIdx: uniqueIndex("encouragements_from_to_day_idx").on(
@@ -616,3 +618,67 @@ export const leagueMemberships = pgTable(
 );
 
 export type LeagueMembership = typeof leagueMemberships.$inferSelect;
+
+/** Baús de Desafio bought in the Mercado (shared/chests.ts). Plain text columns, no enums. */
+export const userChests = pgTable(
+  "user_chests",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("userId").notNull(),
+    tier: varchar("tier", { length: 10 }).notNull(),
+    /** JSON: ChestChallenge[] (snapshot at purchase) */
+    challenges: text("challenges").notNull(),
+    /** ACTIVE | CLAIMED | EXPIRED (READY is computed) */
+    status: varchar("status", { length: 12 }).default("ACTIVE").notNull(),
+    pricePaid: integer("pricePaid").notNull(),
+    rewardXp: integer("rewardXp").notNull(),
+    rewardDenario: integer("rewardDenario").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    claimedAt: timestamp("claimedAt"),
+    /** chest_types.id it was bought from + name/color snapshot (the type can change later) */
+    chestTypeId: integer("chestTypeId"),
+    name: varchar("name", { length: 60 }),
+    color: varchar("color", { length: 9 }),
+  },
+  (table) => ({
+    userIdx: index("user_chests_user_idx").on(table.userId, table.status),
+  }),
+);
+
+export type UserChest = typeof userChests.$inferSelect;
+
+/** Chest types configured in the admin (shared/chests.ts). `challenges` = JSON PoolChallenge[]. */
+export const chestTypes = pgTable("chest_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 60 }).notNull(),
+  description: varchar("description", { length: 200 }).default("").notNull(),
+  color: varchar("color", { length: 9 }).default("#E0A800").notNull(),
+  price: integer("price").notNull(),
+  days: integer("days").notNull(),
+  challengeCount: integer("challengeCount").notNull(),
+  rewardXp: integer("rewardXp").notNull(),
+  rewardDenario: integer("rewardDenario").notNull(),
+  challenges: text("challenges").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type ChestType = typeof chestTypes.$inferSelect;
+
+/** Encouragement messages configured in the admin. `category` = PRAYED | CHEER | PROUD. */
+export const encouragementMessages = pgTable("encouragement_messages", {
+  id: serial("id").primaryKey(),
+  label: varchar("label", { length: 60 }).notNull(),
+  receivedText: varchar("receivedText", { length: 80 }).notNull(),
+  emoji: varchar("emoji", { length: 16 }).default("").notNull(),
+  category: varchar("category", { length: 10 }).default("CHEER").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type EncouragementMessage = typeof encouragementMessages.$inferSelect;
